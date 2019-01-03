@@ -16,4 +16,6 @@ This is a script to compare MT results, loosely based [Discriminative Language M
 
 ## Usage Instructions
 
-TODO
+Run this over two system outputs, as follows:
+
+    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
