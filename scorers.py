@@ -60,7 +60,7 @@ class SentBleuScorer:
     return nltk.translate.bleu_score.sentence_bleu([ref], out, smoothing_function=chencherry.method2), None
 
   def name(self):
-    return "BLEU"
+    return "sentence-level BLEU"
 
 class LengthScorer:
   """

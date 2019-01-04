@@ -1,7 +1,6 @@
 # Overall imports
 import argparse
 import operator
-import nltk
 
 # In-package imports
 import ngram_utils
@@ -158,6 +157,35 @@ def print_ngram_report(ref, out1, out2,
     print('{}\t{} (sys1={}, sys2={})'.format(' '.join(k), v, match1[k], match2[k]))
   print()
 
+
+def print_sentence_examples(ref, out1, out2,
+                            score_type='sentbleu',
+                            report_length=10):
+  """
+  Print examples of sentences that satisfy some criterion, usually score of one system better
+
+  Args:
+    ref: Tokens from the reference
+    out1: Tokens from the output file 1
+    out2: Tokens from the output file 2
+    score_type: The type of scorer to use
+    report_length: Number of sentences to print for each system being better or worse
+  """
+  scorer = scorers.create_scorer_from_profile(score_type)
+  sname = scorer.name()
+  scorediff_list = []
+  for i, (o1, o2, r) in enumerate(zip(out1, out2, ref)):
+    s1, str1 = scorer.score_sentence(r, o1)
+    s2, str2 = scorer.score_sentence(r, o2)
+    scorediff_list.append((s2-s1, s1, s2, str1, str2, i))
+  scorediff_list.sort()
+  print(f'--- {report_length} sentences where Sys1>Sys2 at {sname}')
+  for bdiff, s1, s2, str1, str2, i in scorediff_list[:report_length]:
+    print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
+  print(f'--- {report_length} sentences where Sys2>Sys1 at {sname}')
+  for bdiff, s1, s2, str1, str2, i in scorediff_list[-report_length:]:
+    print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
+
 def print_header(header):
   print(f'********************** {header} ************************')
 
@@ -198,8 +226,12 @@ if __name__ == '__main__':
                       Compare ngrams. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_ngram_report' to see which arguments are available.
                       """)
-  parser.add_argument('--sent_size', type=int, default=10,
-                      help='How many sentences to print.')
+  parser.add_argument('--compare_sentence_examples', type=str, nargs='*',
+                      default=['score_type=sentbleu'],
+                      help="""
+                      Compare sentences. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
+                      See documentation for 'print_sentence_examples' to see which arguments are available.
+                      """)
   args = parser.parse_args()
 
   ref, out1, out2 = [corpus_utils.load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
@@ -235,34 +267,10 @@ if __name__ == '__main__':
       kargs = parse_profile(profile)
       print_ngram_report(ref, out1, out2, **kargs)
 
-  # Calculate BLEU diff
-  scorediff_list = []
-  chencherry = nltk.translate.bleu_score.SmoothingFunction()
-  for i, (o1, o2, r) in enumerate(zip(out1, out2, ref)):
-    b1 = nltk.translate.bleu_score.sentence_bleu([r], o1, smoothing_function=chencherry.method2)
-    b2 = nltk.translate.bleu_score.sentence_bleu([r], o2, smoothing_function=chencherry.method2)
-    scorediff_list.append((b2-b1, b1, b2, i))
-  scorediff_list.sort()
-  print_header('Length Analysis')
-  print('--- length ratio')
-  length_ref = sum([len(x) for x in ref])
-  length_out1 = sum([len(x) for x in out1])
-  length_out2 = sum([len(x) for x in out2])
-  print('System 1: {}, System 2: {}'.format(length_out1/length_ref, length_out2/length_ref))
-  print('--- length difference from reference by bucket')
-  length_diff = {}
-  length_diff2 = {}
-  for r, o, o2 in zip(ref, out1, out2):
-    ld = len(o)-len(r)
-    ld2 = len(o2)-len(r)
-    length_diff[ld] = length_diff.get(ld,0) + 1
-    length_diff2[ld2] = length_diff2.get(ld2,0) + 1
-  for ld in sorted(list(set(length_diff.keys()) | set(length_diff2.keys()))):
-    print("{}\t{}\t{}".format(ld, length_diff.get(ld,0), length_diff2.get(ld,0)))
-  print('\n\n********************** BLEU Analysis ************************')
-  print('--- %d sentences that System 1 did a better job at than System 2' % args.sent_size)
-  for bdiff, b1, b2, i in scorediff_list[:args.sent_size]:
-    print ('BLEU+1 sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, b1, b2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
-  print('--- %d sentences that System 2 did a better job at than System 1' % args.sent_size)
-  for bdiff, b1, b2, i in scorediff_list[-args.sent_size:]:
-    print ('BLEU+1 sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, b1, b2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
+  # Sentence example analysis
+  if args.compare_sentence_examples:
+    print_header('Sentence Example Analysis')
+    for profile in args.compare_sentence_examples:
+      kargs = parse_profile(profile)
+      print_sentence_examples(ref, out1, out2, **kargs)
+      print()
