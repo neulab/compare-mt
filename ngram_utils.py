@@ -1,5 +1,5 @@
 from collections import defaultdict
-import sys
+import itertools
 
 def iterate_sent_ngrams(words, labels=None, min_length=1, max_length=4):
   """
@@ -15,7 +15,8 @@ def iterate_sent_ngrams(words, labels=None, min_length=1, max_length=4):
     An iterator over n-grams in the sentence with both words and labels
   """
   if labels is not None and len(labels) != len(words):
-    raise ValueError('length of labels and sentence must be the same')
+    raise ValueError(f'length of labels and sentence must be the same but got'
+                     f' {len(words)} != {len(labels)} at\n{words}\n{labels}')
   for n in range(min_length-1, max_length):
     for i in range(len(words) - n):
       word_ngram = tuple(words[i:i + n + 1])
@@ -44,14 +45,16 @@ def compare_ngrams(ref, out, ref_labels=None, out_labels=None, min_length=1, max
   if (ref_labels is None) != (out_labels is None):
     raise ValueError('ref_labels or out_labels must both be either None or not None')
   total, match, over, under = [defaultdict(lambda: 0) for _ in range(4)]
-  for ref_sent, out_sent in zip(ref, out):
+  if ref_labels is None: ref_labels = []
+  if out_labels is None: out_labels = []
+  for ref_sent, out_sent, ref_lab, out_lab in itertools.zip_longest(ref, out, ref_labels, out_labels):
     # Find the number of reference n-grams (on a word level)
-    ref_ngrams = list(iterate_sent_ngrams(ref_sent, labels=ref_labels, min_length=min_length, max_length=max_length))
+    ref_ngrams = list(iterate_sent_ngrams(ref_sent, labels=ref_lab, min_length=min_length, max_length=max_length))
     ref_word_counts = defaultdict(lambda: 0)
     for ref_w, ref_l in ref_ngrams:
       ref_word_counts[ref_w] += 1
     # Step through the output ngrams and find matched and overproduced ones
-    for out_w, out_l in iterate_sent_ngrams(out_sent, labels=out_labels, min_length=min_length, max_length=max_length):
+    for out_w, out_l in iterate_sent_ngrams(out_sent, labels=out_lab, min_length=min_length, max_length=max_length):
       total[out_l] += 1
       if ref_word_counts[out_w] > 0:
         match[out_l] += 1

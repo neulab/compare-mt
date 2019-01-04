@@ -38,7 +38,9 @@ def print_score_report(ref, out1, out2,
 
 def print_word_accuracy_report(ref, out1, out2,
                           acc_type='fmeas', bucket_type='freq',
-                          freq_count_file=None, freq_corpus_file=None):
+                          freq_count_file=None, freq_corpus_file=None,
+                          label_set=None,
+                          ref_labels=None, out1_labels=None, out2_labels=None):
   """
   Print a report comparing the word accuracy.
 
@@ -53,14 +55,21 @@ def print_word_accuracy_report(ref, out1, out2,
                       se the frequency in the training set, in which case you specify the path of the target side
                       he training corpus.
     freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
+    ref_labels: either a filename of a file full of reference labels, or a list of strings corresponding to `ref`.
+    out1_labels: output 1 labels. must be specified if ref_labels is specified.
+    out2_labels: output 2 labels. must be specified if ref_labels is specified.
   """
   acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
                                                          freq_corpus_file=freq_corpus_file,
-                                                         freq_data=ref)
-  matches1 = bucketer.calc_bucketed_matches(ref, out1)
-  matches2 = bucketer.calc_bucketed_matches(ref, out2)
+                                                         freq_data=ref,
+                                                         label_set=label_set)
+  ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
+  out1_labels = corpus_utils.load_tokens(out1_labels) if type(out1_labels) == str else out1_labels
+  out2_labels = corpus_utils.load_tokens(out2_labels) if type(out2_labels) == str else out2_labels
+  matches1 = bucketer.calc_bucketed_matches(ref, out1, ref_labels=ref_labels, out_labels=out1_labels)
+  matches2 = bucketer.calc_bucketed_matches(ref, out2, ref_labels=ref_labels, out_labels=out2_labels)
   acc_types = acc_type.split('+')
   for at in acc_types:
     if at not in acc_type_map:
@@ -118,7 +127,8 @@ def print_ngram_report(ref, out1, out2,
     min_ngram_length: minimum n-gram length
     max_ngram_length: maximum n-gram length
     report_length: the number of n-grams to report
-    alpha: when sorting n-grams for salient features, the smoothing coefficient
+    alpha: when sorting n-grams for salient features, the smoothing coefficient. A higher smoothing coefficient
+           will result in more frequent phenomena (sometimes this is good).
     compare_type: what type of statistic to compare
                   (match: n-grams that match the reference, over: over-produced ngrams, under: under-produced ngrams)
     ref_labels: either a filename of a file full of reference labels, or a list of strings corresponding to `ref`.
@@ -140,11 +150,11 @@ def print_ngram_report(ref, out1, out2,
   total2, match2, over2, under2 = ngram_utils.compare_ngrams(ref, out2, ref_labels=ref_labels, out_labels=out2_labels,
                                                              min_length=min_ngram_length, max_length=max_ngram_length)
   if compare_type == 'match':
-    scores = stat_utils.extract_salient_features(match1, match2, alpha=1)
+    scores = stat_utils.extract_salient_features(match1, match2, alpha=alpha)
   elif compare_type == 'over':
-    scores = stat_utils.extract_salient_features(over1, over2, alpha=1)
+    scores = stat_utils.extract_salient_features(over1, over2, alpha=alpha)
   elif compare_type == 'under':
-    scores = stat_utils.extract_salient_features(under1, under2, alpha=1)
+    scores = stat_utils.extract_salient_features(under1, under2, alpha=alpha)
   else:
     raise ValueError(f'Illegal compare_type "{compare_type}"')
   scorelist = sorted(scores.items(), key=operator.itemgetter(1), reverse=True)

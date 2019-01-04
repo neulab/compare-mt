@@ -27,19 +27,21 @@ class Bucketer:
 
 class WordBucketer(Bucketer):
 
-  def calc_bucket(self, val):
+  def calc_bucket(self, val, ref_label=None, out_label=None):
     """
     Calculate the bucket for a particular word
 
     Args:
       val: The word to calculate the bucket for
+      ref_label: If there's a label on the reference word, add it
+      out_label: If there's a label on the output word, add it
 
     Returns:
       An integer ID of the bucket
     """
     raise NotImplementedError('calc_bucket must be implemented in subclasses of WordBucketer')
 
-  def calc_bucketed_matches(self, ref, out):
+  def calc_bucketed_matches(self, ref, out, ref_labels=None, out_labels=None):
     """
     Calculate the number of matches, bucketed by the type of word we have
     This must be used with a subclass that has self.bucket_strs defined, and self.calc_bucket(word) implemented.
@@ -47,6 +49,8 @@ class WordBucketer(Bucketer):
     Args:
       ref: The reference corpus
       out: The output corpus
+      ref_labels: Labels of the reference corpus (optional)
+      out_labels: Labels of the output corpus (should be specified iff ref_labels is)
 
     Returns:
       A tuple containing:
@@ -57,18 +61,32 @@ class WordBucketer(Bucketer):
         prec: precision of the bucket
         fmeas: f1-measure of the bucket
     """
+    ref_labels = ref_labels if ref_labels else []
+    out_labels = out_labels if out_labels else []
     matches = [[0, 0, 0] for x in self.bucket_strs]
-    for ref_sent, out_sent in zip(ref, out):
-      ref_freq, out_freq = defaultdict(lambda: 0), defaultdict(lambda: 0)
-      for x in ref_sent:
-        ref_freq[x] += 1
-      for x in out_sent:
-        out_freq[x] += 1
-      for word in set(itertools.chain(ref_freq.keys(), out_freq.keys())):
-        bucket = self.calc_bucket(word)
-        matches[bucket][0] += min(ref_freq[word], out_freq[word])
-        matches[bucket][1] += ref_freq[word]
-        matches[bucket][2] += out_freq[word]
+    for ref_sent, out_sent, ref_lab, out_lab in itertools.zip_longest(ref, out, ref_labels, out_labels):
+      ref_pos = defaultdict(lambda: [])
+      for i, word in enumerate(ref_sent):
+        ref_pos[word].append(i)
+      for i, word in enumerate(out_sent):
+        if len(ref_pos[word]) > 0:
+          ri = ref_pos[word][0]
+          ref_pos[word] = ref_pos[word][1:]
+          bucket = self.calc_bucket(word,
+                                    ref_label=ref_lab[ri] if ref_lab else None,
+                                    out_label=out_lab[i] if out_lab else None)
+          matches[bucket][0] += 1
+          matches[bucket][1] += 1
+        else:
+          bucket = self.calc_bucket(word,
+                                    out_label=out_lab[i] if out_lab else None)
+        matches[bucket][2] += 1
+      for word, my_pos in ref_pos.items():
+        if len(my_pos) > 0:
+          for ri in my_pos:
+            bucket = self.calc_bucket(ref_sent[ri],
+                                      ref_label=ref_lab[ri] if ref_lab else None)
+            matches[bucket][1] += 1
     for both_tot, ref_tot, out_tot in matches:
       if both_tot == 0:
         rec, prec, fmeas = 0.0, 0.0, 0.0
@@ -120,11 +138,40 @@ class FreqWordBucketer(WordBucketer):
       bucket_cutoffs = [1, 2, 3, 4, 5, 10, 100, 1000]
     self.set_bucket_cutoffs(bucket_cutoffs)
 
-  def calc_bucket(self, word):
+  def calc_bucket(self, word, ref_label=None, out_label=None):
     return self.cutoff_into_bucket(self.freq_counts.get(word, 0))
 
   def name(self):
     return "frequency"
+
+class LabelWordBucketer(WordBucketer):
+
+  def __init__(self,
+               label_set=None):
+    """
+    A bucketer that buckets words by their labels.
+
+    Args:
+      label_set: The set of labels to use as buckets. This can be a list, or a string separated by '+'s.
+    """
+    if type(label_set) == str:
+      label_set = label_set.split('+')
+    self.bucket_strs = label_set + ['other']
+    label_set_len = len(label_set)
+    self.bucket_map = defaultdict(lambda: label_set_len)
+    for i, l in enumerate(label_set):
+      self.bucket_map[l] = i
+
+  def calc_bucket(self, word, ref_label=None, out_label=None):
+    if ref_label:
+      return self.bucket_map[ref_label]
+    elif out_label:
+      return self.bucket_map[out_label]
+    else:
+      raise ValueError('When calculating buckets by label, ref_label or out_label must be non-zero')
+
+  def name(self):
+    return "labels"
 
 class SentenceBucketer(Bucketer):
 
@@ -205,6 +252,7 @@ class LengthDiffSentenceBucketer(SentenceBucketer):
 
 def create_word_bucketer_from_profile(bucket_type,
                                       freq_counts=None, freq_count_file=None, freq_corpus_file=None, freq_data=None,
+                                      label_set=None,
                                       bucket_cutoffs=None):
   if bucket_type == 'freq':
     return FreqWordBucketer(
@@ -213,6 +261,9 @@ def create_word_bucketer_from_profile(bucket_type,
       freq_corpus_file=freq_corpus_file,
       freq_data=freq_data,
       bucket_cutoffs=bucket_cutoffs)
+  elif bucket_type == 'label':
+    return LabelWordBucketer(
+      label_set=label_set)
   else:
     raise ValueError(f'Illegal bucket type {bucket_type}')
 
