@@ -8,7 +8,7 @@ import ngram_utils
 import stat_utils
 import corpus_utils
 import scorers
-import word_bucketers
+import bucketers
 
 def parse_profile(profile):
   kargs = {}
@@ -56,7 +56,7 @@ def print_word_accuracy_report(ref, out1, out2,
     freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
   """
   acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
-  bucketer = word_bucketers.create_bucketer_from_profile(bucket_type,
+  bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
                                                          freq_corpus_file=freq_corpus_file,
                                                          freq_data=ref)
@@ -70,6 +70,40 @@ def print_word_accuracy_report(ref, out1, out2,
     print(f'--- word {acc_type} by {bucketer.name()} bucket')
     for bucket_str, match1, match2 in zip(bucketer.bucket_strs, matches1, matches2):
       print("{}\t{:.4f}\t{:.4f}".format(bucket_str, match1[aid], match2[aid]))
+    print()
+
+def print_sentence_bucketed_report(ref, out1, out2,
+                                   bucket_type='score', statistic_type='count',
+                                   score_measure='bleu'):
+  """
+  Print a report of sentences by bucket
+
+  Args:
+    ref: Tokens from the reference
+    out1: Tokens from the output file 1
+    out2: Tokens from the output file 2
+    bucket_type: The type of bucketing method to use
+    score_measure: If using 'score' as either bucket_type or statistic_type, which scorer to use
+  """
+  bucketer = bucketers.create_sentence_bucketer_from_profile(bucket_type, score_type=score_measure)
+  bc1 = bucketer.create_bucketed_corpus(out1, ref=ref)
+  bc2 = bucketer.create_bucketed_corpus(out2, ref=ref)
+
+  if statistic_type == 'count':
+    aggregator = lambda out,ref: len(out)
+  elif statistic_type == 'score':
+    scorer = scorers.create_scorer_from_profile(score_measure)
+    aggregator = lambda out,ref: scorer.score_corpus(ref,out)[0]
+  else:
+    raise ValueError(f'Illegal statistic_type {statistic_type}')
+
+  stats1 = [aggregator(out,ref) for (out,ref) in bc1]
+  stats2 = [aggregator(out,ref) for (out,ref) in bc2]
+
+  print(f'--- bucket_type={bucket_type}, statistic_type={statistic_type}, score_measure={score_measure}')
+  for bs, s1, s2 in zip(bucketer.bucket_strs, stats1, stats2):
+    print(f'{bs}\t{s1}\t{s2}')
+  print()
 
 def print_ngram_report(ref, out1, out2,
                        min_ngram_length=1, max_ngram_length=4,
@@ -93,10 +127,11 @@ def print_ngram_report(ref, out1, out2,
     out1_labels: output 1 labels. must be specified if ref_labels is specified.
     out2_labels: output 2 labels. must be specified if ref_labels is specified.
   """
-  print(f'params: min_ngram_length={min_ngram_length}, max_ngram_length={max_ngram_length}')
-  print(f'        report_length={report_length}, alpha={alpha}, compare_type={compare_type}')
+  print(f'--- min_ngram_length={min_ngram_length}, max_ngram_length={max_ngram_length}')
+  print(f'    report_length={report_length}, alpha={alpha}, compare_type={compare_type}')
   if type(ref_labels) == str:
-    print(f'        ref_labels={ref_labels}, out1_labels={out1_labels}, out2_labels={out2_labels}')
+    print(f'    ref_labels={ref_labels}, out1_labels={out1_labels}, out2_labels={out2_labels}')
+  print()
 
   ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
   out1_labels = corpus_utils.load_tokens(out1_labels) if type(out1_labels) == str else out1_labels
@@ -121,6 +156,10 @@ def print_ngram_report(ref, out1, out2,
   print(f'\n--- {report_length} n-grams that System 2 had higher {compare_type}')
   for k, v in reversed(scorelist[-report_length:]):
     print('{}\t{} (sys1={}, sys2={})'.format(' '.join(k), v, match1[k], match2[k]))
+  print()
+
+def print_header(header):
+  print(f'********************** {header} ************************')
 
 if __name__ == '__main__':
 
@@ -133,17 +172,28 @@ if __name__ == '__main__':
                       help='A path to a system output')
   parser.add_argument('out2_file', type=str,
                       help='A path to another system output')
-  parser.add_argument('--compare_scores', type=str, default=['score_type=bleu', 'score_type=length'], nargs='*',
+  parser.add_argument('--compare_scores', type=str, nargs='*',
+                      default=['score_type=bleu', 'score_type=length'],
                       help="""
                       Compare scores. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_score_report' to see which arguments are available.
                       """)
-  parser.add_argument('--compare_word_accuracies', type=str, default=['bucket_type=freq'], nargs='*',
+  parser.add_argument('--compare_word_accuracies', type=str, nargs='*',
+                      default=['bucket_type=freq'],
                       help="""
-                      Compare word F-measure. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
+                      Compare word accuracies by buckets. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_word_accuracy_report' to see which arguments are available.
                       """)
-  parser.add_argument('--compare_ngrams', type=str, default=['compare_type=match'], nargs='*',
+  parser.add_argument('--compare_sentence_buckets', type=str, nargs='*',
+                      default=['bucket_type=score,score_measure=sentbleu',
+                               'bucket_type=lengthdiff',
+                               'bucket_type=length,statistic_type=score,score_measure=bleu'],
+                      help="""
+                      Compare sentence counts by buckets. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
+                      See documentation for 'print_word_accuracy_report' to see which arguments are available.
+                      """)
+  parser.add_argument('--compare_ngrams', type=str, nargs='*',
+                      default=['compare_type=match'],
                       help="""
                       Compare ngrams. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_ngram_report' to see which arguments are available.
@@ -156,7 +206,7 @@ if __name__ == '__main__':
 
   # Aggregate scores
   if args.compare_scores:
-    print('********************** Aggregate Scores ************************')
+    print_header('Aggregate Scores')
     for profile in args.compare_scores:
       kargs = parse_profile(profile)
       print_score_report(ref, out1, out2, **kargs)
@@ -164,17 +214,25 @@ if __name__ == '__main__':
 
   # Word accuracy analysis
   if args.compare_word_accuracies:
-    print('\n\n********************** Word Accuracy Analysis ************************')
+    print_header('Word Accuracy Analysis')
     for profile in args.compare_word_accuracies:
       kargs = parse_profile(profile)
       print_word_accuracy_report(ref, out1, out2, **kargs)
       print()
 
+  # Sentence count analysis
+  if args.compare_sentence_buckets:
+    print_header('Sentence Bucket Analysis')
+    for profile in args.compare_sentence_buckets:
+      kargs = parse_profile(profile)
+      print_sentence_bucketed_report(ref, out1, out2, **kargs)
+      print()
+
   # n-gram difference analysis
   if args.compare_ngrams:
+    print_header('N-gram Difference Analysis')
     for profile in args.compare_ngrams:
       kargs = parse_profile(profile)
-      print('********************** N-gram Difference Analysis ************************')
       print_ngram_report(ref, out1, out2, **kargs)
 
   # Calculate BLEU diff
@@ -185,7 +243,7 @@ if __name__ == '__main__':
     b2 = nltk.translate.bleu_score.sentence_bleu([r], o2, smoothing_function=chencherry.method2)
     scorediff_list.append((b2-b1, b1, b2, i))
   scorediff_list.sort()
-  print('\n\n********************** Length Analysis ************************')
+  print_header('Length Analysis')
   print('--- length ratio')
   length_ref = sum([len(x) for x in ref])
   length_out1 = sum([len(x) for x in out1])
