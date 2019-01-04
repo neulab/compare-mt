@@ -1,44 +1,14 @@
 # Overall imports
 import argparse
 import operator
-import itertools
 import nltk
-from collections import defaultdict
 
 # In-package imports
-import count_ngrams
+import ngram_utils
 import stat_utils
+import corpus_utils
 import scorers
-
-
-def calc_matches_by_freq(ref, out, buckets):
-  extended_buckets = buckets + [max(freq_counts.values()) + 1]
-  matches = [[0,0,0] for x in extended_buckets]
-  for refsent, outsent in zip(ref, out):
-    reffreq, outfreq = defaultdict(lambda: 0), defaultdict(lambda: 0)
-    for x in refsent:
-      reffreq[x] += 1
-    for x in outsent:
-      outfreq[x] += 1
-    for k in set(itertools.chain(reffreq.keys(), outfreq.keys())):
-      for bucket, match in zip(extended_buckets, matches):
-        if freq_counts[k] < bucket:
-          match[0] += min(reffreq[k], outfreq[k])
-          match[1] += reffreq[k]
-          match[2] += outfreq[k]
-          break 
-  for bothf, reff, outf in matches:
-    if bothf == 0:
-      rec, prec, fmeas = 0.0, 0.0, 0.0
-    else:
-      rec = bothf / float(reff)
-      prec = bothf / float(outf)
-      fmeas = 2 * prec * rec / (prec + rec)
-    yield bothf, reff, outf, rec, prec, fmeas
-
-def load_tokens(filename):
-  with open(filename, "r") as f:
-    return [line.strip().split() for line in f]
+import word_bucketers
 
 def parse_profile(profile):
   kargs = {}
@@ -67,6 +37,40 @@ def print_score_report(ref, out1, out2,
   else:
     print(f' Sys1: {score1}\n Sys2: {score2}')
 
+def print_word_accuracy_report(ref, out1, out2,
+                          acc_type='fmeas', bucket_type='freq',
+                          freq_count_file=None, freq_corpus_file=None):
+  """
+  Print a report comparing the word accuracy.
+
+  Args:
+    ref: Tokens from the reference
+    out1: Tokens from the output file 1
+    out2: Tokens from the output file 2
+    acc_type: The type of accuracy to show (prec/rec/fmeas). Can also have multiple separated by '+'.
+    bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
+    freq_corpus_file: When using "freq" as a bucketer, which corpus to use to calculate frequency.
+                      By default this uses the frequency in the reference test set, but it's often more informative
+                      se the frequency in the training set, in which case you specify the path of the target side
+                      he training corpus.
+    freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
+  """
+  acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
+  bucketer = word_bucketers.create_bucketer_from_profile(bucket_type,
+                                                         freq_count_file=freq_count_file,
+                                                         freq_corpus_file=freq_corpus_file,
+                                                         freq_data=ref)
+  matches1 = bucketer.calc_bucketed_matches(ref, out1)
+  matches2 = bucketer.calc_bucketed_matches(ref, out2)
+  acc_types = acc_type.split('+')
+  for at in acc_types:
+    if at not in acc_type_map:
+      raise ValueError(f'Unknown accuracy type {at}')
+    aid = acc_type_map[at]
+    print(f'--- word {acc_type} by {bucketer.name()} bucket')
+    for bucket_str, match1, match2 in zip(bucketer.bucket_strs, matches1, matches2):
+      print("{}\t{:.4f}\t{:.4f}".format(bucket_str, match1[aid], match2[aid]))
+
 def print_ngram_report(ref, out1, out2,
                        min_ngram_length=1, max_ngram_length=4,
                        report_length=50, alpha=1.0, compare_type='match',
@@ -94,13 +98,13 @@ def print_ngram_report(ref, out1, out2,
   if type(ref_labels) == str:
     print(f'        ref_labels={ref_labels}, out1_labels={out1_labels}, out2_labels={out2_labels}')
 
-  ref_labels = load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
-  out1_labels = load_tokens(out1_labels) if type(out1_labels) == str else out1_labels
-  out2_labels = load_tokens(out2_labels) if type(out2_labels) == str else out2_labels
-  total1, match1, over1, under1 = count_ngrams.compare_ngrams(ref, out1, ref_labels=ref_labels, out_labels=out1_labels,
-                                                              min_length=min_ngram_length, max_length=max_ngram_length)
-  total2, match2, over2, under2 = count_ngrams.compare_ngrams(ref, out2, ref_labels=ref_labels, out_labels=out2_labels,
-                                                              min_length=min_ngram_length, max_length=max_ngram_length)
+  ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
+  out1_labels = corpus_utils.load_tokens(out1_labels) if type(out1_labels) == str else out1_labels
+  out2_labels = corpus_utils.load_tokens(out2_labels) if type(out2_labels) == str else out2_labels
+  total1, match1, over1, under1 = ngram_utils.compare_ngrams(ref, out1, ref_labels=ref_labels, out_labels=out1_labels,
+                                                             min_length=min_ngram_length, max_length=max_ngram_length)
+  total2, match2, over2, under2 = ngram_utils.compare_ngrams(ref, out2, ref_labels=ref_labels, out_labels=out2_labels,
+                                                             min_length=min_ngram_length, max_length=max_ngram_length)
   if compare_type == 'match':
     scores = stat_utils.extract_salient_features(match1, match2, alpha=1)
   elif compare_type == 'over':
@@ -134,48 +138,23 @@ if __name__ == '__main__':
                       Compare scores. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_score_report' to see which arguments are available.
                       """)
+  parser.add_argument('--compare_word_accuracies', type=str, default=['bucket_type=freq'], nargs='*',
+                      help="""
+                      Compare word F-measure. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
+                      See documentation for 'print_word_accuracy_report' to see which arguments are available.
+                      """)
   parser.add_argument('--compare_ngrams', type=str, default=['compare_type=match'], nargs='*',
                       help="""
                       Compare ngrams. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_ngram_report' to see which arguments are available.
                       """)
-  parser.add_argument('--train_file', type=str, default=None,
-                      help='A link to the training corpus target file')
-  parser.add_argument('--train_counts', type=str, default=None,
-                      help='A link to the training word frequency counts as a tab-separated "word\\tfreq" file')
   parser.add_argument('--sent_size', type=int, default=10,
                       help='How many sentences to print.')
   args = parser.parse_args()
 
-  ref, out1, out2 = [load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
+  ref, out1, out2 = [corpus_utils.load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
 
-  # Calculate the frequency counts, from the training corpus
-  # or training frequency file if either are specified, from the
-  # reference file if not
-  freq_counts = defaultdict(lambda: 0)
-  if args.train_counts != None:
-    with open(args.train_counts, "r") as f:
-      for line in f:
-        word, freq = line.strip().split('\t')
-        freq_counts[word] = freq
-  else:
-    my_file = args.train_file if args.train_file != None else args.ref_file
-    with open(my_file, "r") as f:
-      for line in f:
-        for word in line.strip().split():
-          freq_counts[word] += 1
-
-  buckets = [1, 2, 3, 4, 5, 10, 100, 1000]
-  bucket_strs = []
-  last_start = 0
-  for x in buckets:
-    if x-1 == last_start:
-      bucket_strs.append(str(last_start))
-    else:
-      bucket_strs.append("{}-{}".format(last_start, x-1))
-    last_start = x
-  bucket_strs.append("{}+".format(last_start))
-
+  # Aggregate scores
   if args.compare_scores:
     print('********************** Aggregate Scores ************************')
     for profile in args.compare_scores:
@@ -183,19 +162,21 @@ if __name__ == '__main__':
       print_score_report(ref, out1, out2, **kargs)
       print()
 
+  # Word accuracy analysis
+  if args.compare_word_accuracies:
+    print('\n\n********************** Word Accuracy Analysis ************************')
+    for profile in args.compare_word_accuracies:
+      kargs = parse_profile(profile)
+      print_word_accuracy_report(ref, out1, out2, **kargs)
+      print()
+
+  # n-gram difference analysis
   if args.compare_ngrams:
     for profile in args.compare_ngrams:
       kargs = parse_profile(profile)
       print('********************** N-gram Difference Analysis ************************')
       print_ngram_report(ref, out1, out2, **kargs)
 
-  # Calculate f-measure
-  matches = calc_matches_by_freq(ref, out1, buckets)
-  matches2 = calc_matches_by_freq(ref, out2, buckets)
-  print('\n\n********************** Word Frequency Analysis ************************')
-  print('--- word f-measure by frequency bucket')
-  for bucket_str, match, match2 in zip(bucket_strs, matches, matches2):
-    print("{}\t{:.4f}\t{:.4f}".format(bucket_str, match[5], match2[5]))
   # Calculate BLEU diff
   scorediff_list = []
   chencherry = nltk.translate.bleu_score.SmoothingFunction()
