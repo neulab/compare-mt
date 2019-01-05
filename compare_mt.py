@@ -200,7 +200,7 @@ def print_sign_test(ref, out1, out2,
                             eval_type='bleu',
                             num_samples=1000):
   """
-  Print examples of sentences that satisfy some criterion, usually score of one system better
+  Print significance test results, usually score of one system better
 
   Args:
     ref: Tokens from the reference
@@ -307,13 +307,10 @@ if __name__ == '__main__':
       print_sentence_examples(ref, out1, out2, **kargs)
       print()
 
-  import time
-  time1 = time.time()
+  # Significance test
   if args.sign_test:
     print_header('Significance Test')
     for profile in args.sign_test:
       kargs = parse_profile(profile)
       print_sign_test(ref, out1, out2, **kargs)
-      time2 = time.time()
-      print(time2 - time1)
       print()

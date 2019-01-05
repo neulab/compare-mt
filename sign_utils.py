@@ -11,42 +11,29 @@
 ########################################################################################
 
 import numpy as np
+import nltk
 
-def eval_preproc(data, eval_type='acc'):
-  ''' Preprocess into the appropriate format for a particular evaluation type '''
-  if type(data) == str:
-    data = data.strip()
-    if eval_type == 'bleu':
-      data = data.split()
-    elif eval_type == 'pearson':
-      data = float(data)
-  return data
-
-def eval_measure(gold, sys, eval_type='acc'):
+def eval_measure(gold, sys, eval_type='bleu'):
   ''' Evaluation measure
   
   This takes in gold labels and system outputs and evaluates their
   accuracy. It currently supports:
   * Accuracy (acc), percentage of labels that match
-  * Pearson's correlation coefficeint (pearson)
   * BLEU score (bleu)
   :param gold: the correct labels
   :param sys: the system outputs
-  :param eval_type: The type of evaluation to do (acc, pearson, bleu)
+  :param eval_type: The type of evaluation to do (acc, bleu)
   '''
   if eval_type == 'acc':
     return sum([1 if g == s else 0 for g, s in zip(gold, sys)]) / float(len(gold))
   elif eval_type == 'bleu':
-    import nltk
     gold_wrap = [[x] for x in gold]
     return nltk.translate.bleu_score.corpus_bleu(gold_wrap, sys)
-  elif eval_type == 'pearson':
-    return np.corrcoef([gold, sys])[0,1]
   else:
     raise NotImplementedError('Unknown eval type in eval_measure: %s' % eval_type)
 
 def eval_with_paired_bootstrap(gold, sys1, sys2,
-                               num_samples=1000, sample_ratio=0.1,
+                               num_samples=1000, sample_ratio=0.5,
                                eval_type='bleu'):
   ''' Evaluate with paired boostrap
   This compares two systems, performing a signifiance tests with
@@ -57,16 +44,11 @@ def eval_with_paired_bootstrap(gold, sys1, sys2,
   :param sys2: The output of system 2
   :param num_samples: The number of bootstrap samples to take
   :param sample_ratio: The ratio of samples to take every time
-  :param eval_type: The type of evaluation to do (acc, pearson, bleu)
+  :param eval_type: The type of evaluation to do (acc, bleu)
   '''
   assert(len(gold) == len(sys1))
   assert(len(gold) == len(sys2))
   
-  # Preprocess the data appropriately for they type of eval
-  gold = [eval_preproc(x, eval_type) for x in gold]
-  sys1 = [eval_preproc(x, eval_type) for x in sys1]
-  sys2 = [eval_preproc(x, eval_type) for x in sys2]
-
   sys1_scores = []
   sys2_scores = []
   wins = [0, 0, 0]
