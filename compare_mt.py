@@ -6,6 +6,7 @@ import operator
 import ngram_utils
 import stat_utils
 import corpus_utils
+import sign_utils
 import scorers
 import bucketers
 
@@ -167,7 +168,6 @@ def print_ngram_report(ref, out1, out2,
     print('{}\t{} (sys1={}, sys2={})'.format(' '.join(k), v, match1[k], match2[k]))
   print()
 
-
 def print_sentence_examples(ref, out1, out2,
                             score_type='sentbleu',
                             report_length=10):
@@ -195,6 +195,21 @@ def print_sentence_examples(ref, out1, out2,
   print(f'--- {report_length} sentences where Sys2>Sys1 at {sname}')
   for bdiff, s1, s2, str1, str2, i in scorediff_list[-report_length:]:
     print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
+
+def print_sign_test(ref, out1, out2,
+                            eval_type='bleu',
+                            num_samples=1000):
+  """
+  Print examples of sentences that satisfy some criterion, usually score of one system better
+
+  Args:
+    ref: Tokens from the reference
+    out1: Tokens from the output file 1
+    out2: Tokens from the output file 2
+    eval_type: The type of evaluation to use
+    num_samples: Number of samples to use
+  """
+  sign_utils.eval_with_paired_bootstrap(ref, out1, out2, eval_type=eval_type, num_samples=int(num_samples))
 
 def print_header(header):
   print(f'********************** {header} ************************')
@@ -242,6 +257,12 @@ if __name__ == '__main__':
                       Compare sentences. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_sentence_examples' to see which arguments are available.
                       """)
+  parser.add_argument('--sign_test', type=str, nargs='*',
+                      default=['eval_type=bleu,num_samples=1000'],
+                      help="""
+                      Significance test. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
+                      See documentation for 'print_sign_test' to see which arguments are available.
+                      """)
   args = parser.parse_args()
 
   ref, out1, out2 = [corpus_utils.load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
@@ -276,6 +297,7 @@ if __name__ == '__main__':
     for profile in args.compare_ngrams:
       kargs = parse_profile(profile)
       print_ngram_report(ref, out1, out2, **kargs)
+      print()
 
   # Sentence example analysis
   if args.compare_sentence_examples:
@@ -283,4 +305,15 @@ if __name__ == '__main__':
     for profile in args.compare_sentence_examples:
       kargs = parse_profile(profile)
       print_sentence_examples(ref, out1, out2, **kargs)
+      print()
+
+  import time
+  time1 = time.time()
+  if args.sign_test:
+    print_header('Significance Test')
+    for profile in args.sign_test:
+      kargs = parse_profile(profile)
+      print_sign_test(ref, out1, out2, **kargs)
+      time2 = time.time()
+      print(time2 - time1)
       print()
