@@ -225,6 +225,7 @@ if __name__ == '__main__':
                       help='A path to a system output')
   parser.add_argument('out2_file', type=str,
                       help='A path to another system output')
+  parser.add_argument('--case_insensitive', action='store_true')
   parser.add_argument('--compare_scores', type=str, nargs='*',
                       default=['score_type=bleu', 'score_type=length'],
                       help="""
@@ -263,9 +264,14 @@ if __name__ == '__main__':
                       Significance test. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_sign_test' to see which arguments are available.
                       """)
+  parser.add_argument('--src_analysis', type=str, nargs='*',
+                      help="""
+                      Source analysis. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
+                      See documentation for 'print_src_ana' to see which arguments are available.
+                      """)
   args = parser.parse_args()
 
-  ref, out1, out2 = [corpus_utils.load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
+  ref, out1, out2 = [corpus_utils.load_tokens(x, args.case_insensitive) for x in (args.ref_file, args.out1_file, args.out2_file)]
 
   # Aggregate scores
   if args.compare_scores:

@@ -32,6 +32,27 @@ def eval_measure(gold, sys, eval_type='bleu'):
   else:
     raise NotImplementedError('Unknown eval type in eval_measure: %s' % eval_type)
 
+def sample_and_compare(gold, sys1, sys2, sample_ratio, 
+                       ids, wins, sys1_scores, sys2_scores, 
+                       eval_type='bleu'):
+  # Subsample the gold and system outputs
+  np.random.shuffle(ids)
+  reduced_ids = ids[:int(len(ids)*sample_ratio)]
+  reduced_gold = [gold[i] for i in reduced_ids]
+  reduced_sys1 = [sys1[i] for i in reduced_ids]
+  reduced_sys2 = [sys2[i] for i in reduced_ids]
+  # Calculate accuracy on the reduced sample and save stats
+  sys1_score = eval_measure(reduced_gold, reduced_sys1, eval_type=eval_type)
+  sys2_score = eval_measure(reduced_gold, reduced_sys2, eval_type=eval_type)
+  if sys1_score > sys2_score:
+    wins[0] += 1
+  elif sys1_score < sys2_score:
+    wins[1] += 1
+  else:
+    wins[2] += 1
+  sys1_scores.append(sys1_score)
+  sys2_scores.append(sys2_score)
+
 def eval_with_paired_bootstrap(gold, sys1, sys2,
                                num_samples=1000, sample_ratio=0.5,
                                eval_type='bleu'):
@@ -55,24 +76,13 @@ def eval_with_paired_bootstrap(gold, sys1, sys2,
   n = len(gold)
   ids = list(range(n))
 
-  for _ in range(num_samples):
-    # Subsample the gold and system outputs
-    np.random.shuffle(ids)
-    reduced_ids = ids[:int(len(ids)*sample_ratio)]
-    reduced_gold = [gold[i] for i in reduced_ids]
-    reduced_sys1 = [sys1[i] for i in reduced_ids]
-    reduced_sys2 = [sys2[i] for i in reduced_ids]
-    # Calculate accuracy on the reduced sample and save stats
-    sys1_score = eval_measure(reduced_gold, reduced_sys1, eval_type=eval_type)
-    sys2_score = eval_measure(reduced_gold, reduced_sys2, eval_type=eval_type)
-    if sys1_score > sys2_score:
-      wins[0] += 1
-    elif sys1_score < sys2_score:
-      wins[1] += 1
-    else:
-      wins[2] += 1
-    sys1_scores.append(sys1_score)
-    sys2_scores.append(sys2_score)
+  try:
+    from tqdm import tqdm
+    for _ in tqdm(range(num_samples)):
+      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, eval_type)
+  except ImportError:
+    for _ in range(num_samples):
+      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, eval_type)
 
   # Print win stats
   wins = [x/float(num_samples) for x in wins]
