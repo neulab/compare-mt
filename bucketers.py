@@ -16,8 +16,7 @@ class Bucketer:
         self.bucket_strs.append(f'x = {x-1}')
       else:
         self.bucket_strs.append(f'{bucket_cutoffs[i-1]} <= x < {x}')
-      last_start = x
-    self.bucket_strs.append(f'{bucket_cutoffs[i-1]} < x')
+    self.bucket_strs.append(f'{x} < x')
 
   def cutoff_into_bucket(self, value):
     for i, v in enumerate(self.bucket_cutoffs):
