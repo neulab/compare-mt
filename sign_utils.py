@@ -11,30 +11,12 @@
 ########################################################################################
 
 import numpy as np
+import scorers
 import nltk
-
-def eval_measure(gold, sys, eval_type='bleu'):
-  ''' Evaluation measure
-  
-  This takes in gold labels and system outputs and evaluates their
-  accuracy. It currently supports:
-  * Accuracy (acc), percentage of labels that match
-  * BLEU score (bleu)
-  :param gold: the correct labels
-  :param sys: the system outputs
-  :param eval_type: The type of evaluation to do (acc, bleu)
-  '''
-  if eval_type == 'acc':
-    return sum([1 if g == s else 0 for g, s in zip(gold, sys)]) / float(len(gold))
-  elif eval_type == 'bleu':
-    gold_wrap = [[x] for x in gold]
-    return nltk.translate.bleu_score.corpus_bleu(gold_wrap, sys)
-  else:
-    raise NotImplementedError('Unknown eval type in eval_measure: %s' % eval_type)
 
 def sample_and_compare(gold, sys1, sys2, sample_ratio, 
                        ids, wins, sys1_scores, sys2_scores, 
-                       eval_type='bleu'):
+                       scorer):
   # Subsample the gold and system outputs
   np.random.shuffle(ids)
   reduced_ids = ids[:int(len(ids)*sample_ratio)]
@@ -42,8 +24,8 @@ def sample_and_compare(gold, sys1, sys2, sample_ratio,
   reduced_sys1 = [sys1[i] for i in reduced_ids]
   reduced_sys2 = [sys2[i] for i in reduced_ids]
   # Calculate accuracy on the reduced sample and save stats
-  sys1_score = eval_measure(reduced_gold, reduced_sys1, eval_type=eval_type)
-  sys2_score = eval_measure(reduced_gold, reduced_sys2, eval_type=eval_type)
+  sys1_score, _ = scorer.score_corpus(reduced_gold, reduced_sys1)
+  sys2_score, _ = scorer.score_corpus(reduced_gold, reduced_sys2)
   if sys1_score > sys2_score:
     wins[0] += 1
   elif sys1_score < sys2_score:
@@ -55,7 +37,7 @@ def sample_and_compare(gold, sys1, sys2, sample_ratio,
 
 def eval_with_paired_bootstrap(gold, sys1, sys2,
                                num_samples=1000, sample_ratio=0.5,
-                               eval_type='bleu'):
+                               score_type='bleu'):
   ''' Evaluate with paired boostrap
   This compares two systems, performing a signifiance tests with
   paired bootstrap resampling to compare the accuracy of the two systems.
@@ -75,14 +57,16 @@ def eval_with_paired_bootstrap(gold, sys1, sys2,
   wins = [0, 0, 0]
   n = len(gold)
   ids = list(range(n))
+  scorer = scorers.create_scorer_from_profile(score_type)
 
   try:
     from tqdm import tqdm
     for _ in tqdm(range(num_samples)):
-      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, eval_type)
+      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, scorer)
   except ImportError:
+    print('Install tqdm to see progress meter!')
     for _ in range(num_samples):
-      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, eval_type)
+      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, scorer)
 
   # Print win stats
   wins = [x/float(num_samples) for x in wins]
