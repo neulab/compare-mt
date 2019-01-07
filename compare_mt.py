@@ -80,6 +80,51 @@ def print_word_accuracy_report(ref, out1, out2,
       print("{}\t{:.4f}\t{:.4f}".format(bucket_str, match1[aid], match2[aid]))
     print()
 
+def print_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, out2_align,
+                          acc_type='fmeas', bucket_type='freq',
+                          freq_count_file=None, freq_corpus_file=None,
+                          label_set=None,
+                          src_labels=None):
+  """
+  Print a report for source word analysis.
+
+  Args:
+    src: Tokens from the source
+    ref: Tokens from the reference
+    out1: Tokens from the output file 1
+    out2: Tokens from the output file 2
+    ref_align: Alignment file for the reference
+    out1_align: Alignment file for the output file 1
+    out2_align: Alignment file for the output file 2
+    acc_type: The type of accuracy to show (prec/rec/fmeas). Can also have multiple separated by '+'.
+    bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
+    freq_corpus_file: When using "freq" as a bucketer, which corpus to use to calculate frequency.
+                      By default this uses the frequency in the reference test set, but it's often more informative
+                      se the frequency in the training set, in which case you specify the path of the target side
+                      he training corpus.
+    freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
+    src_labels: either a filename of a file full of source labels, or a list of strings corresponding to `ref`.
+  """
+  ref_align, out1_align, out2_align = [corpus_utils.load_tokens(x) for x in (ref_align, out1_align, out2_align)]
+  acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
+  bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
+                                                         freq_count_file=freq_count_file,
+                                                         freq_corpus_file=freq_corpus_file, 
+                                                         freq_data=src, 
+                                                         label_set=label_set)
+  src_labels = corpus_utils.load_tokens(src_labels) if type(src_labels) == str else src_labels
+  matches1 = bucketer.calc_source_bucketed_matches(src, ref, out1, ref_align, out1_align, src_labels=src_labels)
+  matches2 = bucketer.calc_source_bucketed_matches(src, ref, out2, ref_align, out2_align, src_labels=src_labels)
+  acc_types = acc_type.split('+')
+  for at in acc_types:
+    if at not in acc_type_map:
+      raise ValueError(f'Unknown accuracy type {at}')
+    aid = acc_type_map[at]
+    print(f'--- word {acc_type} by {bucketer.name()} bucket')
+    for bucket_str, match1, match2 in zip(bucketer.bucket_strs, matches1, matches2):
+      print("{}\t{:.4f}\t{:.4f}".format(bucket_str, match1[aid], match2[aid]))
+    print()
+
 def print_sentence_bucketed_report(ref, out1, out2,
                                    bucket_type='score', statistic_type='count',
                                    score_measure='bleu'):
@@ -167,7 +212,6 @@ def print_ngram_report(ref, out1, out2,
     print('{}\t{} (sys1={}, sys2={})'.format(' '.join(k), v, match1[k], match2[k]))
   print()
 
-
 def print_sentence_examples(ref, out1, out2,
                             score_type='sentbleu',
                             report_length=10):
@@ -210,6 +254,8 @@ if __name__ == '__main__':
                       help='A path to a system output')
   parser.add_argument('out2_file', type=str,
                       help='A path to another system output')
+  parser.add_argument('--src_file', type=str, default=None,
+                      help='A path to the source file')
   parser.add_argument('--compare_scores', type=str, nargs='*',
                       default=['score_type=bleu', 'score_type=length'],
                       help="""
@@ -222,13 +268,19 @@ if __name__ == '__main__':
                       Compare word accuracies by buckets. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_word_accuracy_report' to see which arguments are available.
                       """)
+  parser.add_argument('--compare_src_word_accuracies', type=str, nargs='*',
+                      default=None,
+                      help="""
+                      Source analysis. Can specify arguments in 'ref_align=file1,out1_align=file2,out2_align=file3,...' format.
+                      See documentation for 'print_src_word_accuracy_report' to see which arguments are available.
+                      """)
   parser.add_argument('--compare_sentence_buckets', type=str, nargs='*',
                       default=['bucket_type=score,score_measure=sentbleu',
                                'bucket_type=lengthdiff',
                                'bucket_type=length,statistic_type=score,score_measure=bleu'],
                       help="""
                       Compare sentence counts by buckets. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
-                      See documentation for 'print_word_accuracy_report' to see which arguments are available.
+                      See documentation for 'print_sentence_buckets_report' to see which arguments are available.
                       """)
   parser.add_argument('--compare_ngrams', type=str, nargs='*',
                       default=['compare_type=match'],
@@ -245,6 +297,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   ref, out1, out2 = [corpus_utils.load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
+  src = corpus_utils.load_tokens(args.src_file) if args.src_file else None
 
   # Aggregate scores
   if args.compare_scores:
@@ -262,6 +315,15 @@ if __name__ == '__main__':
       print_word_accuracy_report(ref, out1, out2, **kargs)
       print()
 
+  # Source word analysis
+  if args.compare_src_word_accuracies:
+    print_header('Source Word Analysis')
+    assert(src), "Must specify the source file!"
+    for profile in args.compare_src_word_accuracies:
+      kargs = parse_profile(profile)
+      print_src_word_accuracy_report(src, ref, out1, out2, **kargs)
+      print()
+
   # Sentence count analysis
   if args.compare_sentence_buckets:
     print_header('Sentence Bucket Analysis')
@@ -276,6 +338,7 @@ if __name__ == '__main__':
     for profile in args.compare_ngrams:
       kargs = parse_profile(profile)
       print_ngram_report(ref, out1, out2, **kargs)
+      print()
 
   # Sentence example analysis
   if args.compare_sentence_examples:
@@ -284,3 +347,4 @@ if __name__ == '__main__':
       kargs = parse_profile(profile)
       print_sentence_examples(ref, out1, out2, **kargs)
       print()
+
