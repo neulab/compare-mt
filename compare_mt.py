@@ -190,12 +190,12 @@ def print_word_likelihood_report(ref, ref_word_likelihoods):
     for word, likelihood in zip(words, likelihoods):
       word_likelihood[word] += likelihood
       word_counts[word] += 1
-  # Normalize
+  # Global stats
+  avg_nll = - sum(word_likelihood.values()) / sum(word_counts.values())
+  print(f"--- perplexity={exp(avg_nll):.2f}, NLL={avg_nll:.2f}")
+  # Normalize for each word
   for word, count in word_counts.items():
     word_likelihood[word] /= count
-  # Global stats
-  avg_ll = sum(word_likelihood.values())
-  print(f"--- perplexity={exp(avg_ll):.2f}, NLL={-avg_ll:.2f}")
   # Words with highest/lowest probabilities
   sorted_words = sorted(word_likelihood.keys(), key=lambda x: word_likelihood[x])
   gap = max(len(word) for word in sorted_words) + 1
