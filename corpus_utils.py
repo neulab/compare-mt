@@ -1,11 +1,8 @@
 
-def iterate_tokens(filename, case_insensitive=False):
+def iterate_tokens(filename):
   with open(filename, "r") as f:
     for line in f:
-      if not case_insensitive:
-        yield line.strip().split()
-      else:
-        yield [x.lower() for x in line.strip().split()]
+      yield line.strip().split()
 
-def load_tokens(filename, case_insensitive=False):
-  return list(iterate_tokens(filename, case_insensitive))
+def load_tokens(filename):
+  return list(iterate_tokens(filename))

@@ -160,7 +160,7 @@ class WordBucketer(Bucketer):
 class FreqWordBucketer(WordBucketer):
 
   def __init__(self,
-               freq_counts=None, freq_count_file=None, freq_corpus_file=None, freq_corpus_case_insensitive=False, freq_data=None,
+               freq_counts=None, freq_count_file=None, freq_corpus_file=None, freq_data=None,
                bucket_cutoffs=None):
     """
     A bucketer that buckets words by their frequency.
@@ -170,7 +170,6 @@ class FreqWordBucketer(WordBucketer):
       freq_count_file: A file containing counts for each word in tab-separated word, count format.
                        Ignored if freq_counts exists.
       freq_corpus_file: A file with a corpus used for collecting counts. Ignored if freq_count_file exists.
-      freq_corpus_case_insensitive: Specify if considering case.
       freq_data: A tokenized corpus from which counts can be calculated. Ignored if freq_corpus_file exists.
       bucket_cutoffs: Cutoffs for each bucket.
                       The first bucket will be range(0,bucket_cutoffs[0]).
@@ -185,7 +184,7 @@ class FreqWordBucketer(WordBucketer):
             word, freq = line.strip().split('\t')
             freq_counts[word] = freq
       elif freq_corpus_file:
-        for word in itertools.chain(corpus_utils.iterate_tokens(freq_corpus_file, freq_corpus_case_insensitive)):
+        for word in itertools.chain(corpus_utils.iterate_tokens(freq_corpus_file)):
           freq_counts[word] += 1
       elif freq_data:
         for words in freq_data:
@@ -314,14 +313,14 @@ class LengthDiffSentenceBucketer(SentenceBucketer):
 
 
 def create_word_bucketer_from_profile(bucket_type,
-                                      freq_counts=None, freq_count_file=None, freq_corpus_file=None, freq_corpus_case_insensitive=False, freq_data=None,
+                                      freq_counts=None, freq_count_file=None, freq_corpus_file=None, freq_data=None,
                                       label_set=None,
                                       bucket_cutoffs=None):
   if bucket_type == 'freq':
     return FreqWordBucketer(
       freq_counts=freq_counts,
       freq_count_file=freq_count_file,
-      freq_corpus_file=freq_corpus_file, freq_corpus_case_insensitive=freq_corpus_case_insensitive,
+      freq_corpus_file=freq_corpus_file, 
       freq_data=freq_data,
       bucket_cutoffs=bucket_cutoffs)
   elif bucket_type == 'label':

@@ -6,7 +6,6 @@ import operator
 import ngram_utils
 import stat_utils
 import corpus_utils
-import sign_utils
 import scorers
 import bucketers
 
@@ -106,11 +105,11 @@ def print_src_analysis_report(src, ref, out1, out2, ref_align, out1_align, out2_
     freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
     src_labels: either a filename of a file full of source labels, or a list of strings corresponding to `ref`.
   """
-  ref_align, out1_align, out2_align = [corpus_utils.load_tokens(x, args.case_insensitive) for x in (ref_align, out1_align, out2_align)]
+  ref_align, out1_align, out2_align = [corpus_utils.load_tokens(x) for x in (ref_align, out1_align, out2_align)]
   acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
-                                                         freq_corpus_file=freq_corpus_file, freq_corpus_case_insensitive=args.case_insensitive,
+                                                         freq_corpus_file=freq_corpus_file, 
                                                          freq_data=src, 
                                                          label_set=label_set)
   src_labels = corpus_utils.load_tokens(src_labels) if type(src_labels) == str else src_labels
@@ -241,21 +240,6 @@ def print_sentence_examples(ref, out1, out2,
   for bdiff, s1, s2, str1, str2, i in scorediff_list[-report_length:]:
     print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
 
-def print_sign_test(ref, out1, out2,
-                            eval_type='bleu',
-                            num_samples=1000):
-  """
-  Print significance test results, usually score of one system better
-
-  Args:
-    ref: Tokens from the reference
-    out1: Tokens from the output file 1
-    out2: Tokens from the output file 2
-    eval_type: The type of evaluation to use
-    num_samples: Number of samples to use
-  """
-  sign_utils.eval_with_paired_bootstrap(ref, out1, out2, eval_type=eval_type, num_samples=int(num_samples))
-
 def print_header(header):
   print(f'********************** {header} ************************')
 
@@ -272,7 +256,6 @@ if __name__ == '__main__':
                       help='A path to another system output')
   parser.add_argument('--src_file', type=str, default=None,
                       help='A path to the source file')
-  parser.add_argument('--case_insensitive', action='store_true')
   parser.add_argument('--compare_scores', type=str, nargs='*',
                       default=['score_type=bleu', 'score_type=length'],
                       help="""
@@ -311,16 +294,10 @@ if __name__ == '__main__':
                       Compare sentences. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_sentence_examples' to see which arguments are available.
                       """)
-  parser.add_argument('--sign_test', type=str, nargs='*',
-                      default=['eval_type=bleu,num_samples=1000'],
-                      help="""
-                      Significance test. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
-                      See documentation for 'print_sign_test' to see which arguments are available.
-                      """)
   args = parser.parse_args()
 
-  ref, out1, out2 = [corpus_utils.load_tokens(x, args.case_insensitive) for x in (args.ref_file, args.out1_file, args.out2_file)]
-  src = corpus_utils.load_tokens(args.src_file, args.case_insensitive) if args.src_file else None
+  ref, out1, out2 = [corpus_utils.load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
+  src = corpus_utils.load_tokens(args.src_file) if args.src_file else None
 
   # Aggregate scores
   if args.compare_scores:
@@ -371,10 +348,3 @@ if __name__ == '__main__':
       print_sentence_examples(ref, out1, out2, **kargs)
       print()
 
-  # Significance test
-  if args.sign_test:
-    print_header('Significance Test')
-    for profile in args.sign_test:
-      kargs = parse_profile(profile)
-      print_sign_test(ref, out1, out2, **kargs)
-      print()
