@@ -1,6 +1,8 @@
 # Overall imports
 import argparse
 import operator
+from math import exp
+from collections import defaultdict
 
 # In-package imports
 import ngram_utils
@@ -168,6 +170,44 @@ def print_ngram_report(ref, out1, out2,
   print()
 
 
+def print_word_likelihood_report(ref, ref_word_likelihoods):
+  """
+  Print a report on the word-level log probabilities according to the model.
+
+  Args:
+    ref: Tokens from the reference
+    ref_word_likelihoods: File containing the probability of each word according to the model.
+                          Should contain one line for each line in the reference, and one score
+                          for each token.
+  """
+  # Load the word level likelihoods if necessary
+  if isinstance(ref_word_likelihoods, str):
+    ref_word_likelihoods = corpus_utils.load_scores(ref_word_likelihoods)
+  # Compute average likelihood for each word
+  word_likelihood = defaultdict(lambda: 0.0)
+  word_counts = defaultdict(lambda: 0.0)
+  for words, likelihoods in zip(ref, ref_word_likelihoods):
+    for word, likelihood in zip(words, likelihoods):
+      word_likelihood[word] += likelihood
+      word_counts[word] += 1
+  # Normalize
+  for word, count in word_counts.items():
+    word_likelihood[word] /= count
+  # Global stats
+  avg_ll = sum(word_likelihood.values())
+  print(f"--- perplexity={exp(avg_ll):.2f}, NLL={-avg_ll:.2f}")
+  # Words with highest/lowest probabilities
+  sorted_words = sorted(word_likelihood.keys(), key=lambda x: word_likelihood[x])
+  gap = max(len(word) for word in sorted_words) + 1
+  print(f"--- top 5 most probable words according to the model (average NLL)")
+  for word in reversed(sorted_words[-5:]):
+    print(f"{word}{' '*(gap-len(word))}({word_likelihood[word]:.3f})")
+  print(f"--- top 5 least probable words according to the model (average NLL)")
+  for word in reversed(sorted_words[:5]):
+    print(f"{word}{' '*(gap-len(word))}({word_likelihood[word]:.3f})")
+  print()
+
+
 def print_sentence_examples(ref, out1, out2,
                             score_type='sentbleu',
                             report_length=10):
@@ -242,6 +282,10 @@ if __name__ == '__main__':
                       Compare sentences. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_sentence_examples' to see which arguments are available.
                       """)
+  parser.add_argument('--analyze_word_likelihoods', type=str, default=None,
+                      help="Print statistics on the word level likelihood of the reference. "
+                           "The argument should be a file containing the **log** likelihood of "
+                           "each word in the reference.")
   args = parser.parse_args()
 
   ref, out1, out2 = [corpus_utils.load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
@@ -284,3 +328,8 @@ if __name__ == '__main__':
       kargs = parse_profile(profile)
       print_sentence_examples(ref, out1, out2, **kargs)
       print()
+  
+  # Word likelihoods
+  if args.analyze_word_likelihoods:
+    print_header('Word-level likelihood Analysis')
+    print_word_likelihood_report(ref, args.analyze_word_likelihoods)
