@@ -70,17 +70,13 @@ def eval_with_paired_bootstrap(gold, sys1, sys2,
 
   # Print win stats
   wins = [x/float(num_samples) for x in wins]
-  print('Win ratio: sys1=%.3f, sys2=%.3f, tie=%.3f' % (wins[0], wins[1], wins[2]))
-  if wins[0] > wins[1]:
-    print('(sys1 is superior with p value p=%.3f)\n' % (1-wins[0]))
-  elif wins[1] > wins[0]:
-    print('(sys2 is superior with p value p=%.3f)\n' % (1-wins[1]))
 
   # Print system stats
   sys1_scores.sort()
   sys2_scores.sort()
-  print('sys1 mean=%.3f, median=%.3f, 95%% confidence interval=[%.3f, %.3f]' %
-          (np.mean(sys1_scores), np.median(sys1_scores), sys1_scores[int(num_samples * 0.025)], sys1_scores[int(num_samples * 0.975)]))
-  print('sys2 mean=%.3f, median=%.3f, 95%% confidence interval=[%.3f, %.3f]' %
-          (np.mean(sys2_scores), np.median(sys2_scores), sys2_scores[int(num_samples * 0.025)], sys2_scores[int(num_samples * 0.975)]))
+ 
+  sys1_stats = {'mean':np.mean(sys1_scores), 'median':np.median(sys1_scores), 'lower_bound':sys1_scores[int(num_samples * 0.025)], 'upper_bound':sys1_scores[int(num_samples * 0.975)]}
+  sys2_stats = {'mean':np.mean(sys2_scores), 'median':np.median(sys2_scores), 'lower_bound':sys2_scores[int(num_samples * 0.025)], 'upper_bound':sys2_scores[int(num_samples * 0.975)]}
+
+  return wins, sys1_stats, sys2_stats
 
