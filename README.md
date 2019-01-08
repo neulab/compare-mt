@@ -59,7 +59,7 @@ source language words, which would allow you to examine whether, for example, in
 hard to output properly. Here is an example using the example data:
  
     python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
-        --compare_src_word_accuracies TODO 
+        --compare_src_word_accuracies ref_align=example/ted.ref.align,out1_align=example/ted.sys1.align,out2_align=example/ted.sys2.align 
  
 
 ## Citation/References
