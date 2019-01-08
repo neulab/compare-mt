@@ -318,7 +318,8 @@ if __name__ == '__main__':
   # Source word analysis
   if args.compare_src_word_accuracies:
     print_header('Source Word Analysis')
-    assert(src), "Must specify the source file!"
+    if not src:
+      raise ValueError("Must specify the source file when performing source analysis.")
     for profile in args.compare_src_word_accuracies:
       kargs = parse_profile(profile)
       print_src_word_accuracy_report(src, ref, out1, out2, **kargs)

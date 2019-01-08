@@ -58,7 +58,7 @@ If you have a source corpus that is aligned to the target, you can also analyze 
 source language words, which would allow you to examine whether, for example, infrequent words on the source side are
 hard to output properly. Here is an example using the example data:
  
-    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
+    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk
         --compare_src_word_accuracies ref_align=example/ted.ref.align,out1_align=example/ted.sys1.align,out2_align=example/ted.sys2.align 
  
 
