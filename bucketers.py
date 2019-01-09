@@ -16,8 +16,7 @@ class Bucketer:
         self.bucket_strs.append(f'x = {x-1}')
       else:
         self.bucket_strs.append(f'{bucket_cutoffs[i-1]} <= x < {x}')
-      last_start = x
-    self.bucket_strs.append(f'{bucket_cutoffs[i-1]} < x')
+    self.bucket_strs.append(f'{x} < x')
 
   def cutoff_into_bucket(self, value):
     for i, v in enumerate(self.bucket_cutoffs):
@@ -27,7 +26,7 @@ class Bucketer:
 
 class WordBucketer(Bucketer):
 
-  def calc_bucket(self, val, ref_label=None, out_label=None):
+  def calc_bucket(self, val, ref_label=None, out_label=None, src_label=None):
     """
     Calculate the bucket for a particular word
 
@@ -96,6 +95,66 @@ class WordBucketer(Bucketer):
         fmeas = 2 * prec * rec / (prec + rec)
       yield both_tot, ref_tot, out_tot, rec, prec, fmeas
 
+  def calc_source_bucketed_matches(self, src, ref, out, ref_aligns, out_aligns, src_labels=None):
+    """
+    Calculate the number of matches, bucketed by the type of word we have
+    This must be used with a subclass that has self.bucket_strs defined, and self.calc_bucket(word) implemented.
+
+    Args:
+      src: The source corpus
+      ref: The reference corpus
+      out: The output corpus
+      ref_aligns: Alignments of the reference corpus
+      out_aligns: Alignments of the output corpus
+      src_labels: Labels of the source corpus (optional)
+
+    Returns:
+      A tuple containing:
+        both_tot: the frequency of a particular bucket appearing in both output and reference
+        ref_tot: the frequency of a particular bucket appearing in just reference
+        out_tot: the frequency of a particular bucket appearing in just output
+        rec: recall of the bucket
+        prec: precision of the bucket
+        fmeas: f1-measure of the bucket
+    """
+    src_labels = src_labels if src_labels else []
+    matches = [[0, 0, 0] for x in self.bucket_strs]
+    for src_sent, ref_sent, out_sent, ref_align, out_align, src_lab in itertools.zip_longest(src, ref, out, ref_aligns, out_aligns, src_labels):
+      ref_cnt = defaultdict(lambda: 0)
+      for i, word in enumerate(ref_sent):
+        ref_cnt[word] += 1
+      for i, align in enumerate(out_align):
+        src_index, trg_index = align.split('-')
+        src_index = int(src_index)
+        trg_index = int(trg_index)
+        src_word = src_sent[src_index] 
+        word = out_sent[trg_index]
+        if ref_cnt[word] > 0:
+          ref_cnt[word] -= 1
+          bucket = self.calc_bucket(src_word,
+                                    src_label=src_lab[src_index] if src_lab else None)
+          matches[bucket][0] += 1
+        else:
+          bucket = self.calc_bucket(src_word,
+                                    src_label=src_lab[src_index] if src_lab else None)
+        matches[bucket][2] += 1
+      for i, align in enumerate(ref_align):
+        src_index, trg_index = align.split('-')
+        src_index = int(src_index)
+        trg_index = int(trg_index)
+        src_word = src_sent[src_index] 
+        bucket = self.calc_bucket(src_word,
+                                  src_label=src_lab[src_index] if src_lab else None)
+        matches[bucket][1] += 1
+
+    for both_tot, ref_tot, out_tot in matches:
+      if both_tot == 0:
+        rec, prec, fmeas = 0.0, 0.0, 0.0
+      else:
+        rec = both_tot / float(ref_tot)
+        prec = both_tot / float(out_tot)
+        fmeas = 2 * prec * rec / (prec + rec)
+      yield both_tot, ref_tot, out_tot, rec, prec, fmeas
 
 class FreqWordBucketer(WordBucketer):
 
@@ -138,7 +197,7 @@ class FreqWordBucketer(WordBucketer):
       bucket_cutoffs = [1, 2, 3, 4, 5, 10, 100, 1000]
     self.set_bucket_cutoffs(bucket_cutoffs)
 
-  def calc_bucket(self, word, ref_label=None, out_label=None):
+  def calc_bucket(self, word, ref_label=None, out_label=None, src_label=None):
     return self.cutoff_into_bucket(self.freq_counts.get(word, 0))
 
   def name(self):
@@ -162,11 +221,13 @@ class LabelWordBucketer(WordBucketer):
     for i, l in enumerate(label_set):
       self.bucket_map[l] = i
 
-  def calc_bucket(self, word, ref_label=None, out_label=None):
+  def calc_bucket(self, word, ref_label=None, out_label=None, src_label=None):
     if ref_label:
       return self.bucket_map[ref_label]
     elif out_label:
       return self.bucket_map[out_label]
+    elif src_label:
+      return self.bucket_map[src_label]
     else:
       raise ValueError('When calculating buckets by label, ref_label or out_label must be non-zero')
 
@@ -258,7 +319,7 @@ def create_word_bucketer_from_profile(bucket_type,
     return FreqWordBucketer(
       freq_counts=freq_counts,
       freq_count_file=freq_count_file,
-      freq_corpus_file=freq_corpus_file,
+      freq_corpus_file=freq_corpus_file, 
       freq_data=freq_data,
       bucket_cutoffs=bucket_cutoffs)
   elif bucket_type == 'label':

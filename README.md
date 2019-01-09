@@ -38,6 +38,13 @@ your modified system with your baseline and seeing what you find! Note there are
 If you want to try different types, try taking a look at `compare_mt.py`, which is documented relatively well and should
 give examples.
 
+### Significance Tests
+
+The script allows you to perform statistical significance tests for scores based on bootstrap resampling. You can set
+the number of samplings manually. Here is an example using the example data:
+
+    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_scores score_type=bleu,bootstrap=1000
+
 ### Incorporating Word Labels
 
 If you're interested in performing aggregate analysis over labels for each word instead of the words themselves, it
@@ -48,9 +55,19 @@ aggregate analysis, or n-gram-based analysis. The following gives an example:
         --compare_word_accuracies bucket_type=label,ref_labels=example/ted.ref.eng.tag,out1_labels=example/ted.sys1.eng.tag,out2_labels=example/ted.sys2.eng.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
         --compare_ngrams compare_type=match,ref_labels=example/ted.ref.eng.tag,out1_labels=example/ted.sys1.eng.tag,out2_labels=example/ted.sys2.eng.tag
  
- This will calculate word accuracies and n-gram matches by POS bucket, and allows you to see things like the fact
- that the phrase-based MT system is better at translating content words such as nouns and verbs, while neural MT
- is doing better at translating function words.
+This will calculate word accuracies and n-gram matches by POS bucket, and allows you to see things like the fact
+that the phrase-based MT system is better at translating content words such as nouns and verbs, while neural MT
+is doing better at translating function words.
+
+### Analyzing Source Words
+
+If you have a source corpus that is aligned to the target, you can also analyze accuracies according to features of the
+source language words, which would allow you to examine whether, for example, infrequent words on the source side are
+hard to output properly. Here is an example using the example data:
+ 
+    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk
+        --compare_src_word_accuracies ref_align=example/ted.ref.align,out1_align=example/ted.sys1.align,out2_align=example/ted.sys2.align 
+ 
 
 ## Citation/References
 
