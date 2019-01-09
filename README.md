@@ -38,6 +38,13 @@ your modified system with your baseline and seeing what you find! Note there are
 If you want to try different types, try taking a look at `compare_mt.py`, which is documented relatively well and should
 give examples.
 
+### Significance Tests
+
+The script allows you to perform statistical significance tests for scores based on bootstrap resampling. You can set
+the number of samplings manually. Here is an example using the example data:
+
+    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_scores score_type=bleu,bootstrap=1000
+
 ### Incorporating Word Labels
 
 If you're interested in performing aggregate analysis over labels for each word instead of the words themselves, it

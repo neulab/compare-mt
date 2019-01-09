@@ -6,6 +6,7 @@ import operator
 import ngram_utils
 import stat_utils
 import corpus_utils
+import sign_utils
 import scorers
 import bucketers
 
@@ -17,7 +18,8 @@ def parse_profile(profile):
   return kargs
 
 def print_score_report(ref, out1, out2,
-                       score_type='bleu'):
+                       score_type='bleu',
+                       bootstrap=0):
   """
   Print a report comparing overall scores of the two systems.
 
@@ -35,6 +37,21 @@ def print_score_report(ref, out1, out2,
     print(f' Sys1: {score1} ({str1})\n Sys2: {score2} ({str2})')
   else:
     print(f' Sys1: {score1}\n Sys2: {score2}')
+
+  if int(bootstrap) > 0:
+    print('Significance test. This may take a while.')
+    wins, sys1_stats, sys2_stats = sign_utils.eval_with_paired_bootstrap(ref, out1, out2, score_type=score_type, num_samples=int(bootstrap))
+
+    print('Win ratio: Sys1=%.3f, Sys2=%.3f, tie=%.3f' % (wins[0], wins[1], wins[2]))
+    if wins[0] > wins[1]:
+      print('(Sys1 is superior with p value p=%.3f)\n' % (1-wins[0]))
+    elif wins[1] > wins[0]:
+      print('(Sys2 is superior with p value p=%.3f)\n' % (1-wins[1]))
+
+    print('Sys1: mean=%.3f, median=%.3f, 95%% confidence interval=[%.3f, %.3f]' %
+            (sys1_stats['mean'], sys1_stats['median'], sys1_stats['lower_bound'], sys1_stats['upper_bound']))
+    print('Sys2: mean=%.3f, median=%.3f, 95%% confidence interval=[%.3f, %.3f]' %
+            (sys2_stats['mean'], sys2_stats['median'], sys2_stats['lower_bound'], sys2_stats['upper_bound']))
 
 def print_word_accuracy_report(ref, out1, out2,
                           acc_type='fmeas', bucket_type='freq',
@@ -257,7 +274,7 @@ if __name__ == '__main__':
   parser.add_argument('--src_file', type=str, default=None,
                       help='A path to the source file')
   parser.add_argument('--compare_scores', type=str, nargs='*',
-                      default=['score_type=bleu', 'score_type=length'],
+                      default=['score_type=bleu,bootstrap=0', 'score_type=length,bootstrap=0'],
                       help="""
                       Compare scores. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_score_report' to see which arguments are available.
@@ -348,4 +365,3 @@ if __name__ == '__main__':
       kargs = parse_profile(profile)
       print_sentence_examples(ref, out1, out2, **kargs)
       print()
-
