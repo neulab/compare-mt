@@ -4,7 +4,7 @@ class BleuScorer:
   """
   A scorer that calculates BLEU score.
   """
-  def __init__(case_insensitive=False):
+  def __init__(self, case_insensitive=False):
     self.case_insensitive = case_insensitive
 
   def score_corpus(self, ref, out):
@@ -19,7 +19,7 @@ class BleuScorer:
       A tuple containing a single value for the BLEU score and a string summarizing auxiliary information
     """
     if self.case_insensitive:
-      bleu = nltk.translate.bleu_score.corpus_bleu([[[word.lower() for word in x]] for x in ref], out)
+      bleu = nltk.translate.bleu_score.corpus_bleu([[[word.lower() for word in x]] for x in ref], [[word.lower() for word in line] for line in out])
     else:
       bleu = nltk.translate.bleu_score.corpus_bleu([[x] for x in ref], out)
     return bleu, None
@@ -35,7 +35,7 @@ class SentBleuScorer:
   """
   A scorer that calculates sentence-level smoothed BLEU score.
   """
-  def __init__(case_insensitive=False):
+  def __init__(self, case_insensitive=False):
     self.case_insensitive = case_insensitive
 
   def score_corpus(self, ref, out):
@@ -67,7 +67,7 @@ class SentBleuScorer:
     """
     chencherry = nltk.translate.bleu_score.SmoothingFunction()
     if self.case_insensitive:
-      return nltk.translate.bleu_score.sentence_bleu([[word.lower() for word in ref]], out, smoothing_function=chencherry.method2), None
+      return nltk.translate.bleu_score.sentence_bleu([[word.lower() for word in ref]], [word.lower() for word in out], smoothing_function=chencherry.method2), None
     else:  
       return nltk.translate.bleu_score.sentence_bleu([ref], out, smoothing_function=chencherry.method2), None
 

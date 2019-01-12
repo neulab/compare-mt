@@ -38,6 +38,12 @@ your modified system with your baseline and seeing what you find! Note there are
 If you want to try different types, try taking a look at `compare_mt.py`, which is documented relatively well and should
 give examples.
 
+### Case-insensitive Options
+
+If you don't want to consider case while computing scores or accuracies, you can turn on the case-insensitive options. The following gives an example:
+
+    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_scores score_type=bleu,case_insensitive=True
+
 ### Significance Tests
 
 The script allows you to perform statistical significance tests for scores based on bootstrap resampling. You can set
