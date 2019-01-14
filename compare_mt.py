@@ -9,6 +9,7 @@ import corpus_utils
 import sign_utils
 import scorers
 import bucketers
+import reporters
 
 def parse_profile(profile):
   kargs = {}
@@ -17,11 +18,11 @@ def parse_profile(profile):
     kargs[k] = v
   return kargs
 
-def print_score_report(ref, out1, out2,
+def generate_score_report(ref, out1, out2,
                        score_type='bleu',
                        bootstrap=0):
   """
-  Print a report comparing overall scores of the two systems.
+  Generate a report comparing overall scores of the two systems in both plain text and graphs.
 
   Args:
     ref: Tokens from the reference
@@ -30,36 +31,26 @@ def print_score_report(ref, out1, out2,
     score_type: A string specifying the scoring type (bleu/length)
   """
   scorer = scorers.create_scorer_from_profile(score_type)
-  print(f'{scorer.name()}:')
   score1, str1 = scorer.score_corpus(ref,out1)
   score2, str2 = scorer.score_corpus(ref,out2)
-  if str1 is not None:
-    print(f' Sys1: {score1} ({str1})\n Sys2: {score2} ({str2})')
-  else:
-    print(f' Sys1: {score1}\n Sys2: {score2}')
+  stats = {'scorer_name': scorer.name(), 'score1': score1, 'str1': str1, 'score2': score2, 'str2': str2}
 
   if int(bootstrap) > 0:
-    print('Significance test. This may take a while.')
+    # print('Significance test. This may take a while.')
     wins, sys1_stats, sys2_stats = sign_utils.eval_with_paired_bootstrap(ref, out1, out2, score_type=score_type, num_samples=int(bootstrap))
+    stats = {**stats, 'wins': wins, 'sys1_stats': sys1_stats, 'sys2_stats': sys2_stats}
 
-    print('Win ratio: Sys1=%.3f, Sys2=%.3f, tie=%.3f' % (wins[0], wins[1], wins[2]))
-    if wins[0] > wins[1]:
-      print('(Sys1 is superior with p value p=%.3f)\n' % (1-wins[0]))
-    elif wins[1] > wins[0]:
-      print('(Sys2 is superior with p value p=%.3f)\n' % (1-wins[1]))
+  reporter = reporters.create_reporter_from_profile(profile='score', stats=stats)
+  reporter.print()
+  reporter.plot(fig_name=f'Score-{score_type}-{bootstrap}.pdf')
 
-    print('Sys1: mean=%.3f, median=%.3f, 95%% confidence interval=[%.3f, %.3f]' %
-            (sys1_stats['mean'], sys1_stats['median'], sys1_stats['lower_bound'], sys1_stats['upper_bound']))
-    print('Sys2: mean=%.3f, median=%.3f, 95%% confidence interval=[%.3f, %.3f]' %
-            (sys2_stats['mean'], sys2_stats['median'], sys2_stats['lower_bound'], sys2_stats['upper_bound']))
-
-def print_word_accuracy_report(ref, out1, out2,
+def generate_word_accuracy_report(ref, out1, out2,
                           acc_type='fmeas', bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
                           ref_labels=None, out1_labels=None, out2_labels=None):
   """
-  Print a report comparing the word accuracy.
+  Generate a report comparing the word accuracy in both plain text and graphs.
 
   Args:
     ref: Tokens from the reference
@@ -76,7 +67,6 @@ def print_word_accuracy_report(ref, out1, out2,
     out1_labels: output 1 labels. must be specified if ref_labels is specified.
     out2_labels: output 2 labels. must be specified if ref_labels is specified.
   """
-  acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
                                                          freq_corpus_file=freq_corpus_file,
@@ -87,23 +77,20 @@ def print_word_accuracy_report(ref, out1, out2,
   out2_labels = corpus_utils.load_tokens(out2_labels) if type(out2_labels) == str else out2_labels
   matches1 = bucketer.calc_bucketed_matches(ref, out1, ref_labels=ref_labels, out_labels=out1_labels)
   matches2 = bucketer.calc_bucketed_matches(ref, out2, ref_labels=ref_labels, out_labels=out2_labels)
-  acc_types = acc_type.split('+')
-  for at in acc_types:
-    if at not in acc_type_map:
-      raise ValueError(f'Unknown accuracy type {at}')
-    aid = acc_type_map[at]
-    print(f'--- word {acc_type} by {bucketer.name()} bucket')
-    for bucket_str, match1, match2 in zip(bucketer.bucket_strs, matches1, matches2):
-      print("{}\t{:.4f}\t{:.4f}".format(bucket_str, match1[aid], match2[aid]))
-    print()
+  
+  stats = {'bucketer': bucketer, 'matches1': matches1, 'matches2': matches2, 'acc_type': acc_type, 'header': "Word Accuracy Analysis"}
+  reporter = reporters.create_reporter_from_profile(profile='word', stats=stats)
+  reporter.print()
+  reporter.plot()
+  
 
-def print_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, out2_align,
+def generate_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, out2_align,
                           acc_type='fmeas', bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
                           src_labels=None):
   """
-  Print a report for source word analysis.
+  Generate a report for source word analysis in both plain text and graphs.
 
   Args:
     src: Tokens from the source
@@ -123,7 +110,6 @@ def print_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, 
     src_labels: either a filename of a file full of source labels, or a list of strings corresponding to `ref`.
   """
   ref_align, out1_align, out2_align = [corpus_utils.load_tokens(x) for x in (ref_align, out1_align, out2_align)]
-  acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
                                                          freq_corpus_file=freq_corpus_file, 
@@ -132,21 +118,17 @@ def print_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, 
   src_labels = corpus_utils.load_tokens(src_labels) if type(src_labels) == str else src_labels
   matches1 = bucketer.calc_source_bucketed_matches(src, ref, out1, ref_align, out1_align, src_labels=src_labels)
   matches2 = bucketer.calc_source_bucketed_matches(src, ref, out2, ref_align, out2_align, src_labels=src_labels)
-  acc_types = acc_type.split('+')
-  for at in acc_types:
-    if at not in acc_type_map:
-      raise ValueError(f'Unknown accuracy type {at}')
-    aid = acc_type_map[at]
-    print(f'--- word {acc_type} by {bucketer.name()} bucket')
-    for bucket_str, match1, match2 in zip(bucketer.bucket_strs, matches1, matches2):
-      print("{}\t{:.4f}\t{:.4f}".format(bucket_str, match1[aid], match2[aid]))
-    print()
 
-def print_sentence_bucketed_report(ref, out1, out2,
+  stats = {'bucketer': bucketer, 'matches1': matches1, 'matches2': matches2, 'acc_type': acc_type, 'header': "Source Word Analysis"}
+  reporter = reporters.create_reporter_from_profile(profile='word', stats=stats)
+  reporter.print()
+  reporter.plot()
+
+def generate_sentence_bucketed_report(ref, out1, out2,
                                    bucket_type='score', statistic_type='count',
                                    score_measure='bleu'):
   """
-  Print a report of sentences by bucket
+  Generate a report of sentences by bucket in both plain text and graphs
 
   Args:
     ref: Tokens from the reference
@@ -170,10 +152,14 @@ def print_sentence_bucketed_report(ref, out1, out2,
   stats1 = [aggregator(out,ref) for (out,ref) in bc1]
   stats2 = [aggregator(out,ref) for (out,ref) in bc2]
 
-  print(f'--- bucket_type={bucket_type}, statistic_type={statistic_type}, score_measure={score_measure}')
-  for bs, s1, s2 in zip(bucketer.bucket_strs, stats1, stats2):
-    print(f'{bs}\t{s1}\t{s2}')
-  print()
+  stats = {'bucketer': bucketer, 'stats1': stats1, 'stats2': stats2, 
+           'bucket_type': bucket_type, 
+           'statistic_type': statistic_type, 
+           'score_measure': score_measure}
+  reporter = reporters.create_reporter_from_profile(profile='sentence', stats=stats)
+  reporter.print()
+  reporter.plot()
+  
 
 def print_ngram_report(ref, out1, out2,
                        min_ngram_length=1, max_ngram_length=4,
@@ -318,37 +304,29 @@ if __name__ == '__main__':
 
   # Aggregate scores
   if args.compare_scores:
-    print_header('Aggregate Scores')
     for profile in args.compare_scores:
       kargs = parse_profile(profile)
-      print_score_report(ref, out1, out2, **kargs)
-      print()
+      generate_score_report(ref, out1, out2, **kargs)
 
   # Word accuracy analysis
   if args.compare_word_accuracies:
-    print_header('Word Accuracy Analysis')
     for profile in args.compare_word_accuracies:
       kargs = parse_profile(profile)
-      print_word_accuracy_report(ref, out1, out2, **kargs)
-      print()
+      generate_word_accuracy_report(ref, out1, out2, **kargs)
 
   # Source word analysis
   if args.compare_src_word_accuracies:
-    print_header('Source Word Analysis')
     if not src:
       raise ValueError("Must specify the source file when performing source analysis.")
     for profile in args.compare_src_word_accuracies:
       kargs = parse_profile(profile)
-      print_src_word_accuracy_report(src, ref, out1, out2, **kargs)
-      print()
+      generate_src_word_accuracy_report(src, ref, out1, out2, **kargs)
 
   # Sentence count analysis
   if args.compare_sentence_buckets:
-    print_header('Sentence Bucket Analysis')
     for profile in args.compare_sentence_buckets:
       kargs = parse_profile(profile)
-      print_sentence_bucketed_report(ref, out1, out2, **kargs)
-      print()
+      generate_sentence_bucketed_report(ref, out1, out2, **kargs)
 
   # n-gram difference analysis
   if args.compare_ngrams:
