@@ -7,6 +7,7 @@ import ngram_utils
 import stat_utils
 import corpus_utils
 import sign_utils
+import align_utils
 import scorers
 import bucketers
 
@@ -229,6 +230,26 @@ def print_ngram_report(ref, out1, out2,
     print('{}\t{} (sys1={}, sys2={})'.format(' '.join(k), v, match1[k], match2[k]))
   print()
 
+def print_word_reorder_error_report(ref_align, out1_align, out2_align,
+                              src=None): 
+  """
+  Print a report comparing word reordering errors of the two systems.
+
+  Args:
+    ref_align: Alignment file for the reference
+    out1_align: Alignment file for the output file 1
+    out2_align: Alignment file for the output file 2
+    src: Tokens from the source file
+  """
+  ref_align, out1_align, out2_align = [corpus_utils.load_tokens(x) for x in (ref_align, out1_align, out2_align)]
+  src_len = [len(l) for l in src] if src else None 
+  score1, score2, mono_score1, mono_score2 = align_utils.calculate_kendall_tau_distance(ref_align, out1_align, out2_align, src_len)
+  print('--- Average Kendall\'s tau distance between monotone and system alignments')
+  print(f' Sys1: {mono_score1}\n Sys2: {mono_score2}')
+  print('--- Average Kendall\'s tau distance between reference and system alignments')
+  print(f' Sys1: {score1}\n Sys2: {score2}')
+  
+
 def print_sentence_examples(ref, out1, out2,
                             score_type='sentbleu',
                             report_length=10):
@@ -305,6 +326,12 @@ if __name__ == '__main__':
                       Compare ngrams. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_ngram_report' to see which arguments are available.
                       """)
+  parser.add_argument('--compare_word_reordering_errors', type=str, nargs='*',
+                      default=None,
+                      help="""
+                      Compare word reordering errors. Can specify arguments in 'ref_align=file1,out1_align=file2,out2_align=file3,...' format.
+                      See documentation for 'print_word_reorder_error_report' to see which arguments are available.
+                      """)
   parser.add_argument('--compare_sentence_examples', type=str, nargs='*',
                       default=['score_type=sentbleu'],
                       help="""
@@ -356,6 +383,14 @@ if __name__ == '__main__':
     for profile in args.compare_ngrams:
       kargs = parse_profile(profile)
       print_ngram_report(ref, out1, out2, **kargs)
+      print()
+
+  # Word reordering errors analysis
+  if args.compare_word_reordering_errors:
+    print_header('Word Reordering Errors Analysis')
+    for profile in args.compare_word_reordering_errors:
+      kargs = parse_profile(profile)
+      print_word_reorder_error_report(**kargs, src=src)
       print()
 
   # Sentence example analysis
