@@ -10,7 +10,11 @@ the systems, which will make it easier for you to figure out what things one sys
 
 ### Basic Usage
 
-As an example, you can run this over two included system outputs.
+First, you need to install the requirements:
+
+    pip install -r requirements.txt
+
+Then, as an example, you can run this over two included system outputs.
 
     python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
 
