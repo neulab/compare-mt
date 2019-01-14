@@ -10,7 +10,6 @@ def alignment_to_permutation(aligns, src_len):
   for src_pos, trg_pos in zip(aligns['src'], aligns['trg']):
     src_trg[src_pos] = min(src_trg[src_pos], trg_pos) if src_pos in src_trg else trg_pos
 
-  trg_src = defaultdict(lambda: [])
   pos_value = []
   for i in range(src_len):
     if i in src_trg:
@@ -21,11 +20,6 @@ def alignment_to_permutation(aligns, src_len):
           return 0
         return src_trg[pos] if pos in src_trg else last_v(pos - 1)
       v = last_v(i - 1) 
-    trg_src[v].append(i)
-    two_power = 0.5
-    for _ in range(len(trg_src[v]) - 1):
-      v += two_power
-      two_power /= 2
     pos_value.append(v)
   return numpy.argsort(pos_value)
 
