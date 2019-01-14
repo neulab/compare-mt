@@ -69,8 +69,8 @@ def print_word_accuracy_report(ref, out1, out2,
     bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
     freq_corpus_file: When using "freq" as a bucketer, which corpus to use to calculate frequency.
                       By default this uses the frequency in the reference test set, but it's often more informative
-                      se the frequency in the training set, in which case you specify the path of the target side
-                      he training corpus.
+                      to use the frequency in the training set, in which case you specify the path of the
+                      training corpus.
     freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
     ref_labels: either a filename of a file full of reference labels, or a list of strings corresponding to `ref`.
     out1_labels: output 1 labels. must be specified if ref_labels is specified.
@@ -126,8 +126,8 @@ def print_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, 
   acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
-                                                         freq_corpus_file=freq_corpus_file, 
-                                                         freq_data=src, 
+                                                         freq_corpus_file=freq_corpus_file,
+                                                         freq_data=src,
                                                          label_set=label_set)
   src_labels = corpus_utils.load_tokens(src_labels) if type(src_labels) == str else src_labels
   matches1 = bucketer.calc_source_bucketed_matches(src, ref, out1, ref_align, out1_align, src_labels=src_labels)
