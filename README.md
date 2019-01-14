@@ -72,11 +72,11 @@ hard to output properly. Here is an example using the example data:
 
 If you wish to analyze the word log likelihoods by two systems on the target corpus, you can use the following
 
-    python compare_ll.py --corpus example/ll_test.txt --ll1-file example/ll_test.sys1.likelihood --ll2-file example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=freq,freq_corpus_file=example/ll_test.txt
+    python compare_ll.py --ref example/ll_test.txt --ll1-file example/ll_test.sys1.likelihood --ll2-file example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=freq,freq_corpus_file=example/ll_test.txt
 
 You can analyze the word log likelihoods over labels for each word instead of the words themselves:
 
-    python compare_ll.py --corpus example/ll_test.txt --ll1-file example/ll_test.sys1.likelihood --ll2-file example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=label,label_corpus=example/ll_test.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
+    python compare_ll.py --ref example/ll_test.txt --ll1-file example/ll_test.sys1.likelihood --ll2-file example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=label,label_corpus=example/ll_test.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
 
 NOTE: You can also use the above to also analyze the word likelihoods produced by two language models.
 

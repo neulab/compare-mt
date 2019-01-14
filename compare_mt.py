@@ -9,13 +9,9 @@ import corpus_utils
 import sign_utils
 import scorers
 import bucketers
+import arg_utils
+import print_utils
 
-def parse_profile(profile):
-  kargs = {}
-  for kv in profile.split(','):
-    k, v = kv.split('=')
-    kargs[k] = v
-  return kargs
 
 def print_score_report(ref, out1, out2,
                        score_type='bleu',
@@ -257,8 +253,6 @@ def print_sentence_examples(ref, out1, out2,
   for bdiff, s1, s2, str1, str2, i in scorediff_list[-report_length:]:
     print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
 
-def print_header(header):
-  print(f'********************** {header} ************************')
 
 if __name__ == '__main__':
 
@@ -318,50 +312,50 @@ if __name__ == '__main__':
 
   # Aggregate scores
   if args.compare_scores:
-    print_header('Aggregate Scores')
+    print_utils.print_header('Aggregate Scores')
     for profile in args.compare_scores:
-      kargs = parse_profile(profile)
+      kargs = arg_utils.parse_profile(profile)
       print_score_report(ref, out1, out2, **kargs)
       print()
 
   # Word accuracy analysis
   if args.compare_word_accuracies:
-    print_header('Word Accuracy Analysis')
+    print_utils.print_header('Word Accuracy Analysis')
     for profile in args.compare_word_accuracies:
-      kargs = parse_profile(profile)
+      kargs = arg_utils.parse_profile(profile)
       print_word_accuracy_report(ref, out1, out2, **kargs)
       print()
 
   # Source word analysis
   if args.compare_src_word_accuracies:
-    print_header('Source Word Analysis')
+    print_utils.print_header('Source Word Analysis')
     if not src:
       raise ValueError("Must specify the source file when performing source analysis.")
     for profile in args.compare_src_word_accuracies:
-      kargs = parse_profile(profile)
+      kargs =arg_utils.parse_profile(profile)
       print_src_word_accuracy_report(src, ref, out1, out2, **kargs)
       print()
 
   # Sentence count analysis
   if args.compare_sentence_buckets:
-    print_header('Sentence Bucket Analysis')
+    print_utils.print_header('Sentence Bucket Analysis')
     for profile in args.compare_sentence_buckets:
-      kargs = parse_profile(profile)
+      kargs = arg_utils.parse_profile(profile)
       print_sentence_bucketed_report(ref, out1, out2, **kargs)
       print()
 
   # n-gram difference analysis
   if args.compare_ngrams:
-    print_header('N-gram Difference Analysis')
+    print_utils.print_header('N-gram Difference Analysis')
     for profile in args.compare_ngrams:
-      kargs = parse_profile(profile)
+      kargs = arg_utils.parse_profile(profile)
       print_ngram_report(ref, out1, out2, **kargs)
       print()
 
   # Sentence example analysis
   if args.compare_sentence_examples:
-    print_header('Sentence Example Analysis')
+    print_utils.print_header('Sentence Example Analysis')
     for profile in args.compare_sentence_examples:
-      kargs = parse_profile(profile)
+      kargs = arg_utils.parse_profile(profile)
       print_sentence_examples(ref, out1, out2, **kargs)
       print()

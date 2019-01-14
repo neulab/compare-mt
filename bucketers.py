@@ -172,9 +172,12 @@ class WordBucketer(Bucketer):
     if type(corpus) == str:
       corpus = corpus_utils.load_tokens(corpus)
     bucketed_likelihoods = [[0.0, 0] for _ in self.bucket_strs]
-    assert (len(corpus) == len(likelihoods))
+    if len(corpus) != len(likelihoods):
+      raise ValueError("corpus and likelihoods should have the same size.")
     for sent, list_of_likelihoods in zip(corpus, likelihoods):
-      assert (len(sent) == len(list_of_likelihoods))
+      if len(sent) != len(list_of_likelihoods):
+        raise ValueError("Each sentence of the corpus should have likelihood value for each word")
+
       for word, ll in zip(sent, list_of_likelihoods):
         bucket = self.calc_bucket(word, ref_label=word)
         bucketed_likelihoods[bucket][0] += ll
@@ -184,7 +187,7 @@ class WordBucketer(Bucketer):
       if count != 0:
         yield ll/float(count)
       else:
-        yield -float("inf") # large negative value
+        yield "NA" # not applicable
 
 
 class FreqWordBucketer(WordBucketer):
