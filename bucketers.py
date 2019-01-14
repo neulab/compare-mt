@@ -70,11 +70,11 @@ class WordBucketer(Bucketer):
       ref_pos = defaultdict(lambda: [])
       for i, word in enumerate(ref_sent):
         if self.case_insensitive:
-          word = word.lower()
+          word = corpus_utils.lower(word)
         ref_pos[word].append(i)
       for i, word in enumerate(out_sent):
         if self.case_insensitive:
-          word = word.lower()
+          word = corpus_utils.lower(word)
         if len(ref_pos[word]) > 0:
           ri = ref_pos[word][0]
           ref_pos[word] = ref_pos[word][1:]
@@ -133,7 +133,7 @@ class WordBucketer(Bucketer):
       ref_cnt = defaultdict(lambda: 0)
       for i, word in enumerate(ref_sent):
         if self.case_insensitive:
-          word = word.lower()
+          word = corpus_utils.lower(word)
         ref_cnt[word] += 1
       for i, align in enumerate(out_align):
         src_index, trg_index = align.split('-')
@@ -142,7 +142,7 @@ class WordBucketer(Bucketer):
         src_word = src_sent[src_index] 
         word = out_sent[trg_index]
         if self.case_insensitive:
-          word = word.lower()
+          word = corpus_utils.lower(word)
         bucket = self.calc_bucket(src_word,
                                   src_label=src_lab[src_index] if src_lab else None)
         if ref_cnt[word] > 0:
@@ -196,20 +196,20 @@ class FreqWordBucketer(WordBucketer):
           for line in f:
             word, freq = line.strip().split('\t')
             if self.case_insensitive:
-              freq_counts[word.lower()] += freq
+              freq_counts[corpus_utils.lower(word)] += freq
             else:
               freq_counts[word] = freq
       elif freq_corpus_file:
         for word in itertools.chain(corpus_utils.iterate_tokens(freq_corpus_file)):
           if self.case_insensitive:
-            freq_counts[word.lower()] += 1
+            freq_counts[corpus_utils.lower(word)] += 1
           else:
             freq_counts[word] += 1
       elif freq_data:
         for words in freq_data:
           for word in words:
             if self.case_insensitive:
-              freq_counts[word.lower()] += 1
+              freq_counts[corpus_utils.lower(word)] += 1
             else:
               freq_counts[word] += 1
       else:
@@ -222,7 +222,7 @@ class FreqWordBucketer(WordBucketer):
 
   def calc_bucket(self, word, ref_label=None, out_label=None, src_label=None):
     if self.case_insensitive:
-      return self.cutoff_into_bucket(self.freq_counts.get(word.lower(), 0))
+      return self.cutoff_into_bucket(self.freq_counts.get(corpus_utils.lower(word), 0))
     else:
       return self.cutoff_into_bucket(self.freq_counts.get(word, 0))
 
@@ -301,7 +301,7 @@ class ScoreSentenceBucketer(SentenceBucketer):
 
   def calc_bucket(self, val, ref=None):
     if self.case_insensitive:
-      return self.cutoff_into_bucket(self.scorer.score_sentence([word.lower() for word in ref], [word.lower() for word in val])[0])
+      return self.cutoff_into_bucket(self.scorer.score_sentence(corpus_utils.lower(ref), corpus_utils.lower(val))[0])
     else:
       return self.cutoff_into_bucket(self.scorer.score_sentence(ref, val)[0])
 
@@ -366,7 +366,7 @@ def create_sentence_bucketer_from_profile(bucket_type,
                                           bucket_cutoffs=None,
                                           case_insensitive=False):
   if bucket_type == 'score':
-    return ScoreSentenceBucketer(score_type, bucket_cutoffs=bucket_cutoffs, case_insensitive=False)
+    return ScoreSentenceBucketer(score_type, bucket_cutoffs=bucket_cutoffs, case_insensitive=case_insensitive)
   elif bucket_type == 'length':
     return LengthSentenceBucketer(bucket_cutoffs=bucket_cutoffs)
   elif bucket_type == 'lengthdiff':

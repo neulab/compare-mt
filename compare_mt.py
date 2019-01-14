@@ -29,13 +29,9 @@ def print_score_report(ref, out1, out2,
     out1: Tokens from the output file 1
     out2: Tokens from the output file 2
     score_type: A string specifying the scoring type (bleu/length)
-    boostrap: Number of samples for significance test (0 to disable)
+    bootstrap: Number of samples for significance test (0 to disable)
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  if case_insensitive:
-    print('----- case sensitive results')
-    print_score_report(ref, out1, out2, score_type, bootstrap, case_insensitive=False)
-    print('----- case insensitive results')
 
   scorer = scorers.create_scorer_from_profile(score_type, case_insensitive)
   print(f'{scorer.name()}:')
@@ -86,10 +82,6 @@ def print_word_accuracy_report(ref, out1, out2,
     out2_labels: output 2 labels. must be specified if ref_labels is specified.
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  if case_insensitive:
-    print('----- case sensitive results')
-    print_word_accuracy_report(ref, out1, out2, acc_type, bucket_type, freq_count_file, freq_corpus_file, label_set, ref_labels, out1_labels, out2_labels, case_insensitive=False)
-    print('----- case insensitive results')
 
   acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
@@ -140,10 +132,6 @@ def print_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, 
     src_labels: either a filename of a file full of source labels, or a list of strings corresponding to `ref`.
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  if case_insensitive:
-    print('----- case sensitive results')
-    print_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, out2_align, acc_type, bucket_type, freq_count_file, freq_corpus_file, label_set, src_labels, case_insensitive=False)
-    print('----- case insensitive results')
 
   ref_align, out1_align, out2_align = [corpus_utils.load_tokens(x) for x in (ref_align, out1_align, out2_align)]
   acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
@@ -180,10 +168,6 @@ def print_sentence_bucketed_report(ref, out1, out2,
     score_measure: If using 'score' as either bucket_type or statistic_type, which scorer to use
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  if case_insensitive:
-    print('----- case sensitive results')
-    print_sentence_bucketed_report(ref, out1, out2, bucket_type, statistic_type, score_measure, case_insensitive=False)
-    print('----- case insensitive results')
 
   bucketer = bucketers.create_sentence_bucketer_from_profile(bucket_type, score_type=score_measure, case_insensitive=case_insensitive)
   bc1 = bucketer.create_bucketed_corpus(out1, ref=ref)
@@ -232,12 +216,9 @@ def print_ngram_report(ref, out1, out2,
   """
 
   if not type(ref_labels) == str and case_insensitive:
-    print('----- case sensitive results')
-    print_ngram_report(ref, out1, out2, min_ngram_length, max_ngram_length, report_length, alpha, compare_type, ref_labels, out1_labels, out2_labels, case_insensitive=False)
-    print('----- case insensitive results')
-    ref = [[word.lower() for word in line] for line in ref]
-    out1 = [[word.lower() for word in line] for line in out1]
-    out2 = [[word.lower() for word in line] for line in out2]
+    ref = corpus_utils.lower(ref)
+    out1 = corpus_utils.lower(out1)
+    out2 = corpus_utils.lower(out2)
 
   print(f'--- min_ngram_length={min_ngram_length}, max_ngram_length={max_ngram_length}')
   print(f'    report_length={report_length}, alpha={alpha}, compare_type={compare_type}')
@@ -286,10 +267,6 @@ def print_sentence_examples(ref, out1, out2,
     report_length: Number of sentences to print for each system being better or worse
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  if case_insensitive:
-    print('----- case sensitive results')
-    print_sentence_examples(ref, out1, out2, score_type, report_length, case_insensitive=False)
-    print('----- case insensitive results')
     
   scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive)
   sname = scorer.name()
