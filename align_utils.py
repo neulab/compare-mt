@@ -47,7 +47,7 @@ def load_alignment(line):
     trg_list.append(int(trg_pos))
   return {'src':src_list, 'trg':trg_list}
      
-def calculate_kendall_tau_distance(ref_align, out1_align, out2_align, src_len=None):
+def compute_kendall_tau_distance(ref_align, out1_align, out2_align, src_len=None):
   score_1 = 0
   score_2 = 0
   mono_score_1 = 0
@@ -60,4 +60,4 @@ def calculate_kendall_tau_distance(ref_align, out1_align, out2_align, src_len=No
     score_2 += kendall_tau_distance(ref_p, out2_p)
     mono_score_1 += kendall_tau_distance(numpy.arange(len_i), out1_p)
     mono_score_2 += kendall_tau_distance(numpy.arange(len_i), out2_p)
-  return score_1/i, score_2/i, mono_score_1/i, mono_score_2/i
+  return score_1/(i+1), score_2/(i+1), mono_score_1/(i+1), mono_score_2/(i+1)

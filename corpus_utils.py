@@ -6,3 +6,6 @@ def iterate_tokens(filename):
 
 def load_tokens(filename):
   return list(iterate_tokens(filename))
+
+def lower(inp):
+  return inp.lower() if type(inp) == str else [lower(x) for x in inp]

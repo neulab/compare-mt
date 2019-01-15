@@ -8,6 +8,7 @@ import stat_utils
 import corpus_utils
 import sign_utils
 import align_utils
+import ribes_utils
 import scorers
 import bucketers
 
@@ -230,20 +231,32 @@ def print_ngram_report(ref, out1, out2,
     print('{}\t{} (sys1={}, sys2={})'.format(' '.join(k), v, match1[k], match2[k]))
   print()
 
-def print_word_reorder_error_report(ref_align, out1_align, out2_align,
+def print_word_reorder_error_report(ref, out1, out2,
+                              ref_align, out1_align, out2_align,
+                              case_insensitive=False,
                               src=None): 
   """
   Print a report comparing word reordering errors of the two systems.
 
   Args:
+    ref: Tokens from the reference
+    out1: Tokens from the output file 1
+    out2: Tokens from the output file 2
     ref_align: Alignment file for the reference
     out1_align: Alignment file for the output file 1
     out2_align: Alignment file for the output file 2
     src: Tokens from the source file
   """
+  if case_insensitive:
+    score1, score2 = ribes_utils.compute_RIBES(corpus_utils.lower(ref), corpus_utils.lower(out1), corpus_utils.lower(out2))
+  else:
+    score1, score2 = ribes_utils.compute_RIBES(ref, out1, out2)
+  print('--- Average RIBES scores')
+  print(f' Sys1: {score1}\n Sys2: {score2}')
+
   ref_align, out1_align, out2_align = [corpus_utils.load_tokens(x) for x in (ref_align, out1_align, out2_align)]
   src_len = [len(l) for l in src] if src else None 
-  score1, score2, mono_score1, mono_score2 = align_utils.calculate_kendall_tau_distance(ref_align, out1_align, out2_align, src_len)
+  score1, score2, mono_score1, mono_score2 = align_utils.compute_kendall_tau_distance(ref_align, out1_align, out2_align, src_len)
   print('--- Average Kendall\'s tau distance between monotone and system alignments')
   print(f' Sys1: {mono_score1}\n Sys2: {mono_score2}')
   print('--- Average Kendall\'s tau distance between reference and system alignments')
@@ -390,7 +403,7 @@ if __name__ == '__main__':
     print_header('Word Reordering Errors Analysis')
     for profile in args.compare_word_reordering_errors:
       kargs = parse_profile(profile)
-      print_word_reorder_error_report(**kargs, src=src)
+      print_word_reorder_error_report(ref, out1, out2, **kargs, src=src)
       print()
 
   # Sentence example analysis
