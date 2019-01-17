@@ -1,63 +1,62 @@
-import itertools
-import numpy
 from collections import defaultdict
+import corpus_utils
 
-def alignment_to_permutation(aligns, src_len):
-  '''
-  Convert alignments to permutations.
-  '''
-  src_trg = {}
-  for src_pos, trg_pos in zip(aligns['src'], aligns['trg']):
-    src_trg[src_pos] = min(src_trg[src_pos], trg_pos) if src_pos in src_trg else trg_pos
+def ngram_context_align(ref, out, order=2, case_insensitive=False):
+  """
+  Calculate the word alignment between a reference sentence and an output sentence. 
+  Proposed in the following paper:
 
-  pos_value = []
-  for i in range(src_len):
-    if i in src_trg:
-      v = src_trg[i]
+  Automatic Evaluation of Translation Quality for Distant Language Pairs
+  Hideki Isozaki, Tsutomu Hirao, Kevin Duh, Katsuhito Sudoh, Hajime Tsukada
+  http://www.anthology.aclweb.org/D/D10/D10-1092.pdf 
+
+  Args:
+    ref: A reference sentence
+    out: An output sentence
+    order: The highest order of grams we want to consider
+    case_insensitive: A boolean specifying whether to turn on the case insensitive option
+
+  Returns:
+    The word alignment, represented as a list of integers. 
+  """
+
+  if case_insensitive:
+    ref = corpus_utils.lower(ref)
+    out = corpus_utils.lower(out)
+
+  def count_ngram(sent):
+    gram_pos = dict()
+    for i in range(order):
+      gram_pos[i+1] = defaultdict(lambda: [])
+    for i, word in enumerate(sent):
+      for j in range(min(i+1, order)):
+        gram_pos[j+1][word].append(i-j)
+        word = sent[i-j-1] + ' ' + word
+    return gram_pos
+
+  ref_gram_pos = count_ngram(ref)
+  out_gram_pos = count_ngram(out)
+
+  worder = []
+  for i, word in enumerate(out):
+    if len(ref_gram_pos[1][word]) == 0:
+      continue
+    if len(ref_gram_pos[1][word]) == len(out_gram_pos[1][word]) == 1:
+      worder.append(ref_gram_pos[1][word][0])
     else:
-      def last_v(pos):
-        if pos == -1:
-          return 0
-        return src_trg[pos] if pos in src_trg else last_v(pos - 1)
-      v = last_v(i - 1) 
-    pos_value.append(v)
-  return numpy.argsort(pos_value)
+      word_forward = word 
+      word_backward = word 
+      for j in range(1, order):
+        if i + j < len(out):
+          word_forward = word_forward + ' ' + out[i+j]
+          if len(ref_gram_pos[j+1][word_forward]) == len(out_gram_pos[j+1][word_forward]) == 1:
+            worder.append(ref_gram_pos[j+1][word_forward][0])
+            break
 
-def kendall_tau_distance(perm_1, perm_2):
-  '''
-  Compute Kendall's tau distance between two permutations.
-  The distance metric range from 1 (a perfect match) to 0 (maximum disagreement).
-  '''
-  dis = 0
-  n = len(perm_1)
-  if n == 1:
-    return 1
-  for i in range(n):
-    for j in range(n):
-      if perm_1[i] < perm_1[j] and perm_2[i] > perm_2[j]:
-        dis += 1
-  return 1 - numpy.sqrt(2*dis/(n*n-n))
-      
-def load_alignment(line):
-  src_list = []
-  trg_list = []
-  for align in line:
-    src_pos, trg_pos = align.split('-')
-    src_list.append(int(src_pos))
-    trg_list.append(int(trg_pos))
-  return {'src':src_list, 'trg':trg_list}
-     
-def compute_kendall_tau_distance(ref_align, out1_align, out2_align, src_len=None):
-  score_1 = 0
-  score_2 = 0
-  mono_score_1 = 0
-  mono_score_2 = 0
-  for i, [ref_a, out1_a, out2_a] in enumerate(itertools.zip_longest(ref_align, out1_align, out2_align)):
-    ref_a, out1_a, out2_a = [load_alignment(x) for x in (ref_a, out1_a, out2_a)]
-    len_i = src_len[i] if src_len else max([max(x['src'])+1 for x in (ref_a, out1_a, out2_a)])
-    ref_p, out1_p, out2_p = [alignment_to_permutation(x, len_i) for x in (ref_a, out1_a, out2_a)]
-    score_1 += kendall_tau_distance(ref_p, out1_p)
-    score_2 += kendall_tau_distance(ref_p, out2_p)
-    mono_score_1 += kendall_tau_distance(numpy.arange(len_i), out1_p)
-    mono_score_2 += kendall_tau_distance(numpy.arange(len_i), out2_p)
-  return score_1/(i+1), score_2/(i+1), mono_score_1/(i+1), mono_score_2/(i+1)
+        if i - j >= 0:
+          word_backward = out[i-j] + ' ' + word_backward 
+          if len(ref_gram_pos[j+1][word_backward]) == len(out_gram_pos[j+1][word_backward]) == 1:
+            worder.append(ref_gram_pos[j+1][word_backward][0]+j)
+            break
+
+  return worder
