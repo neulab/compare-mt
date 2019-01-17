@@ -7,7 +7,6 @@ import ngram_utils
 import stat_utils
 import corpus_utils
 import sign_utils
-import align_utils
 import scorers
 import bucketers
 import arg_utils
