@@ -1,9 +1,13 @@
 import nltk
+import corpus_utils
 
 class BleuScorer:
   """
   A scorer that calculates BLEU score.
   """
+  def __init__(self, case_insensitive=False):
+    self.case_insensitive = case_insensitive
+
   def score_corpus(self, ref, out):
     """
     Score a corpus using BLEU score
@@ -15,7 +19,10 @@ class BleuScorer:
     Returns:
       A tuple containing a single value for the BLEU score and a string summarizing auxiliary information
     """
-    bleu = nltk.translate.bleu_score.corpus_bleu([[x] for x in ref], out)
+    if self.case_insensitive:
+      bleu = nltk.translate.bleu_score.corpus_bleu([[corpus_utils.lower(x)] for x in ref], corpus_utils.lower(out))
+    else:
+      bleu = nltk.translate.bleu_score.corpus_bleu([[x] for x in ref], out)
     return bleu, None
 
   def score_sentence(self, ref, out):
@@ -29,6 +36,9 @@ class SentBleuScorer:
   """
   A scorer that calculates sentence-level smoothed BLEU score.
   """
+  def __init__(self, case_insensitive=False):
+    self.case_insensitive = case_insensitive
+
   def score_corpus(self, ref, out):
     """
     Score a corpus using the average of sentence-level BLEU score
@@ -57,7 +67,10 @@ class SentBleuScorer:
       The sentence-level BLEU score, and None
     """
     chencherry = nltk.translate.bleu_score.SmoothingFunction()
-    return nltk.translate.bleu_score.sentence_bleu([ref], out, smoothing_function=chencherry.method2), None
+    if self.case_insensitive:
+      return nltk.translate.bleu_score.sentence_bleu([corpus_utils.lower(ref)], corpus_utils.lower(out), smoothing_function=chencherry.method2), None
+    else:  
+      return nltk.translate.bleu_score.sentence_bleu([ref], out, smoothing_function=chencherry.method2), None
 
   def name(self):
     return "sentence-level BLEU"
@@ -84,7 +97,7 @@ class LengthScorer:
   def name(self):
     return "length ratio"
 
-def create_scorer_from_profile(profile):
+def create_scorer_from_profile(profile, case_insensitive=False):
   """
   Create a scorer from a profile string
   Args:
@@ -94,9 +107,9 @@ def create_scorer_from_profile(profile):
     A scorer to perform the appropriate scoring
   """
   if profile == 'bleu':
-    return BleuScorer()
+    return BleuScorer(case_insensitive)
   elif profile == 'sentbleu':
-    return SentBleuScorer()
+    return SentBleuScorer(case_insensitive)
   elif profile == 'length':
     return LengthScorer()
   else:

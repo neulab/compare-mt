@@ -14,3 +14,6 @@ def load_tokens(filename):
 
 def load_nums(filename):
   return list(iterate_nums(filename))
+
+def lower(inp):
+  return inp.lower() if type(inp) == str else [lower(x) for x in inp]
