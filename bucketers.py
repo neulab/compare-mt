@@ -139,7 +139,7 @@ class WordBucketer(Bucketer):
         src_index, trg_index = align.split('-')
         src_index = int(src_index)
         trg_index = int(trg_index)
-        src_word = src_sent[src_index] 
+        src_word = src_sent[src_index]
         word = out_sent[trg_index]
         if self.case_insensitive:
           word = corpus_utils.lower(word)
@@ -153,7 +153,7 @@ class WordBucketer(Bucketer):
         src_index, trg_index = align.split('-')
         src_index = int(src_index)
         trg_index = int(trg_index)
-        src_word = src_sent[src_index] 
+        src_word = src_sent[src_index]
         bucket = self.calc_bucket(src_word,
                                   src_label=src_lab[src_index] if src_lab else None)
         matches[bucket][1] += 1
@@ -166,6 +166,40 @@ class WordBucketer(Bucketer):
         prec = both_tot / float(out_tot)
         fmeas = 2 * prec * rec / (prec + rec)
       yield both_tot, ref_tot, out_tot, rec, prec, fmeas
+
+  def calc_bucketed_likelihoods(self, corpus, likelihoods):
+    """
+    Calculate the average of log likelihoods, bucketed by the type of word/label we have
+    This must be used with a subclass that has self.bucket_strs defined, and self.calc_bucket(word) implemented.
+
+    Args:
+      corpus: The text/label corpus over which we compute the likelihoods
+      likelihoods: The log-likelihoods corresponding to each word/label in the corpus
+
+    Returns:
+      the average log-likelihood bucketed by the type of word/label we have
+    """
+
+    if type(corpus) == str:
+      corpus = corpus_utils.load_tokens(corpus)
+    bucketed_likelihoods = [[0.0, 0] for _ in self.bucket_strs]
+    if len(corpus) != len(likelihoods):
+      raise ValueError("corpus and likelihoods should have the same size.")
+    for sent, list_of_likelihoods in zip(corpus, likelihoods):
+      if len(sent) != len(list_of_likelihoods):
+        raise ValueError("Each sentence of the corpus should have likelihood value for each word")
+
+      for word, ll in zip(sent, list_of_likelihoods):
+        bucket = self.calc_bucket(word, ref_label=word)
+        bucketed_likelihoods[bucket][0] += ll
+        bucketed_likelihoods[bucket][1] += 1
+
+    for ll, count in bucketed_likelihoods:
+      if count != 0:
+        yield ll/float(count)
+      else:
+        yield "NA" # not applicable
+
 
 class FreqWordBucketer(WordBucketer):
 
@@ -200,11 +234,12 @@ class FreqWordBucketer(WordBucketer):
             else:
               freq_counts[word] = freq
       elif freq_corpus_file:
-        for word in itertools.chain(corpus_utils.iterate_tokens(freq_corpus_file)):
-          if self.case_insensitive:
-            freq_counts[corpus_utils.lower(word)] += 1
-          else:
-            freq_counts[word] += 1
+        for words in corpus_utils.iterate_tokens(freq_corpus_file):
+          for word in words:
+            if self.case_insensitive:
+              freq_counts[corpus_utils.lower(word)] += 1
+            else:
+              freq_counts[word] += 1
       elif freq_data:
         for words in freq_data:
           for word in words:
@@ -350,7 +385,7 @@ def create_word_bucketer_from_profile(bucket_type,
     return FreqWordBucketer(
       freq_counts=freq_counts,
       freq_count_file=freq_count_file,
-      freq_corpus_file=freq_corpus_file, 
+      freq_corpus_file=freq_corpus_file,
       freq_data=freq_data,
       bucket_cutoffs=bucket_cutoffs,
       case_insensitive=case_insensitive)
