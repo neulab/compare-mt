@@ -11,17 +11,14 @@ import align_utils
 import ribes_utils
 import scorers
 import bucketers
+import arg_utils
+import print_utils
 
-def parse_profile(profile):
-  kargs = {}
-  for kv in profile.split(','):
-    k, v = kv.split('=')
-    kargs[k] = v
-  return kargs
 
 def print_score_report(ref, out1, out2,
                        score_type='bleu',
-                       bootstrap=0):
+                       bootstrap=0,
+                       case_insensitive=False):
   """
   Print a report comparing overall scores of the two systems.
 
@@ -30,8 +27,11 @@ def print_score_report(ref, out1, out2,
     out1: Tokens from the output file 1
     out2: Tokens from the output file 2
     score_type: A string specifying the scoring type (bleu/length)
+    bootstrap: Number of samples for significance test (0 to disable)
+    case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  scorer = scorers.create_scorer_from_profile(score_type)
+
+  scorer = scorers.create_scorer_from_profile(score_type, case_insensitive)
   print(f'{scorer.name()}:')
   score1, str1 = scorer.score_corpus(ref,out1)
   score2, str2 = scorer.score_corpus(ref,out2)
@@ -42,7 +42,7 @@ def print_score_report(ref, out1, out2,
 
   if int(bootstrap) > 0:
     print('Significance test. This may take a while.')
-    wins, sys1_stats, sys2_stats = sign_utils.eval_with_paired_bootstrap(ref, out1, out2, score_type=score_type, num_samples=int(bootstrap))
+    wins, sys1_stats, sys2_stats = sign_utils.eval_with_paired_bootstrap(ref, out1, out2, scorer, num_samples=int(bootstrap))
 
     print('Win ratio: Sys1=%.3f, Sys2=%.3f, tie=%.3f' % (wins[0], wins[1], wins[2]))
     if wins[0] > wins[1]:
@@ -59,7 +59,8 @@ def print_word_accuracy_report(ref, out1, out2,
                           acc_type='fmeas', bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
-                          ref_labels=None, out1_labels=None, out2_labels=None):
+                          ref_labels=None, out1_labels=None, out2_labels=None,
+                          case_insensitive=False):
   """
   Print a report comparing the word accuracy.
 
@@ -71,19 +72,22 @@ def print_word_accuracy_report(ref, out1, out2,
     bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
     freq_corpus_file: When using "freq" as a bucketer, which corpus to use to calculate frequency.
                       By default this uses the frequency in the reference test set, but it's often more informative
-                      se the frequency in the training set, in which case you specify the path of the target side
-                      he training corpus.
+                      to use the frequency in the training set, in which case you specify the path of the
+                      training corpus.
     freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
     ref_labels: either a filename of a file full of reference labels, or a list of strings corresponding to `ref`.
     out1_labels: output 1 labels. must be specified if ref_labels is specified.
     out2_labels: output 2 labels. must be specified if ref_labels is specified.
+    case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+
   acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
                                                          freq_corpus_file=freq_corpus_file,
                                                          freq_data=ref,
-                                                         label_set=label_set)
+                                                         label_set=label_set,
+                                                         case_insensitive=case_insensitive)
   ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
   out1_labels = corpus_utils.load_tokens(out1_labels) if type(out1_labels) == str else out1_labels
   out2_labels = corpus_utils.load_tokens(out2_labels) if type(out2_labels) == str else out2_labels
@@ -103,7 +107,8 @@ def print_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, 
                           acc_type='fmeas', bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
-                          src_labels=None):
+                          src_labels=None,
+                          case_insensitive=False):
   """
   Print a report for source word analysis.
 
@@ -123,13 +128,15 @@ def print_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, 
                       he training corpus.
     freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
     src_labels: either a filename of a file full of source labels, or a list of strings corresponding to `ref`.
+    case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+
   ref_align, out1_align, out2_align = [corpus_utils.load_tokens(x) for x in (ref_align, out1_align, out2_align)]
   acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
-                                                         freq_corpus_file=freq_corpus_file, 
-                                                         freq_data=src, 
+                                                         freq_corpus_file=freq_corpus_file,
+                                                         freq_data=src,
                                                          label_set=label_set)
   src_labels = corpus_utils.load_tokens(src_labels) if type(src_labels) == str else src_labels
   matches1 = bucketer.calc_source_bucketed_matches(src, ref, out1, ref_align, out1_align, src_labels=src_labels)
@@ -146,7 +153,8 @@ def print_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, 
 
 def print_sentence_bucketed_report(ref, out1, out2,
                                    bucket_type='score', statistic_type='count',
-                                   score_measure='bleu'):
+                                   score_measure='bleu',
+                                   case_insensitive=False):
   """
   Print a report of sentences by bucket
 
@@ -156,15 +164,17 @@ def print_sentence_bucketed_report(ref, out1, out2,
     out2: Tokens from the output file 2
     bucket_type: The type of bucketing method to use
     score_measure: If using 'score' as either bucket_type or statistic_type, which scorer to use
+    case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  bucketer = bucketers.create_sentence_bucketer_from_profile(bucket_type, score_type=score_measure)
+
+  bucketer = bucketers.create_sentence_bucketer_from_profile(bucket_type, score_type=score_measure, case_insensitive=case_insensitive)
   bc1 = bucketer.create_bucketed_corpus(out1, ref=ref)
   bc2 = bucketer.create_bucketed_corpus(out2, ref=ref)
 
   if statistic_type == 'count':
     aggregator = lambda out,ref: len(out)
   elif statistic_type == 'score':
-    scorer = scorers.create_scorer_from_profile(score_measure)
+    scorer = scorers.create_scorer_from_profile(score_measure, case_insensitive=case_insensitive)
     aggregator = lambda out,ref: scorer.score_corpus(ref,out)[0]
   else:
     raise ValueError(f'Illegal statistic_type {statistic_type}')
@@ -180,7 +190,8 @@ def print_sentence_bucketed_report(ref, out1, out2,
 def print_ngram_report(ref, out1, out2,
                        min_ngram_length=1, max_ngram_length=4,
                        report_length=50, alpha=1.0, compare_type='match',
-                       ref_labels=None, out1_labels=None, out2_labels=None):
+                       ref_labels=None, out1_labels=None, out2_labels=None,
+                       case_insensitive=False):
   """
   Print a report comparing aggregate n-gram statistics
 
@@ -199,12 +210,20 @@ def print_ngram_report(ref, out1, out2,
                 If specified, will aggregate statistics over labels instead of n-grams.
     out1_labels: output 1 labels. must be specified if ref_labels is specified.
     out2_labels: output 2 labels. must be specified if ref_labels is specified.
+    case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+
+  if not type(ref_labels) == str and case_insensitive:
+    ref = corpus_utils.lower(ref)
+    out1 = corpus_utils.lower(out1)
+    out2 = corpus_utils.lower(out2)
+
   print(f'--- min_ngram_length={min_ngram_length}, max_ngram_length={max_ngram_length}')
   print(f'    report_length={report_length}, alpha={alpha}, compare_type={compare_type}')
   if type(ref_labels) == str:
     print(f'    ref_labels={ref_labels}, out1_labels={out1_labels}, out2_labels={out2_labels}')
   print()
+  
 
   ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
   out1_labels = corpus_utils.load_tokens(out1_labels) if type(out1_labels) == str else out1_labels
@@ -265,7 +284,8 @@ def print_word_reorder_error_report(ref, out1, out2,
 
 def print_sentence_examples(ref, out1, out2,
                             score_type='sentbleu',
-                            report_length=10):
+                            report_length=10,
+                            case_insensitive=False):
   """
   Print examples of sentences that satisfy some criterion, usually score of one system better
 
@@ -275,8 +295,10 @@ def print_sentence_examples(ref, out1, out2,
     out2: Tokens from the output file 2
     score_type: The type of scorer to use
     report_length: Number of sentences to print for each system being better or worse
+    case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  scorer = scorers.create_scorer_from_profile(score_type)
+    
+  scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive)
   sname = scorer.name()
   scorediff_list = []
   for i, (o1, o2, r) in enumerate(zip(out1, out2, ref)):
@@ -291,8 +313,6 @@ def print_sentence_examples(ref, out1, out2,
   for bdiff, s1, s2, str1, str2, i in scorediff_list[-report_length:]:
     print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
 
-def print_header(header):
-  print(f'********************** {header} ************************')
 
 if __name__ == '__main__':
 
@@ -358,43 +378,43 @@ if __name__ == '__main__':
 
   # Aggregate scores
   if args.compare_scores:
-    print_header('Aggregate Scores')
+    print_utils.print_header('Aggregate Scores')
     for profile in args.compare_scores:
-      kargs = parse_profile(profile)
+      kargs = arg_utils.parse_profile(profile)
       print_score_report(ref, out1, out2, **kargs)
       print()
 
   # Word accuracy analysis
   if args.compare_word_accuracies:
-    print_header('Word Accuracy Analysis')
+    print_utils.print_header('Word Accuracy Analysis')
     for profile in args.compare_word_accuracies:
-      kargs = parse_profile(profile)
+      kargs = arg_utils.parse_profile(profile)
       print_word_accuracy_report(ref, out1, out2, **kargs)
       print()
 
   # Source word analysis
   if args.compare_src_word_accuracies:
-    print_header('Source Word Analysis')
+    print_utils.print_header('Source Word Analysis')
     if not src:
       raise ValueError("Must specify the source file when performing source analysis.")
     for profile in args.compare_src_word_accuracies:
-      kargs = parse_profile(profile)
+      kargs =arg_utils.parse_profile(profile)
       print_src_word_accuracy_report(src, ref, out1, out2, **kargs)
       print()
 
   # Sentence count analysis
   if args.compare_sentence_buckets:
-    print_header('Sentence Bucket Analysis')
+    print_utils.print_header('Sentence Bucket Analysis')
     for profile in args.compare_sentence_buckets:
-      kargs = parse_profile(profile)
+      kargs = arg_utils.parse_profile(profile)
       print_sentence_bucketed_report(ref, out1, out2, **kargs)
       print()
 
   # n-gram difference analysis
   if args.compare_ngrams:
-    print_header('N-gram Difference Analysis')
+    print_utils.print_header('N-gram Difference Analysis')
     for profile in args.compare_ngrams:
-      kargs = parse_profile(profile)
+      kargs = arg_utils.parse_profile(profile)
       print_ngram_report(ref, out1, out2, **kargs)
       print()
 
@@ -408,8 +428,8 @@ if __name__ == '__main__':
 
   # Sentence example analysis
   if args.compare_sentence_examples:
-    print_header('Sentence Example Analysis')
+    print_utils.print_header('Sentence Example Analysis')
     for profile in args.compare_sentence_examples:
-      kargs = parse_profile(profile)
+      kargs = arg_utils.parse_profile(profile)
       print_sentence_examples(ref, out1, out2, **kargs)
       print()

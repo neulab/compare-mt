@@ -36,8 +36,8 @@ def sample_and_compare(gold, sys1, sys2, sample_ratio,
   sys2_scores.append(sys2_score)
 
 def eval_with_paired_bootstrap(gold, sys1, sys2,
-                               num_samples=1000, sample_ratio=0.5,
-                               score_type='bleu'):
+                               scorer,
+                               num_samples=1000, sample_ratio=0.5):
   ''' Evaluate with paired boostrap
   This compares two systems, performing a signifiance tests with
   paired bootstrap resampling to compare the accuracy of the two systems.
@@ -45,9 +45,9 @@ def eval_with_paired_bootstrap(gold, sys1, sys2,
   :param gold: The correct labels
   :param sys1: The output of system 1
   :param sys2: The output of system 2
+  :param scorer: The scorer
   :param num_samples: The number of bootstrap samples to take
   :param sample_ratio: The ratio of samples to take every time
-  :param eval_type: The type of evaluation to do (acc, bleu)
   '''
   assert(len(gold) == len(sys1))
   assert(len(gold) == len(sys2))
@@ -57,7 +57,6 @@ def eval_with_paired_bootstrap(gold, sys1, sys2,
   wins = [0, 0, 0]
   n = len(gold)
   ids = list(range(n))
-  scorer = scorers.create_scorer_from_profile(score_type)
 
   try:
     from tqdm import tqdm
