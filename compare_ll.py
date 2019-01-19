@@ -8,7 +8,8 @@ import print_utils
 
 def print_word_likelihood_report(ref, ll1, ll2, bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
-                          label_corpus=None, label_set=None):
+                          label_corpus=None, label_set=None,
+                          case_insensitive=False):
     """
     Print a report comparing the word log likelihood.
 
@@ -22,11 +23,13 @@ def print_word_likelihood_report(ref, ll1, ll2, bucket_type='freq',
     label_corpus: When using "label" as bucket type, the corpus containing the labels
                   corresponding to each word in the corpus
     label_set: the permissible set of labels when using "label" as a bucket type
+    case_insensitive: A boolean specifying whether to turn on the case insensitive option
     """
     bucketer = bucketers.create_word_bucketer_from_profile(bucket_type=bucket_type,
                                                          freq_count_file=freq_count_file,
                                                          freq_corpus_file=freq_corpus_file,
-                                                         label_set=label_set)
+                                                         label_set=label_set,
+                                                         case_insensitive=case_insensitive)
 
     if type(label_corpus) == str:
         label_corpus = corpus_utils.load_tokens(label_corpus)

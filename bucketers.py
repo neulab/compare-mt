@@ -34,6 +34,7 @@ class WordBucketer(Bucketer):
       val: The word to calculate the bucket for
       ref_label: If there's a label on the reference word, add it
       out_label: If there's a label on the output word, add it
+      src_label: If there's a label on the source word, add it
 
     Returns:
       An integer ID of the bucket
@@ -179,17 +180,21 @@ class WordBucketer(Bucketer):
     Returns:
       the average log-likelihood bucketed by the type of word/label we have
     """
+    if not hasattr(self, 'case_insensitive'):
+      self.case_insensitive = False
 
     if type(corpus) == str:
       corpus = corpus_utils.load_tokens(corpus)
     bucketed_likelihoods = [[0.0, 0] for _ in self.bucket_strs]
     if len(corpus) != len(likelihoods):
-      raise ValueError("corpus and likelihoods should have the same size.")
+      raise ValueError("Corpus and likelihoods should have the same size.")
     for sent, list_of_likelihoods in zip(corpus, likelihoods):
       if len(sent) != len(list_of_likelihoods):
         raise ValueError("Each sentence of the corpus should have likelihood value for each word")
 
       for word, ll in zip(sent, list_of_likelihoods):
+        if self.case_insensitive:
+          word = corpus_utils.lower(word)
         bucket = self.calc_bucket(word, ref_label=word)
         bucketed_likelihoods[bucket][0] += ll
         bucketed_likelihoods[bucket][1] += 1

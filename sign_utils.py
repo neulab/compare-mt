@@ -38,19 +38,24 @@ def sample_and_compare(gold, sys1, sys2, sample_ratio,
 def eval_with_paired_bootstrap(gold, sys1, sys2,
                                scorer,
                                num_samples=1000, sample_ratio=0.5):
-  ''' Evaluate with paired boostrap
+  """
+  Evaluate with paired boostrap.
   This compares two systems, performing a signifiance tests with
   paired bootstrap resampling to compare the accuracy of the two systems.
   
-  :param gold: The correct labels
-  :param sys1: The output of system 1
-  :param sys2: The output of system 2
-  :param scorer: The scorer
-  :param num_samples: The number of bootstrap samples to take
-  :param sample_ratio: The ratio of samples to take every time
-  '''
-  assert(len(gold) == len(sys1))
-  assert(len(gold) == len(sys2))
+  Args:
+    gold: The correct labels
+    sys1: The output of system 1
+    sys2: The output of system 2
+    scorer: The scorer
+    num_samples: The number of bootstrap samples to take
+    sample_ratio: The ratio of samples to take every time
+
+  Returns:
+    A tuple containing the win ratios, statistics for system1, and statistics for system2
+  """
+  if len(gold) != len(sys1) or len(gold) != len(sys2):
+    raise ValueError("Reference and system outputs should have the same size.")
   
   sys1_scores = []
   sys2_scores = []
