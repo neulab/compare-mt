@@ -211,6 +211,9 @@ def print_ngram_report(ref, out1, out2,
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
 
+  if type(alpha) == str:
+    alpha = float(alpha)
+
   if not type(ref_labels) == str and case_insensitive:
     ref = corpus_utils.lower(ref)
     out1 = corpus_utils.lower(out1)
