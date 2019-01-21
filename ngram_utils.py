@@ -1,6 +1,13 @@
 from collections import defaultdict
 import itertools
 
+def sent_ngrams_list(words, n):
+  word_ngram = []
+  for i in range(len(words) - n + 1):
+    ngram = tuple(words[i:i + n])
+    word_ngram.append(ngram)
+  return word_ngram
+
 def iterate_sent_ngrams(words, labels=None, min_length=1, max_length=4):
   """
   Create a list with all the n-grams in a sentence

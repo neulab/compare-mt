@@ -1,7 +1,9 @@
 import nltk
 import math
+from collections import Counter, defaultdict
 import corpus_utils
 import align_utils
+import ngram_utils
 
 class BleuScorer:
   """
@@ -9,6 +11,9 @@ class BleuScorer:
   """
   def __init__(self, case_insensitive=False):
     self.case_insensitive = case_insensitive
+    self.cached_ref_len = {}
+    self.cached_out_len = {}
+    self.cached_prec = {}
 
   def score_corpus(self, ref, out):
     """
@@ -30,6 +35,61 @@ class BleuScorer:
   def score_sentence(self, ref, out):
     raise NotImplementedError("Sentence-level calculation is not implemented in BleuScorer as it is usually 0."
                               "Consider using SentenceBleuScorer (string sentbleu) instead.")
+
+  def cache_stats(self, cache_id, ref, out, weights=(0.25, 0.25, 0.25, 0.25)):
+    def precision(ref, out, n):
+      out_ngram = ngram_utils.sent_ngrams_list(out, n)
+      ref_ngram = ngram_utils.sent_ngrams_list(ref, n)
+      out_cnt = Counter(out_ngram)
+      ref_cnt = Counter(ref_ngram)
+
+      num = 0
+      denom = 0
+      for ngram, o_cnt in out_cnt.items():
+        num += min(o_cnt, ref_cnt[ngram])
+        denom += o_cnt
+
+      denom = max(1, denom)
+      return num, denom
+  
+    self.cached_ref_len[cache_id] = defaultdict(lambda: 0)
+    self.cached_out_len[cache_id] = defaultdict(lambda: 0)
+    self.cached_prec[cache_id] = defaultdict(lambda: {})
+    for sent_id, (r, o) in enumerate(zip(ref, out)):
+      self.cached_ref_len[cache_id][sent_id] = len(r)
+      self.cached_out_len[cache_id][sent_id] = len(o)
+      for n in range(1, len(weights) + 1):
+        self.cached_prec[cache_id][sent_id][n] = precision(r, o, n)
+
+  def fast_score_corpus(self, cache_id, sent_ids, weights=(0.25, 0.25, 0.25, 0.25)):
+    if cache_id not in self.cached_ref_len:
+      raise ValueError("Must cache first.")
+
+    num_prec = Counter()
+    denom_prec = Counter()
+  
+    ref_len = 0
+    out_len = 0
+    for sent_id in sent_ids:
+      ref_len += self.cached_ref_len[cache_id][sent_id]
+      out_len += self.cached_out_len[cache_id][sent_id]
+      for n in range(1, len(weights) + 1):
+        num, denom = self.cached_prec[cache_id][sent_id][n]
+        num_prec[n] += num
+        denom_prec[n] += denom
+
+    if num_prec[1] == 0:
+      return 0
+
+    prec = 0
+    for i, w in enumerate(weights, start=1):
+      p = num_prec[i] / denom_prec[i] if denom_prec[i] != 0 else 0
+      p = math.log(p) if p > 0 else 0
+      prec += p * w 
+    
+    bp = min(1, math.exp(1 - ref_len/out_len)) if out_len != 0 else 0
+
+    return bp * math.exp(prec)
 
   def name(self):
     return "BLEU"
@@ -149,7 +209,7 @@ class RibesScorer:
     alignment = align_utils.ngram_context_align(ref, out, order=self.order, case_insensitive=self.case_insensitive)
     kt_dis = kendall_tau_distance(alignment) 
     prec = len(alignment)/ len(out)
-    bp = min(1, math.exp(1-len(ref)/len(out)))
+    bp = min(1, math.exp(1-len(ref)/len(out))) if len(out) != 0 else 0
     return kt_dis * (prec**self.alpha) * (bp**self.beta), None
 
   def name(self):
