@@ -294,7 +294,7 @@ if __name__ == '__main__':
   parser.add_argument('--src_file', type=str, default=None,
                       help='A path to the source file')
   parser.add_argument('--compare_scores', type=str, nargs='*',
-                      default=['score_type=bleu,bootstrap=0', 'score_type=length,bootstrap=0'],
+                      default=['score_type=bleu', 'score_type=length'],
                       help="""
                       Compare scores. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_score_report' to see which arguments are available.
