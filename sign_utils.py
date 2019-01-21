@@ -22,8 +22,8 @@ def sample_and_compare(gold, sys1, sys2, sample_ratio,
   reduced_ids = ids[:int(len(ids)*sample_ratio)]
   # Calculate accuracy on the reduced sample and save stats
   if hasattr(scorer, 'fast_score_corpus'):
-    sys1_score = scorer.fast_score_corpus(1, reduced_ids)
-    sys2_score = scorer.fast_score_corpus(2, reduced_ids)
+    sys1_score, _ = scorer.fast_score_corpus(1, reduced_ids)
+    sys2_score, _ = scorer.fast_score_corpus(2, reduced_ids)
   else:
     reduced_gold = [gold[i] for i in reduced_ids]
     reduced_sys1 = [sys1[i] for i in reduced_ids]

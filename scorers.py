@@ -37,6 +37,15 @@ class BleuScorer:
                               "Consider using SentenceBleuScorer (string sentbleu) instead.")
 
   def cache_stats(self, cache_id, ref, out, weights=(0.25, 0.25, 0.25, 0.25)):
+    """
+    Cache sufficient statistics for caculating BLEU score
+
+    Args:
+      cache_id: Specifying which cache to use
+      ref: A reference corpus
+      out: An output corpus
+      weights: Weights for caculating BLEU score
+    """
     def precision(ref, out, n):
       out_ngram = ngram_utils.sent_ngrams_list(out, n)
       ref_ngram = ngram_utils.sent_ngrams_list(ref, n)
@@ -48,8 +57,8 @@ class BleuScorer:
       for ngram, o_cnt in out_cnt.items():
         num += min(o_cnt, ref_cnt[ngram])
         denom += o_cnt
-
       denom = max(1, denom)
+
       return num, denom
   
     self.cached_ref_len[cache_id] = defaultdict(lambda: 0)
@@ -62,6 +71,17 @@ class BleuScorer:
         self.cached_prec[cache_id][sent_id][n] = precision(r, o, n)
 
   def fast_score_corpus(self, cache_id, sent_ids, weights=(0.25, 0.25, 0.25, 0.25)):
+    """
+    Score a corpus using BLEU score with cache
+
+    Args:
+      cache_id: Specifying which cache to use
+      sent_ids: The sentence ids for reference and output corpora
+      weights: Weights for caculating BLEU score
+
+    Returns:
+      A tuple containing a single value for the BLEU score and a string summarizing auxiliary information
+    """
     if cache_id not in self.cached_ref_len:
       raise ValueError("Must cache first.")
 
@@ -89,7 +109,7 @@ class BleuScorer:
     
     bp = min(1, math.exp(1 - ref_len/out_len)) if out_len != 0 else 0
 
-    return bp * math.exp(prec)
+    return bp * math.exp(prec), None
 
   def name(self):
     return "BLEU"
