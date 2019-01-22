@@ -1,12 +1,11 @@
 import nltk
 import math
-from collections import Counter, defaultdict
+from collections import Counter
 import corpus_utils
 import align_utils
 import ngram_utils
 
 class Scorer(object):
-
   def score_corpus(self, ref, out):
     pass
   
@@ -59,7 +58,6 @@ class BleuScorer(Scorer):
     Returns:
       Numerator and denominator of the precision
     """
-    cached_ref_len = defaultdict(lambda: 0)
     out_ngram = ngram_utils.sent_ngrams_list(out, n)
     ref_ngram = ngram_utils.sent_ngrams_list(ref, n)
     out_cnt = Counter(out_ngram)
