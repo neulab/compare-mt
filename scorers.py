@@ -1,4 +1,5 @@
 import nltk
+import nltk.translate.chrf_score  # This is necessary to avoid an AttributeError in NLTK
 import math
 import corpus_utils
 import align_utils
@@ -155,6 +156,49 @@ class RibesScorer:
   def name(self):
     return "RIBES"
 
+
+class ChrFScorer:
+  """
+  A scorer that calculates chrF (character n-gram F-score) score.
+
+  This computes F2 score (beta=2.0 as per http://www.aclweb.org/anthology/W16-2341).
+  """
+  def __init__(self, case_insensitive=False):
+    self.case_insensitive = case_insensitive
+
+  def chrf_score(self, refs, out):
+    return nltk.translate.chrf_score.corpus_chrf(
+      [[" ".join(x) for x in ref] for ref in refs],
+      [" ".join(x) for x in out],
+      max_len=6,  # Order 6 n-grams
+      beta=2.0,  # F2 score
+      ignore_whitespace=True  # No whitespaces
+    )
+
+  def score_corpus(self, ref, out):
+    """
+    Score a corpus using ChrF score
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+
+    Returns:
+      A tuple containing a single value for the ChrF score and a string summarizing auxiliary information
+    """
+    if self.case_insensitive:
+      chrf = self.chrf_score([[corpus_utils.lower(x)] for x in ref], corpus_utils.lower(out))
+    else:
+      chrf = self.chrf_score([[x] for x in ref], out)
+    return chrf, None
+
+  def score_sentence(self, ref, out):
+    return self.chrf_score([ref], [out])
+
+  def name(self):
+    return "ChrF"
+
+
 def create_scorer_from_profile(profile, case_insensitive=False):
   """
   Create a scorer from a profile string
@@ -173,5 +217,7 @@ def create_scorer_from_profile(profile, case_insensitive=False):
     return LengthScorer()
   elif profile == 'ribes':
     return RibesScorer(case_insensitive=case_insensitive)
+  elif profile == 'chrf':
+    return ChrFScorer(case_insensitive=case_insensitive)
   else:
     raise ValueError(f'Invalid profile for scorer {profile}')
