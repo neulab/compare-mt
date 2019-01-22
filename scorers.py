@@ -11,9 +11,6 @@ class BleuScorer:
   """
   def __init__(self, case_insensitive=False):
     self.case_insensitive = case_insensitive
-    self.cached_ref_len = {}
-    self.cached_out_len = {}
-    self.cached_prec = {}
 
   def score_corpus(self, ref, out):
     """
@@ -36,15 +33,17 @@ class BleuScorer:
     raise NotImplementedError("Sentence-level calculation is not implemented in BleuScorer as it is usually 0."
                               "Consider using SentenceBleuScorer (string sentbleu) instead.")
 
-  def cache_stats(self, cache_id, ref, out, weights=(0.25, 0.25, 0.25, 0.25)):
+  def cache_stats(self, ref, out, weights=(0.25, 0.25, 0.25, 0.25)):
     """
     Cache sufficient statistics for caculating BLEU score
 
     Args:
-      cache_id: Specifying which cache to use
       ref: A reference corpus
       out: An output corpus
       weights: Weights for caculating BLEU score
+
+    Returns:
+      A tuple of cached statistics
     """
     def precision(ref, out, n):
       out_ngram = ngram_utils.sent_ngrams_list(out, n)
@@ -61,29 +60,32 @@ class BleuScorer:
 
       return num, denom
   
-    self.cached_ref_len[cache_id] = defaultdict(lambda: 0)
-    self.cached_out_len[cache_id] = defaultdict(lambda: 0)
-    self.cached_prec[cache_id] = defaultdict(lambda: {})
-    for sent_id, (r, o) in enumerate(zip(ref, out)):
-      self.cached_ref_len[cache_id][sent_id] = len(r)
-      self.cached_out_len[cache_id][sent_id] = len(o)
-      for n in range(1, len(weights) + 1):
-        self.cached_prec[cache_id][sent_id][n] = precision(r, o, n)
+    cached_ref_len = defaultdict(lambda: 0)
+    cached_out_len = defaultdict(lambda: 0)
+    cached_prec = defaultdict(lambda: {})
 
-  def fast_score_corpus(self, cache_id, sent_ids, weights=(0.25, 0.25, 0.25, 0.25)):
+    for sent_id, (r, o) in enumerate(zip(ref, out)):
+      cached_ref_len[sent_id] = len(r)
+      cached_out_len[sent_id] = len(o)
+      for n in range(1, len(weights) + 1):
+        cached_prec[sent_id][n] = precision(r, o, n)
+
+    return (cached_ref_len, cached_out_len, cached_prec)
+
+
+  def fast_score_corpus(self, sent_ids, cached_stats, weights=(0.25, 0.25, 0.25, 0.25)):
     """
     Score a corpus using BLEU score with cache
 
     Args:
-      cache_id: Specifying which cache to use
       sent_ids: The sentence ids for reference and output corpora
+      cached_stats: A tuple of cached statistics
       weights: Weights for caculating BLEU score
 
     Returns:
       A tuple containing a single value for the BLEU score and a string summarizing auxiliary information
     """
-    if cache_id not in self.cached_ref_len:
-      raise ValueError("Must cache first.")
+    cached_ref_len, cached_out_len, cached_prec = cached_stats
 
     num_prec = Counter()
     denom_prec = Counter()
@@ -91,10 +93,10 @@ class BleuScorer:
     ref_len = 0
     out_len = 0
     for sent_id in sent_ids:
-      ref_len += self.cached_ref_len[cache_id][sent_id]
-      out_len += self.cached_out_len[cache_id][sent_id]
+      ref_len += cached_ref_len[sent_id]
+      out_len += cached_out_len[sent_id]
       for n in range(1, len(weights) + 1):
-        num, denom = self.cached_prec[cache_id][sent_id][n]
+        num, denom = cached_prec[sent_id][n]
         num_prec[n] += num
         denom_prec[n] += denom
 

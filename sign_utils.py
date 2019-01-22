@@ -16,14 +16,15 @@ import nltk
 
 def sample_and_compare(gold, sys1, sys2, sample_ratio, 
                        ids, wins, sys1_scores, sys2_scores, 
-                       scorer):
+                       scorer,
+                       cache_stats1=None, cache_stats2=None):
   # Subsample the gold and system outputs
   np.random.shuffle(ids)
   reduced_ids = ids[:int(len(ids)*sample_ratio)]
   # Calculate accuracy on the reduced sample and save stats
-  if hasattr(scorer, 'fast_score_corpus'):
-    sys1_score, _ = scorer.fast_score_corpus(1, reduced_ids)
-    sys2_score, _ = scorer.fast_score_corpus(2, reduced_ids)
+  if cache_stats1 and cache_stats2:
+    sys1_score, _ = scorer.fast_score_corpus(reduced_ids, cache_stats1)
+    sys2_score, _ = scorer.fast_score_corpus(reduced_ids, cache_stats2)
   else:
     reduced_gold = [gold[i] for i in reduced_ids]
     reduced_sys1 = [sys1[i] for i in reduced_ids]
@@ -67,18 +68,20 @@ def eval_with_paired_bootstrap(gold, sys1, sys2,
   n = len(gold)
   ids = list(range(n))
 
+  cache_stats1 = None
+  cache_stats2 = None
   if hasattr(scorer, 'fast_score_corpus'):
-    scorer.cache_stats(1, gold, sys1)
-    scorer.cache_stats(2, gold, sys2)
+    cache_stats1 = scorer.cache_stats(gold, sys1)
+    cache_stats2 = scorer.cache_stats(gold, sys2)
 
   try:
     from tqdm import tqdm
     for _ in tqdm(range(num_samples)):
-      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, scorer)
+      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, scorer, cache_stats1=cache_stats1, cache_stats2=cache_stats2)
   except ImportError:
     print('Install tqdm to see progress meter!')
     for _ in range(num_samples):
-      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, scorer)
+      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, scorer, cache_stats1=cache_stats1, cache_stats2=cache_stats2)
 
   # Print win stats
   wins = [x/float(num_samples) for x in wins]
