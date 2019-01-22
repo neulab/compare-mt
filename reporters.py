@@ -22,6 +22,24 @@ class Report:
 
 
 class ScoreReport(Report):
+  def __init__(self, scorer_name, win=None, sys1_stats=None, sys2_stats=None):
+    self.scorer_name = scorer_name 
+    self.score1 = score1
+    self.str1 = str1 
+    self.score2 = score2 
+    self.str2 = str2 
+    self.sys1_stats = sys1_stats 
+    self.sys2_stats = sys2_stats 
+    self.wins = wins
+
+  def generate_report(output_fig_file, output_fig_type, output_html_file, output_directory):
+    self.print()
+
+    if output_fig_file is not None:
+      self.plot(output_directory, output_fig_file, output_fig_type)
+    if output_html_file is not None:
+      self.write_html(output_directory, output_html_file)
+
   def print(self):
     self.print_header('Aggregate Scores')
     print(f'{self.scorer_name}:')
@@ -45,7 +63,7 @@ class ScoreReport(Report):
               (sys2_stats['mean'], sys2_stats['median'], sys2_stats['lower_bound'], sys2_stats['upper_bound']))
     print()
     
-  def plot(self, output_path='outputs/', fig_name='score.pdf'):
+  def plot(self, output_directory='outputs', output_fig_file='score', output_fig_type='pdf'):
     fig, ax = plt.subplots() 
     width = 0.35
     if 'wins' in self.__dict__:
@@ -73,11 +91,13 @@ class ScoreReport(Report):
     ax.legend((p1[0], p2[0]), ('Sys1', 'Sys2'))
     ax.autoscale_view()
 
-    if not os.path.exists(output_path):
-      os.makedirs(output_path)
-    plt.savefig(os.path.join(output_path, fig_name))
+    if not os.path.exists(output_directory):
+      os.makedirs(output_directory)
+    plt.savefig(os.path.join(output_directory, f'{output_fig_file}.{output_fig_type}'))
 
-
+  def write_html(output_directory='outputs', output_html_file='score.html'):
+    pass 
+    
 class WordReport(Report):
   def print(self):
     acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
