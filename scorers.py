@@ -241,6 +241,19 @@ class LengthScorer(Scorer):
     out_words = sum([len(x) for x in out])
     return out_words/ref_words, f'ref={ref_words}, out={out_words}'
 
+  def score_sentence(self, ref, out):
+    """
+    Score a single sentence by length ratio
+
+    Args:
+      ref: A reference sentence
+      out: An output sentence
+
+    Returns:
+      The length, and a string summarizing the length of the reference and output sentence
+    """
+    return len(out) / len(ref), f"ref={len(ref)}, out={len(out)}"
+
   def name(self):
     return "length ratio"
 
@@ -347,7 +360,7 @@ class ChrFScorer(Scorer):
     return chrf, None
 
   def score_sentence(self, ref, out):
-    return self.chrf_score([ref], [out])
+    return self.chrf_score([ref], [out]), None
 
   def name(self):
     return "ChrF"

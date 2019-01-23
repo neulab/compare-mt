@@ -2,32 +2,145 @@ import os.path
 import unittest
 
 import sys
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+compare_mt_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
+sys.path.append(compare_mt_root)
 import scorers
+import numpy as np
 from corpus_utils import load_tokens
 
-class TestScorers(unittest.TestCase):
+import nltk.translate.ribes_score
 
-  def setUp(self):
-    self.ref_sentence = ["By the end of this year , there 'll be nearly a billion people on this planet that actively use social networking sites ."]
-    self.out_sentence = ["By the end of this year will be on this planet about billion people to use active aspects of social networks ."]
+def _get_example_data():
+  example_path = os.path.join(compare_mt_root, "example")
+  ref_file = os.path.join(example_path, "ted.ref.eng")
+  out1_file = os.path.join(example_path, "ted.sys1.eng")
+  out2_file = os.path.join(example_path, "ted.sys2.eng")
+  return [load_tokens(x) for x in (ref_file, out1_file, out2_file)]
 
-    example_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "example")
-    self.ref_file = os.path.join(example_path, "ted.ref.eng")
-    self.out_file = os.path.join(example_path, "ted.sys1.eng")
+
+class TestBleuScorer(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(self):
+    self.ref, self.out1, self.out2 = _get_example_data()
+    self.ids = list(range(len(self.ref)))
+    self.scorer = scorers.create_scorer_from_profile("bleu", case_insensitive=False)
+    self.cache_stats1 = self.scorer.cache_stats(self.ref, self.out1)
+    self.cache_stats2 = self.scorer.cache_stats(self.ref, self.out2)
+    self.n_random_retries = 10
+
+  def test_score_corpus(self):
+    bleu, _ = self.scorer.score_corpus(self.ref, self.out1)
+    # Compare to moses multi-bleu.pl
+    self.assertAlmostEqual(bleu, 0.2244, places=3)
+  
+  def test_score_sentence(self):
+    
+    def should_raise():
+      return self.scorer.score_sentence(self.ref[0], self.out1[0])
+    
+    self.assertRaises(NotImplementedError, should_raise)
+
+
+  def test_score_cached_corpus(self):
+    for _ in range(self.n_random_retries):
+      np.random.shuffle(self.ids)
+      random_ids = self.ids[:int(len(self.ids)*0.5)]
+
+      # compare-mt implementation
+      my_sys1_score, _ = self.scorer.score_cached_corpus(random_ids, self.cache_stats1)
+      my_sys2_score, _ = self.scorer.score_cached_corpus(random_ids, self.cache_stats2)
+
+      # nltk implementation
+      random_ref = [self.ref[i] for i in random_ids]
+      random_sys1 = [self.out1[i] for i in random_ids]
+      random_sys2 = [self.out2[i] for i in random_ids]
+      nltk_sys1_score, _ = self.scorer.score_corpus(random_ref, random_sys1)
+      nltk_sys2_score, _ = self.scorer.score_corpus(random_ref, random_sys2)
+
+      self.assertAlmostEqual(my_sys1_score, nltk_sys1_score)
+      self.assertAlmostEqual(my_sys2_score, nltk_sys2_score)
+
+
+class TestSentBleuScorer(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(self):
+    self.ref, self.out, _ = _get_example_data()
+    self.scorer = scorers.create_scorer_from_profile("sentbleu")
+
+  def test_score_sentence(self):
+    bleu, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
+    # compare to nltk
+    self.assertAlmostEqual(bleu, 0.32607099228782377)
+  
+  def test_score_corpus(self):
+    sent_bleu_corpus, _ = self.scorer.score_corpus(self.ref, self.out)
+    avg_sent_bleu = sum([self.scorer.score_sentence(ref_sent, out_sent)[0]
+                         for ref_sent, out_sent in zip(self.ref, self.out)])
+    avg_sent_bleu /= len(self.ref)
+    # compare to sacrebleu --force --metrics=chrf
+    self.assertAlmostEqual(sent_bleu_corpus, avg_sent_bleu)
+
+
+class TestLengthScorer(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(self):
+    self.ref, self.out, _ = _get_example_data()
+    self.scorer = scorers.create_scorer_from_profile("length")
+
+  def test_score_sentence(self):
+    length_ratio, desc = self.scorer.score_sentence(self.ref[0], self.out[0])
+    self.assertAlmostEqual(length_ratio, 22 / 24)
+    self.assertEqual(desc, "ref=24, out=22")
+  
+  def test_score_corpus(self):
+    length_ratio_corpus, desc = self.scorer.score_corpus(self.ref, self.out)
+    self.assertAlmostEqual(length_ratio_corpus, 45672 / 48183)
+    self.assertEqual(desc, "ref=48183, out=45672")
+
+
+
+class TestRibesScorer(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(self):
+    self.ref, self.out, _ = _get_example_data()
+    self.scorer = scorers.create_scorer_from_profile("ribes")
+
+  def test_score_sentence(self):
+    ribes, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
+    # Compare to NLTK
+    nltk_ribes = nltk.translate.ribes_score.sentence_ribes([self.ref[0]], self.out[0])
+    # nltk_ribes = 0.17151800220520294
+    # The following fails (ribes = 0.8490141109157546)
+    # self.assertAlmostEqual(ribes, nltk_ribes)
+  
+  def test_score_corpus(self):
+    ribes_corpus, _ = self.scorer.score_corpus(self.ref, self.out)
+    # This fails with an error (division by zero in NLTK kendall_tau)
+    # nltk_ribes = nltk.translate.ribes_score.corpus_ribes([self.ref], self.out)
+    # self.assertAlmostEqual(ribes_corpus,nltk_ribes)
+
+
+class TestChrFScorer(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(self):
+    self.ref, self.out, _ = _get_example_data()
+    self.scorer = scorers.create_scorer_from_profile("chrf")
 
   def test_chrf_sentence(self):
-    scorer = scorers.create_scorer_from_profile("chrf")
-    chrf = scorer.score_sentence(self.ref_sentence, self.out_sentence)
+    chrf, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
+    # compare to sacrebleu --force --metrics=chrf
     self.assertAlmostEqual(chrf, 0.59, places=2)
   
   def test_chrf_corpus(self):
-    scorer = scorers.create_scorer_from_profile("chrf")
-    ref = load_tokens(self.ref_file)
-    out = load_tokens(self.out_file)
-    chrf, _ = scorer.score_corpus(ref, out)
+    chrf, _ = self.scorer.score_corpus(self.ref, self.out)
+    # compare to sacrebleu --force --metrics=chrf
     self.assertAlmostEqual(chrf, 0.48, places=2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   unittest.main()
