@@ -19,6 +19,44 @@ class Scorer(object):
   def name(self):
     return None
 
+class SentenceFactoredScorer(Scorer):
+  def cache_stats(self, ref, out):
+    """
+    Cache sufficient statistics for caculating scores
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+
+    Returns:
+      A tuple of cached statistics
+    """
+    if hasattr(self, 'case_insensitive') and self.case_insensitive:
+      ref = corpus_utils.lower(ref)
+      out = corpus_utils.lower(out)
+
+    cached_scores = []
+    for r, o in zip(ref, out):
+      cached_scores.append(self.score_sentence(r, o)[0])
+  
+    return cached_scores
+
+  def score_cached_corpus(self, sent_ids, cached_stats):
+    """
+    Score a corpus with cache
+
+    Args:
+      sent_ids: The sentence ids for reference and output corpora
+      cached_stats: A tuple of cached statistics
+
+    Returns:
+      A tuple containing a single value for the score and a string summarizing auxiliary information
+    """
+    import numpy as np
+    cached_stats = np.array(cached_stats)
+    return np.mean(cached_stats[sent_ids]), None
+    
+
 class BleuScorer(Scorer):
   """
   A scorer that calculates BLEU score.
@@ -38,35 +76,8 @@ class BleuScorer(Scorer):
     Returns:
       A tuple containing a single value for the BLEU score and a string summarizing auxiliary information
     """
-    if self.case_insensitive:
-      ref = corpus_utils.lower(ref)
-      out = corpus_utils.lower(out)
-
-    num_prec = Counter()
-    denom_prec = Counter()
-  
-    ref_len = 0
-    out_len = 0
-    for r, o in zip(ref, out):
-      ref_len += len(r)
-      out_len += len(o)
-      for n in range(1, len(self.weights) + 1):
-        num, denom = self._precision(r, o, n)
-        num_prec[n] += num
-        denom_prec[n] += denom
-
-    if num_prec[1] == 0:
-      return 0
-
-    prec = 0
-    for i, w in enumerate(self.weights, start=1):
-      p = num_prec[i] / denom_prec[i] if denom_prec[i] != 0 else 0
-      p = math.log(p) if p > 0 else 0
-      prec += p * w 
-    
-    bp = min(1, math.exp(1 - ref_len/out_len)) if out_len != 0 else 0
-
-    return bp * math.exp(prec), None
+    cached_stats = self.cache_stats(ref, out)
+    return self.score_cached_corpus(range(len(ref)), cached_stats)
 
   def score_sentence(self, ref, out):
     raise NotImplementedError("Sentence-level calculation is not implemented in BleuScorer as it is usually 0."
@@ -168,7 +179,7 @@ class BleuScorer(Scorer):
   def name(self):
     return "BLEU"
 
-class SentBleuScorer(Scorer):
+class SentBleuScorer(SentenceFactoredScorer):
   """
   A scorer that calculates sentence-level smoothed BLEU score.
   """
@@ -233,7 +244,7 @@ class LengthScorer(Scorer):
   def name(self):
     return "length ratio"
 
-class RibesScorer(Scorer):
+class RibesScorer(SentenceFactoredScorer):
   """
   A scorer that calculates RIBES score.
   """
@@ -279,42 +290,6 @@ class RibesScorer(Scorer):
           dis += 1
     return 2*dis/(n*n-n)  
 
-  def cache_stats(self, ref, out):
-    """
-    Cache sufficient statistics for caculating RIBES score
-
-    Args:
-      ref: A reference corpus
-      out: An output corpus
-
-    Returns:
-      A tuple of cached statistics
-    """
-    if self.case_insensitive:
-      ref = corpus_utils.lower(ref)
-      out = corpus_utils.lower(out)
-
-    cached_scores = []
-    for r, o in zip(ref, out):
-      cached_scores.append(self.score_sentence(r, o)[0])
-  
-    return cached_scores
-
-  def score_cached_corpus(self, sent_ids, cached_stats):
-    """
-    Score a corpus using RIBES score with cache
-
-    Args:
-      sent_ids: The sentence ids for reference and output corpora
-      cached_stats: A tuple of cached statistics
-
-    Returns:
-      A tuple containing a single value for the RIBES score and a string summarizing auxiliary information
-    """
-    import numpy as np
-    cached_stats = np.array(cached_stats)
-    return np.mean(cached_stats[sent_ids]), None
-    
   def score_sentence(self, ref, out):
     """
     Score a single sentence with RIBES score
