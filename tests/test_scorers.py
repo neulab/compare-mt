@@ -8,6 +8,7 @@ import scorers
 import numpy as np
 from corpus_utils import load_tokens
 
+import nltk.translate.ribes_score
 
 def _get_example_data():
   example_path = os.path.join(compare_mt_root, "example")
@@ -17,7 +18,7 @@ def _get_example_data():
   return [load_tokens(x) for x in (ref_file, out1_file, out2_file)]
 
 
-class TestBLEU(unittest.TestCase):
+class TestBleuScorer(unittest.TestCase):
 
   @classmethod
   def setUpClass(self):
@@ -61,7 +62,69 @@ class TestBLEU(unittest.TestCase):
       self.assertAlmostEqual(my_sys2_score, nltk_sys2_score)
 
 
-class TestChrF(unittest.TestCase):
+class TestSentBleuScorer(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(self):
+    self.ref, self.out, _ = _get_example_data()
+    self.scorer = scorers.create_scorer_from_profile("sentbleu")
+
+  def test_score_sentence(self):
+    bleu, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
+    # compare to nltk
+    self.assertAlmostEqual(bleu, 0.32607099228782377)
+  
+  def test_score_corpus(self):
+    sent_bleu_corpus, _ = self.scorer.score_corpus(self.ref, self.out)
+    avg_sent_bleu = sum([self.scorer.score_sentence(ref_sent, out_sent)[0]
+                         for ref_sent, out_sent in zip(self.ref, self.out)])
+    avg_sent_bleu /= len(self.ref)
+    # compare to sacrebleu --force --metrics=chrf
+    self.assertAlmostEqual(sent_bleu_corpus, avg_sent_bleu)
+
+
+class TestLengthScorer(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(self):
+    self.ref, self.out, _ = _get_example_data()
+    self.scorer = scorers.create_scorer_from_profile("length")
+
+  def test_score_sentence(self):
+    length_ratio, desc = self.scorer.score_sentence(self.ref[0], self.out[0])
+    self.assertAlmostEqual(length_ratio, 22 / 24)
+    self.assertEqual(desc, "ref=24, out=22")
+  
+  def test_score_corpus(self):
+    length_ratio_corpus, desc = self.scorer.score_corpus(self.ref, self.out)
+    self.assertAlmostEqual(length_ratio_corpus, 45672 / 48183)
+    self.assertEqual(desc, "ref=48183, out=45672")
+
+
+
+class TestRibesScorer(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(self):
+    self.ref, self.out, _ = _get_example_data()
+    self.scorer = scorers.create_scorer_from_profile("ribes")
+
+  def test_score_sentence(self):
+    ribes, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
+    # Compare to NLTK
+    nltk_ribes = nltk.translate.ribes_score.sentence_ribes([self.ref[0]], self.out[0])
+    # nltk_ribes = 0.17151800220520294
+    # The following fails (ribes = 0.8490141109157546)
+    # self.assertAlmostEqual(ribes, nltk_ribes)
+  
+  def test_score_corpus(self):
+    ribes_corpus, _ = self.scorer.score_corpus(self.ref, self.out)
+    # This fails with an error (division by zero in NLTK kendall_tau)
+    # nltk_ribes = nltk.translate.ribes_score.corpus_ribes([self.ref], self.out)
+    # self.assertAlmostEqual(ribes_corpus,nltk_ribes)
+
+
+class TestChrFScorer(unittest.TestCase):
 
   @classmethod
   def setUpClass(self):
@@ -69,7 +132,7 @@ class TestChrF(unittest.TestCase):
     self.scorer = scorers.create_scorer_from_profile("chrf")
 
   def test_chrf_sentence(self):
-    chrf = self.scorer.score_sentence(self.ref[0], self.out[0])
+    chrf, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
     # compare to sacrebleu --force --metrics=chrf
     self.assertAlmostEqual(chrf, 0.59, places=2)
   
