@@ -19,7 +19,6 @@ def _get_example_data():
 
 ref, out, out2 = _get_example_data()
 scorer = scorers.create_scorer_from_profile("ribes")
-scorer.order = -1
 print(f'Ours first sentence: {scorer.score_sentence(ref[0], out[0])[0]}')
 ribes_corpus, _ = scorer.score_corpus(ref, out)
 print(f'Ours corpus: {ribes_corpus}')

@@ -261,7 +261,7 @@ class RibesScorer(SentenceFactoredScorer):
   """
   A scorer that calculates RIBES score.
   """
-  def __init__(self, order=2, alpha=0.25, beta=0.1, case_insensitive=False):
+  def __init__(self, order=-1, alpha=0.25, beta=0.1, case_insensitive=False):
     self.order = order
     self.alpha = alpha
     self.beta = beta

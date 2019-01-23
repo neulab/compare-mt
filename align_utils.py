@@ -49,16 +49,16 @@ def ngram_context_align(ref, out, order=2, case_insensitive=False):
       word_forward = word 
       word_backward = word 
       for j in range(1, order):
-        if i + j < len(out):
-          word_forward = word_forward + ' ' + out[i+j]
-          if len(ref_gram_pos[j+1][word_forward]) == len(out_gram_pos[j+1][word_forward]) == 1:
-            worder.append(ref_gram_pos[j+1][word_forward][0])
-            break
-
         if i - j >= 0:
           word_backward = out[i-j] + ' ' + word_backward 
           if len(ref_gram_pos[j+1][word_backward]) == len(out_gram_pos[j+1][word_backward]) == 1:
             worder.append(ref_gram_pos[j+1][word_backward][0]+j)
+            break
+
+        if i + j < len(out):
+          word_forward = word_forward + ' ' + out[i+j]
+          if len(ref_gram_pos[j+1][word_forward]) == len(out_gram_pos[j+1][word_forward]) == 1:
+            worder.append(ref_gram_pos[j+1][word_forward][0])
             break
 
   return worder

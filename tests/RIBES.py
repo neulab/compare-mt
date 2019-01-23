@@ -167,15 +167,15 @@ def kendall(ref, hyp, emptyref=False):
             ### if not, we consider context words...
             # use Unicode-mapped string for efficiency
             for window in range (1, max(i+1, len(hyp)-i+1)):
-                if i+window < len(hyp):
-                    ngram = mapped_hyp[i:i+window+1]
-                    if overlapping_count(ngram, mapped_ref) == 1 and overlapping_count(ngram, mapped_hyp) == 1:
-                        intlist.append(mapped_ref.index(ngram))
-                        break
                 if window <= i:
                     ngram = mapped_hyp[i-window:i+1]
                     if overlapping_count(ngram, mapped_ref) == 1 and overlapping_count(ngram, mapped_hyp) == 1:
                         intlist.append(mapped_ref.index(ngram) + len(ngram) -1)
+                        break
+                if i+window < len(hyp):
+                    ngram = mapped_hyp[i:i+window+1]
+                    if overlapping_count(ngram, mapped_ref) == 1 and overlapping_count(ngram, mapped_hyp) == 1:
+                        intlist.append(mapped_ref.index(ngram))
                         break
 
     ### At least two word correspondences are needed for rank correlation
