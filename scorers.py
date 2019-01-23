@@ -19,6 +19,44 @@ class Scorer(object):
   def name(self):
     return None
 
+class SentenceFactoredScorer(Scorer):
+  def cache_stats(self, ref, out):
+    """
+    Cache sufficient statistics for caculating scores
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+
+    Returns:
+      A tuple of cached statistics
+    """
+    if hasattr(self, 'case_insensitive') and self.case_insensitive:
+      ref = corpus_utils.lower(ref)
+      out = corpus_utils.lower(out)
+
+    cached_scores = []
+    for r, o in zip(ref, out):
+      cached_scores.append(self.score_sentence(r, o)[0])
+  
+    return cached_scores
+
+  def score_cached_corpus(self, sent_ids, cached_stats):
+    """
+    Score a corpus with cache
+
+    Args:
+      sent_ids: The sentence ids for reference and output corpora
+      cached_stats: A tuple of cached statistics
+
+    Returns:
+      A tuple containing a single value for the score and a string summarizing auxiliary information
+    """
+    import numpy as np
+    cached_stats = np.array(cached_stats)
+    return np.mean(cached_stats[sent_ids]), None
+    
+
 class BleuScorer(Scorer):
   """
   A scorer that calculates BLEU score.
@@ -38,11 +76,8 @@ class BleuScorer(Scorer):
     Returns:
       A tuple containing a single value for the BLEU score and a string summarizing auxiliary information
     """
-    if self.case_insensitive:
-      bleu = nltk.translate.bleu_score.corpus_bleu([[corpus_utils.lower(x)] for x in ref], corpus_utils.lower(out), weights=self.weights)
-    else:
-      bleu = nltk.translate.bleu_score.corpus_bleu([[x] for x in ref], out, weights=self.weights)
-    return bleu, None
+    cached_stats = self.cache_stats(ref, out)
+    return self.score_cached_corpus(range(len(ref)), cached_stats)
 
   def score_sentence(self, ref, out):
     raise NotImplementedError("Sentence-level calculation is not implemented in BleuScorer as it is usually 0."
@@ -92,7 +127,7 @@ class BleuScorer(Scorer):
     cached_out_len = []
     cached_prec = []
 
-    for sent_id, (r, o) in enumerate(zip(ref, out)):
+    for r, o in zip(ref, out):
       cached_ref_len.append(len(r))
       cached_out_len.append(len(o))
       prec = []
@@ -144,7 +179,7 @@ class BleuScorer(Scorer):
   def name(self):
     return "BLEU"
 
-class SentBleuScorer(Scorer):
+class SentBleuScorer(SentenceFactoredScorer):
   """
   A scorer that calculates sentence-level smoothed BLEU score.
   """
@@ -209,7 +244,7 @@ class LengthScorer(Scorer):
   def name(self):
     return "length ratio"
 
-class RibesScorer(Scorer):
+class RibesScorer(SentenceFactoredScorer):
   """
   A scorer that calculates RIBES score.
   """
@@ -276,7 +311,7 @@ class RibesScorer(Scorer):
     return "RIBES"
 
 
-class ChrFScorer:
+class ChrFScorer(Scorer):
   """
   A scorer that calculates chrF (character n-gram F-score) score.
 
