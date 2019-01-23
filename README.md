@@ -1,6 +1,8 @@
 # compare_mt
 by Graham Neubig (and other contributors!)
 
+[![Build Status](https://travis-ci.org/neulab/compare-mt.svg?branch=master)](https://travis-ci.org/neulab/compare-mt)
+
 This is a script to compare the output of multiple machine translation or language generation systems.
 To use it you to have, in text format, a "correct" reference, and the output of two different systems.
 Based on this, `compare_mt.py` will run a number of analyses that attempt to pick out salient differences between
