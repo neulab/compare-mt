@@ -40,15 +40,8 @@ def generate_score_report(ref, out1, out2,
   else:
     wins = sys1_stats = sys2_stats = None
 
-  reporter = reporters.create_reporter_from_profile(profile='score', 
-                                                    scorer_name=scorer.name(),
-                                                    score1=score1,
-                                                    str1=str1,
-                                                    score2=score2, 
-                                                    str2=str2,
-                                                    wins=wins,
-                                                    sys1_stats=sys1_stats,
-                                                    sys2_stats=sys2_stats)
+  reporter = reporters.ScoreReport(scorer_name=scorer.name(), score1=score1, str1=str1, score2=score2, str2=str2,
+                                   wins=wins, sys1_stats=sys1_stats, sys2_stats=sys2_stats)
   reporter.generate_report(output_fig_file=f'score-{score_type}-{bootstrap}',
                            output_fig_format='pdf', 
                            output_html_file=f'score-{score_type}-{bootstrap}.html', 
@@ -88,14 +81,8 @@ def generate_word_accuracy_report(ref, out1, out2,
   matches1 = bucketer.calc_bucketed_matches(ref, out1, ref_labels=ref_labels, out_labels=out1_labels)
   matches2 = bucketer.calc_bucketed_matches(ref, out2, ref_labels=ref_labels, out_labels=out2_labels)
   
-  #stats = {'bucketer': bucketer, 'matches1': matches1, 'matches2': matches2, 'acc_type': acc_type, 'header': "Word Accuracy Analysis"}
-  reporter = reporters.create_reporter_from_profile(profile='word',
-                                                    bucketer=bucketer, 
-                                                    matches1=matches1, 
-                                                    matches2=matches2,
-                                                    acc_type=acc_type,
-                                                    header="Word Accuracy Analysis")
-
+  reporter = reporters.WordReport(bucketer=bucketer, matches1=matches1, matches2=matches2, 
+                                  acc_type=acc_type, header="Word Accuracy Analysis")
   reporter.generate_report(output_fig_file=f'word-acc',
                            output_fig_format='pdf', 
                            output_html_file=f'word-acc-{acc_type}.html', 
@@ -137,13 +124,8 @@ def generate_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_alig
   matches1 = bucketer.calc_source_bucketed_matches(src, ref, out1, ref_align, out1_align, src_labels=src_labels)
   matches2 = bucketer.calc_source_bucketed_matches(src, ref, out2, ref_align, out2_align, src_labels=src_labels)
 
-  reporter = reporters.create_reporter_from_profile(profile='word',
-                                                    bucketer=bucketer, 
-                                                    matches1=matches1, 
-                                                    matches2=matches2,
-                                                    acc_type=acc_type,
-                                                    header="Source Word Accuracy Analysis")
-
+  reporter = reporters.WordReport(bucketer=bucketer, matches1=matches1, matches2=matches2, 
+                                  acc_type=acc_type, header="Source Word Accuracy Analysis")
   reporter.generate_report(output_fig_file=f'src-word-acc',
                            output_fig_format='pdf', 
                            output_html_file=f'src-word-acc-{acc_type}.html', 
@@ -177,17 +159,9 @@ def generate_sentence_bucketed_report(ref, out1, out2,
   stats1 = [aggregator(out,ref) for (out,ref) in bc1]
   stats2 = [aggregator(out,ref) for (out,ref) in bc2]
 
-  stats = {'bucketer': bucketer, 'stats1': stats1, 'stats2': stats2, 
-           'bucket_type': bucket_type, 
-           'statistic_type': statistic_type, 
-           'score_measure': score_measure}
-  reporter = reporters.create_reporter_from_profile(profile='sentence', 
-                                                    bucketer=bucketer, bucket_type=bucket_type,
-                                                    sys1_stats=stats1, sys2_stats=stats2,
-                                                    statistic_type=statistic_type, 
-                                                    score_measure=score_measure)
-
-
+  reporter = reporters.SentenceReport(bucketer=bucketer, bucket_type=bucket_type,
+                                      sys1_stats=stats1, sys2_stats=stats2,
+                                      statistic_type=statistic_type, score_measure=score_measure)
   reporter.generate_report(output_fig_file=f'sentence-{statistic_type}-{score_measure}',
                            output_fig_format='pdf', 
                            output_html_file=f'sentence-{statistic_type}-{score_measure}.html', 
@@ -239,13 +213,12 @@ def generate_ngram_report(ref, out1, out2,
     raise ValueError(f'Illegal compare_type "{compare_type}"')
   scorelist = sorted(scores.items(), key=operator.itemgetter(1), reverse=True)
 
-  reporter = reporters.create_reporter_from_profile('ngram',
-                                                    scorelist=scorelist, report_length=report_length, 
-                                                    min_ngram_length=min_ngram_length, 
-                                                    max_ngram_length=max_ngram_length,
-                                                    matches1=match1, matches2=match2, 
-                                                    compare_type=compare_type, alpha=alpha,
-                                                    label_files=label_files)
+  reporter = reporters.NgramReport(scorelist=scorelist, report_length=report_length,
+                                   min_ngram_length=min_ngram_length, 
+                                   max_ngram_length=max_ngram_length,
+                                   matches1=match1, matches2=match2, 
+                                   compare_type=compare_type, alpha=alpha,
+                                   label_files=label_files)                                   
   reporter.generate_report(output_fig_file=f'ngram-min{min_ngram_length}-max{max_ngram_length}-{compare_type}',
                            output_fig_format='pdf', 
                            output_html_file=f'ngram-min{min_ngram_length}-max{max_ngram_length}-{compare_type}.html', 

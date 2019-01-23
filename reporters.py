@@ -234,33 +234,3 @@ class SentenceReport(Report):
 
   def write_html(self, output_directory='outputs', output_html_file='word-acc.html'):
     pass
-
-def create_reporter_from_profile(profile,
-                                 scorer_name=None, header=None,
-                                 score1=None, str1=None, score2=None, str2=None,
-                                 wins=None, sys1_stats=None, sys2_stats=None,
-                                 bucketer=None, bucket_type=None,
-                                 matches1=None, matches2=None, acc_type=None,
-                                 statistic_type=None, score_measure=None, 
-                                 scorelist=None, report_length=None,
-                                 min_ngram_length=None, max_ngram_length=None,
-                                 compare_type=None, alpha=None, label_files=None):
-  if profile == 'score':
-    return ScoreReport(scorer_name=scorer_name, score1=score1, str1=str1, score2=score2, str2=str2, 
-                       wins=wins, sys1_stats=sys1_stats, sys2_stats=sys2_stats)
-  elif profile == 'word':
-    return WordReport(bucketer=bucketer, matches1=matches1, matches2=matches2, 
-                      acc_type=acc_type, header=header)
-  elif profile == 'ngram':
-    return NgramReport(scorelist=scorelist, report_length=report_length,
-                       min_ngram_length=min_ngram_length, 
-                       max_ngram_length=max_ngram_length,
-                       matches1=matches1, matches2=matches2, 
-                       compare_type=compare_type, alpha=alpha,
-                       label_files=label_files)
-  elif profile == 'sentence':
-    return SentenceReport(bucketer=bucketer, bucket_type=bucket_type,
-                          sys1_stats=sys1_stats, sys2_stats=sys2_stats,
-                          statistic_type=statistic_type, score_measure=score_measure)
-  else:
-    raise ValueError(f'Invalid profile for scorer {profile}')
