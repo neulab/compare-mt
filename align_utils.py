@@ -1,7 +1,17 @@
 from collections import defaultdict
 import corpus_utils
 
-def ngram_context_align(ref, out, order=2, case_insensitive=False):
+def _count_ngram(sent, order):
+  gram_pos = dict()
+  for i in range(order):
+    gram_pos[i+1] = defaultdict(lambda: [])
+  for i, word in enumerate(sent):
+    for j in range(min(i+1, order)):
+      gram_pos[j+1][word].append(i-j)
+      word = sent[i-j-1] + ' ' + word
+  return gram_pos
+
+def ngram_context_align(ref, out, order=-1, case_insensitive=False):
   """
   Calculate the word alignment between a reference sentence and an output sentence. 
   Proposed in the following paper:
@@ -13,7 +23,7 @@ def ngram_context_align(ref, out, order=2, case_insensitive=False):
   Args:
     ref: A reference sentence
     out: An output sentence
-    order: The highest order of grams we want to consider
+    order: The highest order of grams we want to consider (-1=inf)
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
 
   Returns:
@@ -24,18 +34,10 @@ def ngram_context_align(ref, out, order=2, case_insensitive=False):
     ref = corpus_utils.lower(ref)
     out = corpus_utils.lower(out)
 
-  def count_ngram(sent):
-    gram_pos = dict()
-    for i in range(order):
-      gram_pos[i+1] = defaultdict(lambda: [])
-    for i, word in enumerate(sent):
-      for j in range(min(i+1, order)):
-        gram_pos[j+1][word].append(i-j)
-        word = sent[i-j-1] + ' ' + word
-    return gram_pos
+  order = len(ref) if order == -1 else order
 
-  ref_gram_pos = count_ngram(ref)
-  out_gram_pos = count_ngram(out)
+  ref_gram_pos = _count_ngram(ref, order)
+  out_gram_pos = _count_ngram(out, order)
 
   worder = []
   for i, word in enumerate(out):
@@ -47,16 +49,16 @@ def ngram_context_align(ref, out, order=2, case_insensitive=False):
       word_forward = word 
       word_backward = word 
       for j in range(1, order):
-        if i + j < len(out):
-          word_forward = word_forward + ' ' + out[i+j]
-          if len(ref_gram_pos[j+1][word_forward]) == len(out_gram_pos[j+1][word_forward]) == 1:
-            worder.append(ref_gram_pos[j+1][word_forward][0])
-            break
-
         if i - j >= 0:
           word_backward = out[i-j] + ' ' + word_backward 
           if len(ref_gram_pos[j+1][word_backward]) == len(out_gram_pos[j+1][word_backward]) == 1:
             worder.append(ref_gram_pos[j+1][word_backward][0]+j)
+            break
+
+        if i + j < len(out):
+          word_forward = word_forward + ' ' + out[i+j]
+          if len(ref_gram_pos[j+1][word_forward]) == len(out_gram_pos[j+1][word_forward]) == 1:
+            worder.append(ref_gram_pos[j+1][word_forward][0])
             break
 
   return worder

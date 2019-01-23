@@ -261,7 +261,7 @@ class RibesScorer(SentenceFactoredScorer):
   """
   A scorer that calculates RIBES score.
   """
-  def __init__(self, order=2, alpha=0.25, beta=0.1, case_insensitive=False):
+  def __init__(self, order=-1, alpha=0.25, beta=0.1, case_insensitive=False):
     self.order = order
     self.alpha = alpha
     self.beta = beta
@@ -316,7 +316,7 @@ class RibesScorer(SentenceFactoredScorer):
     """
     alignment = align_utils.ngram_context_align(ref, out, order=self.order, case_insensitive=self.case_insensitive)
     kt_dis = self._kendall_tau_distance(alignment) 
-    prec = len(alignment)/ len(out)
+    prec = len(alignment)/ len(out) if len(out) != 0 else 0
     bp = min(1, math.exp(1-len(ref)/len(out))) if len(out) != 0 else 0
     return kt_dis * (prec**self.alpha) * (bp**self.beta), None
 
