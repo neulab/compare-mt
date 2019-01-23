@@ -1,7 +1,7 @@
 from collections import defaultdict
 import corpus_utils
 
-def _count_ngram(sent, order=2):
+def _count_ngram(sent, order):
   gram_pos = dict()
   for i in range(order):
     gram_pos[i+1] = defaultdict(lambda: [])
@@ -11,7 +11,7 @@ def _count_ngram(sent, order=2):
       word = sent[i-j-1] + ' ' + word
   return gram_pos
 
-def ngram_context_align(ref, out, order=2, case_insensitive=False):
+def ngram_context_align(ref, out, order=-1, case_insensitive=False):
   """
   Calculate the word alignment between a reference sentence and an output sentence. 
   Proposed in the following paper:

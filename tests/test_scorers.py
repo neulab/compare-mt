@@ -111,17 +111,11 @@ class TestRibesScorer(unittest.TestCase):
 
   def test_score_sentence(self):
     ribes, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
-    # Compare to NLTK
-    nltk_ribes = nltk.translate.ribes_score.sentence_ribes([self.ref[0]], self.out[0])
-    # nltk_ribes = 0.17151800220520294
-    # The following fails (ribes = 0.8490141109157546)
-    # self.assertAlmostEqual(ribes, nltk_ribes)
+    self.assertAlmostEqual(ribes, 0.849014, 6)
   
   def test_score_corpus(self):
     ribes_corpus, _ = self.scorer.score_corpus(self.ref, self.out)
-    # This fails with an error (division by zero in NLTK kendall_tau)
-    # nltk_ribes = nltk.translate.ribes_score.corpus_ribes([self.ref], self.out)
-    # self.assertAlmostEqual(ribes_corpus,nltk_ribes)
+    self.assertAlmostEqual(ribes_corpus, 0.800020, 6)
 
 
 class TestChrFScorer(unittest.TestCase):
