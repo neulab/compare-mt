@@ -44,8 +44,8 @@ def generate_score_report(ref, out1, out2,
                                    wins=wins, sys1_stats=sys1_stats, sys2_stats=sys2_stats)
   reporter.generate_report(output_fig_file=f'score-{score_type}-{bootstrap}',
                            output_fig_format='pdf', 
-                           output_html_file=f'score-{score_type}-{bootstrap}.html', 
                            output_directory='outputs')
+  return reporter 
 
 def generate_word_accuracy_report(ref, out1, out2,
                           acc_type='fmeas', bucket_type='freq',
@@ -85,8 +85,8 @@ def generate_word_accuracy_report(ref, out1, out2,
                                   acc_type=acc_type, header="Word Accuracy Analysis")
   reporter.generate_report(output_fig_file=f'word-acc',
                            output_fig_format='pdf', 
-                           output_html_file=f'word-acc-{acc_type}.html', 
                            output_directory='outputs')
+  return reporter 
   
 
 def generate_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, out2_align,
@@ -128,8 +128,8 @@ def generate_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_alig
                                   acc_type=acc_type, header="Source Word Accuracy Analysis")
   reporter.generate_report(output_fig_file=f'src-word-acc',
                            output_fig_format='pdf', 
-                           output_html_file=f'src-word-acc-{acc_type}.html', 
                            output_directory='outputs')
+  return reporter 
 
 def generate_sentence_bucketed_report(ref, out1, out2,
                                    bucket_type='score', statistic_type='count',
@@ -164,8 +164,8 @@ def generate_sentence_bucketed_report(ref, out1, out2,
                                       statistic_type=statistic_type, score_measure=score_measure)
   reporter.generate_report(output_fig_file=f'sentence-{statistic_type}-{score_measure}',
                            output_fig_format='pdf', 
-                           output_html_file=f'sentence-{statistic_type}-{score_measure}.html', 
                            output_directory='outputs')
+  return reporter 
   
 
 def generate_ngram_report(ref, out1, out2,
@@ -221,8 +221,8 @@ def generate_ngram_report(ref, out1, out2,
                                    label_files=label_files)                                   
   reporter.generate_report(output_fig_file=f'ngram-min{min_ngram_length}-max{max_ngram_length}-{compare_type}',
                            output_fig_format='pdf', 
-                           output_html_file=f'ngram-min{min_ngram_length}-max{max_ngram_length}-{compare_type}.html', 
                            output_directory='outputs')
+  return reporter 
 
 def generate_sentence_examples(ref, out1, out2,
                             score_type='sentbleu',
@@ -245,12 +245,18 @@ def generate_sentence_examples(ref, out1, out2,
     s2, str2 = scorer.score_sentence(r, o2)
     scorediff_list.append((s2-s1, s1, s2, str1, str2, i))
   scorediff_list.sort()
-  print(f'--- {report_length} sentences where Sys1>Sys2 at {sname}')
-  for bdiff, s1, s2, str1, str2, i in scorediff_list[:report_length]:
-    print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
-  print(f'--- {report_length} sentences where Sys2>Sys1 at {sname}')
-  for bdiff, s1, s2, str1, str2, i in scorediff_list[-report_length:]:
-    print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
+
+  reporter = reporters.SentenceExampleReport(report_length=report_length, scorediff_list=scorediff_list, 
+                                             scorer_name=scorer.name(),
+                                             ref=ref, out1=out1, out2=out2)
+  reporter.generate_report()
+  return reporter 
+  # print(f'--- {report_length} sentences where Sys1>Sys2 at {sname}')
+  # for bdiff, s1, s2, str1, str2, i in scorediff_list[:report_length]:
+  #   print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
+  # print(f'--- {report_length} sentences where Sys2>Sys1 at {sname}')
+  # for bdiff, s1, s2, str1, str2, i in scorediff_list[-report_length:]:
+  #   print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
 
 
 if __name__ == '__main__':
@@ -304,22 +310,31 @@ if __name__ == '__main__':
                       Compare sentences. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_sentence_examples' to see which arguments are available.
                       """)
+  parser.add_argument('--output_directory', type=str, default='outputs',
+                      help='a path to the directory that saves all the report outputs')
+  parser.add_argument('--output_html_file', type=str, default='report.html',
+                      help='the file name of the html report')
+  parser.add_argument('--output_latex_file', type=str, default='report.tex',
+                      help='the file name of the latex report')
   args = parser.parse_args()
 
   ref, out1, out2 = [corpus_utils.load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
   src = corpus_utils.load_tokens(args.src_file) if args.src_file else None
+  reports = []
 
   # Aggregate scores
   if args.compare_scores:
     for profile in args.compare_scores:
       kargs = parse_profile(profile)
-      generate_score_report(ref, out1, out2, **kargs)
+      report = generate_score_report(ref, out1, out2, **kargs)
+      reports.append(report)
 
   # Word accuracy analysis
   if args.compare_word_accuracies:
     for profile in args.compare_word_accuracies:
       kargs = parse_profile(profile)
-      generate_word_accuracy_report(ref, out1, out2, **kargs)
+      report = generate_word_accuracy_report(ref, out1, out2, **kargs)
+      reports.append(report)
 
   # Source word analysis
   if args.compare_src_word_accuracies:
@@ -327,25 +342,33 @@ if __name__ == '__main__':
       raise ValueError("Must specify the source file when performing source analysis.")
     for profile in args.compare_src_word_accuracies:
       kargs = parse_profile(profile)
-      generate_src_word_accuracy_report(src, ref, out1, out2, **kargs)
+      report = generate_src_word_accuracy_report(src, ref, out1, out2, **kargs)
+      reports.append(report)
 
   # Sentence count analysis
   if args.compare_sentence_buckets:
     for profile in args.compare_sentence_buckets:
       kargs = parse_profile(profile)
-      generate_sentence_bucketed_report(ref, out1, out2, **kargs)
+      report = generate_sentence_bucketed_report(ref, out1, out2, **kargs)
+      reports.append(report)
 
   # n-gram difference analysis
-  if args.compare_ngrams:
-    
+  if args.compare_ngrams:  
     for profile in args.compare_ngrams:
       kargs = parse_profile(profile)
-      generate_ngram_report(ref, out1, out2, **kargs)
-      
+      report = generate_ngram_report(ref, out1, out2, **kargs)
+      reports.append(report)
 
   # Sentence example analysis
   if args.compare_sentence_examples:
     #print_header('Sentence Example Analysis')
     for profile in args.compare_sentence_examples:
       kargs = parse_profile(profile)
-      generate_sentence_examples(ref, out1, out2, **kargs)
+      report = generate_sentence_examples(ref, out1, out2, **kargs)
+      reports.append(report)
+
+  # Write all reports into a single html file 
+  reporters.generate_html_report(reports, args.output_html_file, args.output_directory)
+
+  # Write all reports into a latex file 
+  reporters.generate_latex_report(reports, args.output_latex_file, args.output_directory)

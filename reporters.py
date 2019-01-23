@@ -23,13 +23,11 @@ class Report:
   def print_header(self, header):
     print(f'********************** {header} ************************')
 
-  def generate_report(self, output_fig_file, output_fig_format, output_html_file, output_directory):
+  def generate_report(self, output_fig_file=None, output_fig_format=None, output_directory=None):
     self.print()
 
     if output_fig_file is not None:
       self.plot(output_directory, output_fig_file, output_fig_format)
-    if output_html_file is not None:
-      self.write_html(output_directory, output_html_file)
 
 class ScoreReport(Report):
   def __init__(self, scorer_name, score1, str1, score2, str2, 
@@ -104,8 +102,25 @@ class ScoreReport(Report):
     plt.savefig(os.path.join(output_directory, f'{output_fig_file}.{output_fig_format}'), 
                 format=output_fig_format, bbox_inches='tight')
 
-  def write_html(self, output_directory='outputs', output_html_file='score.html'):
-    pass 
+  def html_content(self):
+    html = f'<h2>Aggregate Scores</h2>\n'
+    table = [['Sys1', 'Sys2']]
+    if self.str1 is not None:
+      table.append([f'{self.score1:.4f} ({self.str1})', f'{self.score2:.4f} ({self.str2})'])
+    else:
+      table.append([f'{self.score1:.4f} ', f'{self.score2:.4f}'])
+    html += html_table(table, caption=self.scorer_name) 
+    if self.wins is not None:
+      wins, sys1_stats, sys2_stats = self.wins, self.sys1_stats, self.sys2_stats
+      table = [['Metric', 'Sys1', 'Sys2'],
+               ['Win ratio', f'{wins[0]:.3f}', f'{wins[1]:.3f}'],
+               ['Mean', f"{sys1_stats['mean']:.3f}", f"{sys2_stats['mean']:.3f}"],
+               ['Median', f"{sys1_stats['median']:.3f}", f"{sys2_stats['median']:.3f}"],
+               ['95% confidence interval', 
+                f"[{sys1_stats['lower_bound']:.3f},{sys1_stats['upper_bound']:.3f}]", 
+                f"[{sys2_stats['lower_bound']:.3f},{sys2_stats['upper_bound']:.3f}]"]]
+      html += html_table(table, caption='Significance Test') 
+    return html
     
 class WordReport(Report):
   def __init__(self, bucketer, matches1, matches2, acc_type, header):
@@ -157,8 +172,20 @@ class WordReport(Report):
       plt.savefig(os.path.join(output_directory, f'{output_fig_file}-{at}.{output_fig_format}'), 
                   format=output_fig_format, bbox_inches='tight')
 
-  def write_html(self, output_directory='outputs', output_html_file='word-acc.html'):
-    pass
+  def html_content(self):
+    html = f'<h2>{self.header}</h2>\n'
+    acc_type_map = self.acc_type_map
+    bucketer, matches1, matches2, acc_type, header = self.bucketer, self.matches1, self.matches2, self.acc_type, self.header
+    acc_types = acc_type.split('+')
+    for at in acc_types:
+      if at not in acc_type_map:
+        raise ValueError(f'Unknown accuracy type {at}')
+      aid = acc_type_map[at]
+      caption = f'Word {acc_type} by {bucketer.name()} bucket'
+      table = [[bucketer.name(), 'Sys1', 'Sys2']]
+      table += [[bs, f'{m1[aid]:.4f}', f'{m2[aid]:.4f}'] for bs, m1, m2 in zip(bucketer.bucket_strs, matches1, matches2)]
+      html += html_table(table, caption)
+    return html 
 
 class NgramReport(Report):
   def __init__(self, scorelist, report_length, min_ngram_length, max_ngram_length, matches1, matches2, compare_type, alpha, label_files=None):
@@ -191,8 +218,24 @@ class NgramReport(Report):
   def plot(self, output_directory='outputs', output_fig_file='score', output_fig_format='pdf'):
     pass 
 
-  def write_html(self, output_directory='outputs', output_html_file='score.html'):
-    pass 
+  def html_content(self):
+    report_length = self.report_length
+    html = f'<h2>N-gram Difference Analysis</h2>\n'
+    html += tag_str('p', f'min_ngram_length={self.min_ngram_length}, max_ngram_length={self.max_ngram_length}')
+    html += tag_str('p', f'report_length={report_length}, alpha={self.alpha}, compare_type={self.compare_type}')
+    if self.label_files is not None:
+      html += tag_str('p', self.label_files)
+
+    caption = f'{report_length} n-grams that System 1 had higher {self.compare_type}'
+    table = [['n-gram', self.compare_type, 'Sys1', 'Sys2']]
+    table.extend([[' '.join(k), f'{v:.2f}', self.matches1[k], self.matches2[k]] for k, v in self.scorelist[:report_length]])
+    html += html_table(table, caption)
+
+    caption = f'{report_length} n-grams that System 2 had higher {self.compare_type}'
+    table = [['n-gram', self.compare_type, 'Sys1', 'Sys2']]
+    table.extend([[' '.join(k), f'{v:.2f}', self.matches1[k], self.matches2[k]] for k, v in self.scorelist[:report_length]])
+    html += html_table(table, caption)
+    return html 
 
 class SentenceReport(Report):
   def __init__(self, bucketer=None, bucket_type=None, sys1_stats=None, sys2_stats=None, statistic_type=None, score_measure=None):
@@ -232,5 +275,81 @@ class SentenceReport(Report):
     plt.savefig(os.path.join(output_directory, f'{output_fig_file}.{output_fig_format}'), 
                 format=output_fig_format, bbox_inches='tight')
 
-  def write_html(self, output_directory='outputs', output_html_file='word-acc.html'):
-    pass
+  def html_content(self):
+    bucketer, stats1, stats2, bucket_type, statistic_type, score_measure = self.bucketer, self.sys1_stats, self.sys2_stats, self.bucket_type, self.statistic_type, self.score_measure
+    html = f'<h2>Sentence Bucket Analysis</h2>\n'
+    caption = (f'bucket_type={bucket_type}, statistic_type={statistic_type}, score_measure={score_measure}')
+    table = [[bucket_type, 'Sys1', 'Sys2']]
+    table.extend([[bs, f'{s1:.4f}', f'{s2:.4f}'] for bs, s1, s2 in zip(bucketer.bucket_strs, stats1, stats2)])
+    html += html_table(table, caption)
+    return html 
+
+class SentenceExampleReport(Report):
+  def __init__(self, report_length=None, scorediff_list=None, scorer_name=None, ref=None, out1=None, out2=None):
+    self.report_length = report_length 
+    self.scorediff_list = scorediff_list
+    self.scorer_name = scorer_name
+    self.ref = ref 
+    self.out1 = out1 
+    self.out2 = out2
+
+  def print(self):
+    report_length = self.report_length
+    ref, out1, out2 = self.ref, self.out1, self.out2
+    print(f'--- {report_length} sentences where Sys1>Sys2 at {self.scorer_name}')
+    for bdiff, s1, s2, str1, str2, i in self.scorediff_list[:report_length]:
+      print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
+    print(f'--- {report_length} sentences where Sys2>Sys1 at {self.scorer_name}')
+    for bdiff, s1, s2, str1, str2, i in self.scorediff_list[-report_length:]:
+      print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
+
+
+  def plot(self, output_directory='outputs', output_fig_file='word-acc', output_fig_format='pdf'):
+    pass 
+
+  def html_content(self):
+    report_length = self.report_length 
+    ref, out1, out2 = self.ref, self.out1, self.out2
+    html = f'<h2>Sentence Example Analysis</h2>\n'
+    html += tag_str('h4', f'{report_length} sentences where Sys1>Sys2 at {self.scorer_name}')
+    for bdiff, s1, s2, str1, str2, i in self.scorediff_list[:report_length]:
+      caption = f'sys2-sys1={bdiff:.2f}, sys1={s1:.2f}, sys2={s2:.2f}'
+      table = [['Ref', ' '.join(ref[i])], ['Sys1', ' '.join(out1[i])], ['Sys2', ' '.join(out2[i])]]
+      html += html_table(table, caption)
+
+    html += tag_str('h4', f'{report_length} sentences where Sys2>Sys1 at {self.scorer_name}')
+    for bdiff, s1, s2, str1, str2, i in self.scorediff_list[-report_length:]:
+      caption = f'sys2-sys1={bdiff:.2f}, sys1={s1:.2f}, sys2={s2:.2f}'
+      table = [['Ref', ' '.join(ref[i])], ['Sys1', ' '.join(out1[i])], ['Sys2', ' '.join(out2[i])]]
+      html += html_table(table, caption)
+    return html 
+
+
+def tag_str(tag, str, new_line=''):
+  return f'<{tag}>{new_line} {str} {new_line}</{tag}>'
+
+def html_table(table, caption=None):
+  html = '<table border="1">\n'
+  if caption is not None:
+    html += tag_str('caption', caption)
+  for row in table:
+    table_row = '\n  '.join(tag_str('th', ri) for ri in row)
+    html += tag_str('tr', table_row)
+  html += '\n</table>\n <br>'
+  return html
+
+def generate_html_report(reports, output_html_file, output_directory):
+  content = []
+  for r in reports:
+    content.append(r.html_content())
+  content = "\n".join(content)
+  
+  if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+  output_file = os.path.join(output_directory, output_html_file)
+  with open(output_file, 'w') as f:
+    message = f'<html>\n<h1>compare_mt.py Analysis Report</h1>\n<body>\n {content} \n</body>\n</html>' 
+    f.write(message)
+
+def generate_latex_report(reports, output_latex_file, output_directory):
+  pass 
