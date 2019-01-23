@@ -33,16 +33,26 @@ def generate_score_report(ref, out1, out2,
   scorer = scorers.create_scorer_from_profile(score_type)
   score1, str1 = scorer.score_corpus(ref,out1)
   score2, str2 = scorer.score_corpus(ref,out2)
-  stats = {'scorer_name': scorer.name(), 'score1': score1, 'str1': str1, 'score2': score2, 'str2': str2}
 
   if int(bootstrap) > 0:
     # print('Significance test. This may take a while.')
     wins, sys1_stats, sys2_stats = sign_utils.eval_with_paired_bootstrap(ref, out1, out2, score_type=score_type, num_samples=int(bootstrap))
-    stats = {**stats, 'wins': wins, 'sys1_stats': sys1_stats, 'sys2_stats': sys2_stats}
+  else:
+    wins = sys1_stats = sys2_stats = None
 
-  reporter = reporters.create_reporter_from_profile(profile='score', stats=stats)
-  reporter.print()
-  reporter.plot(fig_name=f'Score-{score_type}-{bootstrap}.pdf')
+  reporter = reporters.create_reporter_from_profile(profile='score', 
+                                                    scorer_name=scorer.name(),
+                                                    score1=score1,
+                                                    str1=str1,
+                                                    score2=score2, 
+                                                    str2=str2,
+                                                    wins=wins,
+                                                    sys1_stats=sys1_stats,
+                                                    sys2_stats=sys2_stats)
+  reporter.generate_report(output_fig_file=f'score-{score_type}-{bootstrap}',
+                           output_fig_format='pdf', 
+                           output_html_file=f'score-{score_type}-{bootstrap}.html', 
+                           output_directory='outputs')
 
 def generate_word_accuracy_report(ref, out1, out2,
                           acc_type='fmeas', bucket_type='freq',
@@ -78,10 +88,18 @@ def generate_word_accuracy_report(ref, out1, out2,
   matches1 = bucketer.calc_bucketed_matches(ref, out1, ref_labels=ref_labels, out_labels=out1_labels)
   matches2 = bucketer.calc_bucketed_matches(ref, out2, ref_labels=ref_labels, out_labels=out2_labels)
   
-  stats = {'bucketer': bucketer, 'matches1': matches1, 'matches2': matches2, 'acc_type': acc_type, 'header': "Word Accuracy Analysis"}
-  reporter = reporters.create_reporter_from_profile(profile='word', stats=stats)
-  reporter.print()
-  reporter.plot()
+  #stats = {'bucketer': bucketer, 'matches1': matches1, 'matches2': matches2, 'acc_type': acc_type, 'header': "Word Accuracy Analysis"}
+  reporter = reporters.create_reporter_from_profile(profile='word',
+                                                    bucketer=bucketer, 
+                                                    matches1=matches1, 
+                                                    matches2=matches2,
+                                                    acc_type=acc_type,
+                                                    header="Word Accuracy Analysis")
+
+  reporter.generate_report(output_fig_file=f'word-acc',
+                           output_fig_format='pdf', 
+                           output_html_file=f'word-acc-{acc_type}.html', 
+                           output_directory='outputs')
   
 
 def generate_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, out2_align,
@@ -119,10 +137,17 @@ def generate_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_alig
   matches1 = bucketer.calc_source_bucketed_matches(src, ref, out1, ref_align, out1_align, src_labels=src_labels)
   matches2 = bucketer.calc_source_bucketed_matches(src, ref, out2, ref_align, out2_align, src_labels=src_labels)
 
-  stats = {'bucketer': bucketer, 'matches1': matches1, 'matches2': matches2, 'acc_type': acc_type, 'header': "Source Word Analysis"}
-  reporter = reporters.create_reporter_from_profile(profile='word', stats=stats)
-  reporter.print()
-  reporter.plot()
+  reporter = reporters.create_reporter_from_profile(profile='word',
+                                                    bucketer=bucketer, 
+                                                    matches1=matches1, 
+                                                    matches2=matches2,
+                                                    acc_type=acc_type,
+                                                    header="Source Word Accuracy Analysis")
+
+  reporter.generate_report(output_fig_file=f'src-word-acc',
+                           output_fig_format='pdf', 
+                           output_html_file=f'src-word-acc-{acc_type}.html', 
+                           output_directory='outputs')
 
 def generate_sentence_bucketed_report(ref, out1, out2,
                                    bucket_type='score', statistic_type='count',
@@ -156,17 +181,25 @@ def generate_sentence_bucketed_report(ref, out1, out2,
            'bucket_type': bucket_type, 
            'statistic_type': statistic_type, 
            'score_measure': score_measure}
-  reporter = reporters.create_reporter_from_profile(profile='sentence', stats=stats)
-  reporter.print()
-  reporter.plot()
+  reporter = reporters.create_reporter_from_profile(profile='sentence', 
+                                                    bucketer=bucketer, bucket_type=bucket_type,
+                                                    sys1_stats=stats1, sys2_stats=stats2,
+                                                    statistic_type=statistic_type, 
+                                                    score_measure=score_measure)
+
+
+  reporter.generate_report(output_fig_file=f'sentence-{statistic_type}-{score_measure}',
+                           output_fig_format='pdf', 
+                           output_html_file=f'sentence-{statistic_type}-{score_measure}.html', 
+                           output_directory='outputs')
   
 
-def print_ngram_report(ref, out1, out2,
+def generate_ngram_report(ref, out1, out2,
                        min_ngram_length=1, max_ngram_length=4,
                        report_length=50, alpha=1.0, compare_type='match',
                        ref_labels=None, out1_labels=None, out2_labels=None):
   """
-  Print a report comparing aggregate n-gram statistics
+  Generate a report comparing aggregate n-gram statistics in both plain text and graphs
 
   Args:
     ref: Tokens from the reference
@@ -184,11 +217,10 @@ def print_ngram_report(ref, out1, out2,
     out1_labels: output 1 labels. must be specified if ref_labels is specified.
     out2_labels: output 2 labels. must be specified if ref_labels is specified.
   """
-  print(f'--- min_ngram_length={min_ngram_length}, max_ngram_length={max_ngram_length}')
-  print(f'    report_length={report_length}, alpha={alpha}, compare_type={compare_type}')
   if type(ref_labels) == str:
-    print(f'    ref_labels={ref_labels}, out1_labels={out1_labels}, out2_labels={out2_labels}')
-  print()
+    label_files = (f'    ref_labels={ref_labels}, out1_labels={out1_labels}, out2_labels={out2_labels}')
+  else:
+    label_files = None
 
   ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
   out1_labels = corpus_utils.load_tokens(out1_labels) if type(out1_labels) == str else out1_labels
@@ -207,19 +239,23 @@ def print_ngram_report(ref, out1, out2,
     raise ValueError(f'Illegal compare_type "{compare_type}"')
   scorelist = sorted(scores.items(), key=operator.itemgetter(1), reverse=True)
 
-  print(f'--- {report_length} n-grams that System 1 had higher {compare_type}')
-  for k, v in scorelist[:report_length]:
-    print('{}\t{} (sys1={}, sys2={})'.format(' '.join(k), v, match1[k], match2[k]))
-  print(f'\n--- {report_length} n-grams that System 2 had higher {compare_type}')
-  for k, v in reversed(scorelist[-report_length:]):
-    print('{}\t{} (sys1={}, sys2={})'.format(' '.join(k), v, match1[k], match2[k]))
-  print()
+  reporter = reporters.create_reporter_from_profile('ngram',
+                                                    scorelist=scorelist, report_length=report_length, 
+                                                    min_ngram_length=min_ngram_length, 
+                                                    max_ngram_length=max_ngram_length,
+                                                    matches1=match1, matches2=match2, 
+                                                    compare_type=compare_type, alpha=alpha,
+                                                    label_files=label_files)
+  reporter.generate_report(output_fig_file=f'ngram-min{min_ngram_length}-max{max_ngram_length}-{compare_type}',
+                           output_fig_format='pdf', 
+                           output_html_file=f'ngram-min{min_ngram_length}-max{max_ngram_length}-{compare_type}.html', 
+                           output_directory='outputs')
 
-def print_sentence_examples(ref, out1, out2,
+def generate_sentence_examples(ref, out1, out2,
                             score_type='sentbleu',
                             report_length=10):
   """
-  Print examples of sentences that satisfy some criterion, usually score of one system better
+  Generate examples of sentences that satisfy some criterion, usually score of one system better
 
   Args:
     ref: Tokens from the reference
@@ -243,8 +279,6 @@ def print_sentence_examples(ref, out1, out2,
   for bdiff, s1, s2, str1, str2, i in scorediff_list[-report_length:]:
     print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
 
-def print_header(header):
-  print(f'********************** {header} ************************')
 
 if __name__ == '__main__':
 
@@ -330,16 +364,15 @@ if __name__ == '__main__':
 
   # n-gram difference analysis
   if args.compare_ngrams:
-    print_header('N-gram Difference Analysis')
+    
     for profile in args.compare_ngrams:
       kargs = parse_profile(profile)
-      print_ngram_report(ref, out1, out2, **kargs)
-      print()
+      generate_ngram_report(ref, out1, out2, **kargs)
+      
 
   # Sentence example analysis
   if args.compare_sentence_examples:
-    print_header('Sentence Example Analysis')
+    #print_header('Sentence Example Analysis')
     for profile in args.compare_sentence_examples:
       kargs = parse_profile(profile)
-      print_sentence_examples(ref, out1, out2, **kargs)
-      print()
+      generate_sentence_examples(ref, out1, out2, **kargs)
