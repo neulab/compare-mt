@@ -1,0 +1,600 @@
+<html>
+<h1>compare_mt.py Analysis Report</h1>
+<body>
+ <h2>Aggregate Scores</h2>
+<table border="1">
+<caption> BLEU </caption><tr> <th> Sys1 </th>
+  <th> Sys2 </th> </tr><tr> <th> 0.2243  </th>
+  <th> 0.2403 </th> </tr>
+</table>
+ <br><table border="1">
+<caption> Significance Test </caption><tr> <th> Metric </th>
+  <th> Sys1 </th>
+  <th> Sys2 </th> </tr><tr> <th> Win ratio </th>
+  <th> 0.000 </th>
+  <th> 1.000 </th> </tr><tr> <th> Mean </th>
+  <th> 0.223 </th>
+  <th> 0.240 </th> </tr><tr> <th> Median </th>
+  <th> 0.223 </th>
+  <th> 0.241 </th> </tr><tr> <th> 95% confidence interval </th>
+  <th> [0.216,0.227] </th>
+  <th> [0.233,0.246] </th> </tr>
+</table>
+ <br>
+<h2>Word Accuracy Analysis</h2>
+<table border="1">
+<caption> Word fmeas by frequency bucket </caption><tr> <th> frequency </th>
+  <th> Sys1 </th>
+  <th> Sys2 </th> </tr><tr> <th> x < 1 </th>
+  <th> 0.0000 </th>
+  <th> 0.0000 </th> </tr><tr> <th> x = 1 </th>
+  <th> 0.3680 </th>
+  <th> 0.2548 </th> </tr><tr> <th> x = 2 </th>
+  <th> 0.4481 </th>
+  <th> 0.3506 </th> </tr><tr> <th> x = 3 </th>
+  <th> 0.5122 </th>
+  <th> 0.3941 </th> </tr><tr> <th> x = 4 </th>
+  <th> 0.5155 </th>
+  <th> 0.4403 </th> </tr><tr> <th> 5 <= x < 10 </th>
+  <th> 0.5574 </th>
+  <th> 0.5030 </th> </tr><tr> <th> 10 <= x < 100 </th>
+  <th> 0.5543 </th>
+  <th> 0.5326 </th> </tr><tr> <th> 100 <= x < 1000 </th>
+  <th> 0.6161 </th>
+  <th> 0.6271 </th> </tr><tr> <th> 1000 < x </th>
+  <th> 0.7448 </th>
+  <th> 0.7585 </th> </tr>
+</table>
+ <br>
+<h2>Source Word Accuracy Analysis</h2>
+<table border="1">
+<caption> Word fmeas by frequency bucket </caption><tr> <th> frequency </th>
+  <th> Sys1 </th>
+  <th> Sys2 </th> </tr><tr> <th> x < 1 </th>
+  <th> 0.0000 </th>
+  <th> 0.0000 </th> </tr><tr> <th> x = 1 </th>
+  <th> 0.4460 </th>
+  <th> 0.4100 </th> </tr><tr> <th> x = 2 </th>
+  <th> 0.5981 </th>
+  <th> 0.5658 </th> </tr><tr> <th> x = 3 </th>
+  <th> 0.5887 </th>
+  <th> 0.5652 </th> </tr><tr> <th> x = 4 </th>
+  <th> 0.6518 </th>
+  <th> 0.6298 </th> </tr><tr> <th> 5 <= x < 10 </th>
+  <th> 0.6447 </th>
+  <th> 0.6380 </th> </tr><tr> <th> 10 <= x < 100 </th>
+  <th> 0.6407 </th>
+  <th> 0.6508 </th> </tr><tr> <th> 100 <= x < 1000 </th>
+  <th> 0.6000 </th>
+  <th> 0.6058 </th> </tr><tr> <th> 1000 < x </th>
+  <th> 0.0000 </th>
+  <th> 0.0000 </th> </tr>
+</table>
+ <br>
+<h2>Sentence Bucket Analysis</h2>
+<table border="1">
+<caption> bucket_type=score, statistic_type=count, score_measure=sentbleu </caption><tr> <th> score </th>
+  <th> Sys1 </th>
+  <th> Sys2 </th> </tr><tr> <th> x < 0.1 </th>
+  <th> 128.0000 </th>
+  <th> 116.0000 </th> </tr><tr> <th> 0.1 <= x < 0.2 </th>
+  <th> 832.0000 </th>
+  <th> 798.0000 </th> </tr><tr> <th> 0.2 <= x < 0.3 </th>
+  <th> 651.0000 </th>
+  <th> 604.0000 </th> </tr><tr> <th> 0.3 <= x < 0.4 </th>
+  <th> 391.0000 </th>
+  <th> 396.0000 </th> </tr><tr> <th> 0.4 <= x < 0.5 </th>
+  <th> 191.0000 </th>
+  <th> 212.0000 </th> </tr><tr> <th> 0.5 <= x < 0.6 </th>
+  <th> 106.0000 </th>
+  <th> 129.0000 </th> </tr><tr> <th> 0.6 <= x < 0.7 </th>
+  <th> 52.0000 </th>
+  <th> 63.0000 </th> </tr><tr> <th> 0.7 <= x < 0.8 </th>
+  <th> 32.0000 </th>
+  <th> 47.0000 </th> </tr><tr> <th> 0.8 <= x < 0.9 </th>
+  <th> 31.0000 </th>
+  <th> 36.0000 </th> </tr><tr> <th> 0.9 < x </th>
+  <th> 31.0000 </th>
+  <th> 44.0000 </th> </tr>
+</table>
+ <br>
+<h2>Sentence Bucket Analysis</h2>
+<table border="1">
+<caption> bucket_type=lengthdiff, statistic_type=count, score_measure=bleu </caption><tr> <th> lengthdiff </th>
+  <th> Sys1 </th>
+  <th> Sys2 </th> </tr><tr> <th> x < -20 </th>
+  <th> 0.0000 </th>
+  <th> 0.0000 </th> </tr><tr> <th> -20 <= x < -10 </th>
+  <th> 8.0000 </th>
+  <th> 12.0000 </th> </tr><tr> <th> -10 <= x < -5 </th>
+  <th> 66.0000 </th>
+  <th> 67.0000 </th> </tr><tr> <th> x = -5 </th>
+  <th> 41.0000 </th>
+  <th> 44.0000 </th> </tr><tr> <th> x = -4 </th>
+  <th> 73.0000 </th>
+  <th> 58.0000 </th> </tr><tr> <th> x = -3 </th>
+  <th> 115.0000 </th>
+  <th> 97.0000 </th> </tr><tr> <th> x = -2 </th>
+  <th> 173.0000 </th>
+  <th> 187.0000 </th> </tr><tr> <th> x = -1 </th>
+  <th> 263.0000 </th>
+  <th> 256.0000 </th> </tr><tr> <th> x = 0 </th>
+  <th> 394.0000 </th>
+  <th> 423.0000 </th> </tr><tr> <th> x = 1 </th>
+  <th> 330.0000 </th>
+  <th> 344.0000 </th> </tr><tr> <th> x = 2 </th>
+  <th> 296.0000 </th>
+  <th> 275.0000 </th> </tr><tr> <th> x = 3 </th>
+  <th> 219.0000 </th>
+  <th> 194.0000 </th> </tr><tr> <th> x = 4 </th>
+  <th> 127.0000 </th>
+  <th> 153.0000 </th> </tr><tr> <th> x = 5 </th>
+  <th> 107.0000 </th>
+  <th> 93.0000 </th> </tr><tr> <th> 6 <= x < 11 </th>
+  <th> 194.0000 </th>
+  <th> 182.0000 </th> </tr><tr> <th> 11 <= x < 21 </th>
+  <th> 39.0000 </th>
+  <th> 51.0000 </th> </tr><tr> <th> 21 < x </th>
+  <th> 0.0000 </th>
+  <th> 9.0000 </th> </tr>
+</table>
+ <br>
+<h2>Sentence Bucket Analysis</h2>
+<table border="1">
+<caption> bucket_type=length, statistic_type=score, score_measure=bleu </caption><tr> <th> length </th>
+  <th> Sys1 </th>
+  <th> Sys2 </th> </tr><tr> <th> x < 10 </th>
+  <th> 0.2231 </th>
+  <th> 0.2532 </th> </tr><tr> <th> 10 <= x < 20 </th>
+  <th> 0.2098 </th>
+  <th> 0.2467 </th> </tr><tr> <th> 20 <= x < 30 </th>
+  <th> 0.2316 </th>
+  <th> 0.2379 </th> </tr><tr> <th> 30 <= x < 40 </th>
+  <th> 0.2175 </th>
+  <th> 0.2318 </th> </tr><tr> <th> 40 <= x < 50 </th>
+  <th> 0.2219 </th>
+  <th> 0.2190 </th> </tr><tr> <th> 50 <= x < 60 </th>
+  <th> 0.2331 </th>
+  <th> 0.2554 </th> </tr><tr> <th> 60 < x </th>
+  <th> 0.2726 </th>
+  <th> 0.2470 </th> </tr>
+</table>
+ <br>
+<h2>N-gram Difference Analysis</h2>
+<p> min_ngram_length=1, max_ngram_length=4 </p><p> report_length=50, alpha=1.0, compare_type=match </p><p>     ref_labels=example/ted.ref.eng, out1_labels=example/ted.sys1.eng, out2_labels=example/ted.sys2.eng </p><table border="1">
+<caption> 50 n-grams that System 1 had higher match </caption><tr> <th> n-gram </th>
+  <th> match </th>
+  <th> Sys1 </th>
+  <th> Sys2 </th> </tr><tr> <th> phantom </th>
+  <th> 0.95 </th>
+  <th> 34 </th>
+  <th> 1 </th> </tr><tr> <th> Amy </th>
+  <th> 0.91 </th>
+  <th> 9 </th>
+  <th> 0 </th> </tr><tr> <th> , who </th>
+  <th> 0.90 </th>
+  <th> 8 </th>
+  <th> 0 </th> </tr><tr> <th> my mother </th>
+  <th> 0.89 </th>
+  <th> 7 </th>
+  <th> 0 </th> </tr><tr> <th> Avelile </th>
+  <th> 0.86 </th>
+  <th> 5 </th>
+  <th> 0 </th> </tr><tr> <th> something else happened </th>
+  <th> 0.86 </th>
+  <th> 5 </th>
+  <th> 0 </th> </tr><tr> <th> else happened </th>
+  <th> 0.86 </th>
+  <th> 5 </th>
+  <th> 0 </th> </tr><tr> <th> my mother . </th>
+  <th> 0.86 </th>
+  <th> 5 </th>
+  <th> 0 </th> </tr><tr> <th> And so </th>
+  <th> 0.86 </th>
+  <th> 5 </th>
+  <th> 0 </th> </tr><tr> <th> so on </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> rightness </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> mother . " </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> centers </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> viewer </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> Center </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> the phantom </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> mother . " " </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> fusiform </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> my mother . " </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> file </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> the fusiform </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> fine </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> Oz </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> and so on </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> instead </th>
+  <th> 0.82 </th>
+  <th> 8 </th>
+  <th> 1 </th> </tr><tr> <th> exchange </th>
+  <th> 0.81 </th>
+  <th> 12 </th>
+  <th> 2 </th> </tr><tr> <th> Yeah </th>
+  <th> 0.80 </th>
+  <th> 7 </th>
+  <th> 1 </th> </tr><tr> <th> like my mother </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> Galton </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> fishermen </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> phantom limbs </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> abuse of women </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> the fusiform gyrus </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> . The </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> 10 billion pixels </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> creativity can </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> of women </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> stroke </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> fun </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> 46664 </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> billion pixels </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> fusiform gyrus </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> Israel </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> WikiLeaks </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> lose the ability </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> Beth </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> gyrus </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> so on . </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> . And </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> lose the ability to </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr>
+</table>
+ <br><table border="1">
+<caption> 50 n-grams that System 2 had higher match </caption><tr> <th> n-gram </th>
+  <th> match </th>
+  <th> Sys1 </th>
+  <th> Sys2 </th> </tr><tr> <th> phantom </th>
+  <th> 0.95 </th>
+  <th> 34 </th>
+  <th> 1 </th> </tr><tr> <th> Amy </th>
+  <th> 0.91 </th>
+  <th> 9 </th>
+  <th> 0 </th> </tr><tr> <th> , who </th>
+  <th> 0.90 </th>
+  <th> 8 </th>
+  <th> 0 </th> </tr><tr> <th> my mother </th>
+  <th> 0.89 </th>
+  <th> 7 </th>
+  <th> 0 </th> </tr><tr> <th> Avelile </th>
+  <th> 0.86 </th>
+  <th> 5 </th>
+  <th> 0 </th> </tr><tr> <th> something else happened </th>
+  <th> 0.86 </th>
+  <th> 5 </th>
+  <th> 0 </th> </tr><tr> <th> else happened </th>
+  <th> 0.86 </th>
+  <th> 5 </th>
+  <th> 0 </th> </tr><tr> <th> my mother . </th>
+  <th> 0.86 </th>
+  <th> 5 </th>
+  <th> 0 </th> </tr><tr> <th> And so </th>
+  <th> 0.86 </th>
+  <th> 5 </th>
+  <th> 0 </th> </tr><tr> <th> so on </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> rightness </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> mother . " </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> centers </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> viewer </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> Center </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> the phantom </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> mother . " " </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> fusiform </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> my mother . " </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> file </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> the fusiform </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> fine </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> Oz </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> and so on </th>
+  <th> 0.83 </th>
+  <th> 4 </th>
+  <th> 0 </th> </tr><tr> <th> instead </th>
+  <th> 0.82 </th>
+  <th> 8 </th>
+  <th> 1 </th> </tr><tr> <th> exchange </th>
+  <th> 0.81 </th>
+  <th> 12 </th>
+  <th> 2 </th> </tr><tr> <th> Yeah </th>
+  <th> 0.80 </th>
+  <th> 7 </th>
+  <th> 1 </th> </tr><tr> <th> like my mother </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> Galton </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> fishermen </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> phantom limbs </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> abuse of women </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> the fusiform gyrus </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> . The </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> 10 billion pixels </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> creativity can </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> of women </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> stroke </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> fun </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> 46664 </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> billion pixels </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> fusiform gyrus </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> Israel </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> WikiLeaks </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> lose the ability </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> Beth </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> gyrus </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> so on . </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> . And </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr><tr> <th> lose the ability to </th>
+  <th> 0.80 </th>
+  <th> 3 </th>
+  <th> 0 </th> </tr>
+</table>
+ <br>
+<h2>Sentence Example Analysis</h2>
+<h4> 10 sentences where Sys1>Sys2 at sentence-level BLEU </h4><table border="1">
+<caption> sys2-sys1=-0.81, sys1=1.00, sys2=0.19 </caption><tr> <th> Ref </th>
+  <th> That 's exciting in itself . </th> </tr><tr> <th> Sys1 </th>
+  <th> That 's exciting in itself . </th> </tr><tr> <th> Sys2 </th>
+  <th> This is a thrill of self . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=-0.80, sys1=1.00, sys2=0.20 </caption><tr> <th> Ref </th>
+  <th> And they lived together happily ever after . </th> </tr><tr> <th> Sys1 </th>
+  <th> And they lived together happily ever after . </th> </tr><tr> <th> Sys2 </th>
+  <th> And he lived with happily to death . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=-0.59, sys1=1.00, sys2=0.41 </caption><tr> <th> Ref </th>
+  <th> Beth Israel 's in Boston . </th> </tr><tr> <th> Sys1 </th>
+  <th> Beth Israel 's in Boston . </th> </tr><tr> <th> Sys2 </th>
+  <th> Beat Isaill is in Boston . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=-0.58, sys1=1.00, sys2=0.42 </caption><tr> <th> Ref </th>
+  <th> ( Applause ) Last question , Julian . </th> </tr><tr> <th> Sys1 </th>
+  <th> ( Applause ) Last question , Julian . </th> </tr><tr> <th> Sys2 </th>
+  <th> ( Applause ) The last question , Julian . Julan . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=-0.56, sys1=0.74, sys2=0.18 </caption><tr> <th> Ref </th>
+  <th> We realized that even rich kids from the suburbs really want DryBath . ( Laughter ) At least once a week . </th> </tr><tr> <th> Sys1 </th>
+  <th> And we found that even rich kids a suburbs really want DryBath . ( Laughter ) At least once a week . </th> </tr><tr> <th> Sys2 </th>
+  <th> We 've learned that the rich kids have actually wanted DryBothth , ( Laughter ) at the time for a week . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=-0.52, sys1=1.00, sys2=0.48 </caption><tr> <th> Ref </th>
+  <th> JA : I 'm not sure about the incident . </th> </tr><tr> <th> Sys1 </th>
+  <th> JA : I 'm not sure about the incident . </th> </tr><tr> <th> Sys2 </th>
+  <th> J : I 'm not sure of you . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=-0.51, sys1=0.63, sys2=0.12 </caption><tr> <th> Ref </th>
+  <th> This was described beautifully in a book in 2006 by Michael Porter and Elizabeth Teisberg . </th> </tr><tr> <th> Sys1 </th>
+  <th> This was described beautifully in 2006 in a book that wrote Michael Porter and Elizabeth Teisberg . </th> </tr><tr> <th> Sys2 </th>
+  <th> This was originally gorgeous in 2006 in 2006 in 2006 , and they wrote Michael Porrter and Edzabet Tode . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=-0.49, sys1=1.00, sys2=0.51 </caption><tr> <th> Ref </th>
+  <th> Why is that ? </th> </tr><tr> <th> Sys1 </th>
+  <th> Why is that ? </th> </tr><tr> <th> Sys2 </th>
+  <th> Why is this ? </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=-0.47, sys1=0.73, sys2=0.25 </caption><tr> <th> Ref </th>
+  <th> I don 't literally mean 24 hours , seven days a week . </th> </tr><tr> <th> Sys1 </th>
+  <th> I don 't mean literally 24 hours , seven days a week . </th> </tr><tr> <th> Sys2 </th>
+  <th> I don 't mean literally 24 hours in the week . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=-0.46, sys1=1.00, sys2=0.54 </caption><tr> <th> Ref </th>
+  <th> The differences were dramatic . </th> </tr><tr> <th> Sys1 </th>
+  <th> The differences were dramatic . </th> </tr><tr> <th> Sys2 </th>
+  <th> The variations were dramatic . </th> </tr>
+</table>
+ <br><h4> 10 sentences where Sys2>Sys1 at sentence-level BLEU </h4><table border="1">
+<caption> sys2-sys1=0.57, sys1=0.16, sys2=0.73 </caption><tr> <th> Ref </th>
+  <th> Tiny tweaks can lead to big changes . </th> </tr><tr> <th> Sys1 </th>
+  <th> Now , this idea of marginal raisestas can lead to a big change to happen . </th> </tr><tr> <th> Sys2 </th>
+  <th> Facferences can lead to big changes . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=0.59, sys1=0.41, sys2=1.00 </caption><tr> <th> Ref </th>
+  <th> So here 's a video . </th> </tr><tr> <th> Sys1 </th>
+  <th> So here 's the video . " </th> </tr><tr> <th> Sys2 </th>
+  <th> So here 's a video . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=0.59, sys1=0.41, sys2=1.00 </caption><tr> <th> Ref </th>
+  <th> It 's not the numbers . </th> </tr><tr> <th> Sys1 </th>
+  <th> It 's not about those numbers . </th> </tr><tr> <th> Sys2 </th>
+  <th> It 's not the numbers . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=0.60, sys1=0.15, sys2=0.75 </caption><tr> <th> Ref </th>
+  <th> So here I 'm going to show you two tandem clips . </th> </tr><tr> <th> Sys1 </th>
+  <th> Here you 're going to two footage . </th> </tr><tr> <th> Sys2 </th>
+  <th> So here I 'm going to show you two footage . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=0.61, sys1=0.39, sys2=1.00 </caption><tr> <th> Ref </th>
+  <th> What is this ? </th> </tr><tr> <th> Sys1 </th>
+  <th> " What is that ? </th> </tr><tr> <th> Sys2 </th>
+  <th> What is this ? </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=0.62, sys1=0.38, sys2=1.00 </caption><tr> <th> Ref </th>
+  <th> ( Applause ) That 's true . </th> </tr><tr> <th> Sys1 </th>
+  <th> ( Applause ) It 's so . </th> </tr><tr> <th> Sys2 </th>
+  <th> ( Applause ) That 's true . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=0.64, sys1=0.36, sys2=1.00 </caption><tr> <th> Ref </th>
+  <th> Light is good . </th> </tr><tr> <th> Sys1 </th>
+  <th> The light 's good . </th> </tr><tr> <th> Sys2 </th>
+  <th> Light is good . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=0.65, sys1=0.35, sys2=1.00 </caption><tr> <th> Ref </th>
+  <th> And what I 'm talking about is this . </th> </tr><tr> <th> Sys1 </th>
+  <th> And that 's what I 'm saying is this . </th> </tr><tr> <th> Sys2 </th>
+  <th> And what I 'm talking about is this . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=0.69, sys1=0.31, sys2=1.00 </caption><tr> <th> Ref </th>
+  <th> They 're just learning how to count . </th> </tr><tr> <th> Sys1 </th>
+  <th> Meanwhile just teach to count . </th> </tr><tr> <th> Sys2 </th>
+  <th> They 're just learning how to count . </th> </tr>
+</table>
+ <br><table border="1">
+<caption> sys2-sys1=0.69, sys1=0.31, sys2=1.00 </caption><tr> <th> Ref </th>
+  <th> Boy : That 's why . </th> </tr><tr> <th> Sys1 </th>
+  <th> Boy : So . </th> </tr><tr> <th> Sys2 </th>
+  <th> Boy : That 's why . </th> </tr>
+</table>
+ <br> 
+</body>
+</html>
