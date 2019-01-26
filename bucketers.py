@@ -231,6 +231,7 @@ class FreqWordBucketer(WordBucketer):
     if not freq_counts:
       freq_counts = defaultdict(lambda: 0)
       if freq_count_file != None:
+        print(f'Reading frequency from "{freq_count_file}"')
         with open(freq_count_file, "r") as f:
           for line in f:
             word, freq = line.strip().split('\t')
@@ -239,6 +240,7 @@ class FreqWordBucketer(WordBucketer):
             else:
               freq_counts[word] = freq
       elif freq_corpus_file:
+        print(f'Reading frequency from "{freq_corpus_file}"')
         for words in corpus_utils.iterate_tokens(freq_corpus_file):
           for word in words:
             if self.case_insensitive:
@@ -246,6 +248,7 @@ class FreqWordBucketer(WordBucketer):
             else:
               freq_counts[word] += 1
       elif freq_data:
+        print('Reading frequency from the reference')
         for words in freq_data:
           for word in words:
             if self.case_insensitive:
