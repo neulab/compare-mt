@@ -1,6 +1,23 @@
 from collections import defaultdict
 import itertools
 
+def sent_ngrams_list(words, n):
+  """
+  Create a list with all the n-grams in a sentence
+
+  Arguments:
+    words: A list of strings representing a sentence
+    n: The ngram length to consider
+
+  Returns:
+    A list of n-grams in the sentence
+  """
+  word_ngram = []
+  for i in range(len(words) - n + 1):
+    ngram = tuple(words[i:i + n])
+    word_ngram.append(ngram)
+  return word_ngram
+
 def iterate_sent_ngrams(words, labels=None, min_length=1, max_length=4):
   """
   Create a list with all the n-grams in a sentence
@@ -8,7 +25,7 @@ def iterate_sent_ngrams(words, labels=None, min_length=1, max_length=4):
   Arguments:
     words: A list of strings representing a sentence
     labels: A list of labels on each word in the sentence, optional (will use `words` if not specified)
-    max_length: The minimum ngram length to consider
+    min_length: The minimum ngram length to consider
     max_length: The maximum ngram length to consider
 
   Returns:

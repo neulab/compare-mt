@@ -16,16 +16,21 @@ import nltk
 
 def sample_and_compare(gold, sys1, sys2, sample_ratio, 
                        ids, wins, sys1_scores, sys2_scores, 
-                       scorer):
+                       scorer,
+                       cache_stats1=None, cache_stats2=None):
   # Subsample the gold and system outputs
   np.random.shuffle(ids)
   reduced_ids = ids[:int(len(ids)*sample_ratio)]
-  reduced_gold = [gold[i] for i in reduced_ids]
-  reduced_sys1 = [sys1[i] for i in reduced_ids]
-  reduced_sys2 = [sys2[i] for i in reduced_ids]
   # Calculate accuracy on the reduced sample and save stats
-  sys1_score, _ = scorer.score_corpus(reduced_gold, reduced_sys1)
-  sys2_score, _ = scorer.score_corpus(reduced_gold, reduced_sys2)
+  if cache_stats1 and cache_stats2:
+    sys1_score, _ = scorer.score_cached_corpus(reduced_ids, cache_stats1)
+    sys2_score, _ = scorer.score_cached_corpus(reduced_ids, cache_stats2)
+  else:
+    reduced_gold = [gold[i] for i in reduced_ids]
+    reduced_sys1 = [sys1[i] for i in reduced_ids]
+    reduced_sys2 = [sys2[i] for i in reduced_ids]
+    sys1_score, _ = scorer.score_corpus(reduced_gold, reduced_sys1)
+    sys2_score, _ = scorer.score_corpus(reduced_gold, reduced_sys2)
   if sys1_score > sys2_score:
     wins[0] += 1
   elif sys1_score < sys2_score:
@@ -36,37 +41,38 @@ def sample_and_compare(gold, sys1, sys2, sample_ratio,
   sys2_scores.append(sys2_score)
 
 def eval_with_paired_bootstrap(gold, sys1, sys2,
-                               num_samples=1000, sample_ratio=0.5,
-                               score_type='bleu'):
-  ''' Evaluate with paired boostrap
+                               scorer,
+                               num_samples=1000, sample_ratio=0.5):
+  """
+  Evaluate with paired boostrap.
   This compares two systems, performing a signifiance tests with
   paired bootstrap resampling to compare the accuracy of the two systems.
   
-  :param gold: The correct labels
-  :param sys1: The output of system 1
-  :param sys2: The output of system 2
-  :param num_samples: The number of bootstrap samples to take
-  :param sample_ratio: The ratio of samples to take every time
-  :param eval_type: The type of evaluation to do (acc, bleu)
-  '''
-  assert(len(gold) == len(sys1))
-  assert(len(gold) == len(sys2))
+  Args:
+    gold: The correct labels
+    sys1: The output of system 1
+    sys2: The output of system 2
+    scorer: The scorer
+    num_samples: The number of bootstrap samples to take
+    sample_ratio: The ratio of samples to take every time
+
+  Returns:
+    A tuple containing the win ratios, statistics for system1, and statistics for system2
+  """
+  if len(gold) != len(sys1) or len(gold) != len(sys2):
+    raise ValueError("Reference and system outputs should have the same size.")
   
   sys1_scores = []
   sys2_scores = []
   wins = [0, 0, 0]
   n = len(gold)
   ids = list(range(n))
-  scorer = scorers.create_scorer_from_profile(score_type)
 
-  try:
-    from tqdm import tqdm
-    for _ in tqdm(range(num_samples)):
-      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, scorer)
-  except ImportError:
-    print('Install tqdm to see progress meter!')
-    for _ in range(num_samples):
-      sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, scorer)
+  cache_stats1 = scorer.cache_stats(gold, sys1)
+  cache_stats2 = scorer.cache_stats(gold, sys2)
+
+  for _ in range(num_samples):
+    sample_and_compare(gold, sys1, sys2, sample_ratio, ids, wins, sys1_scores, sys2_scores, scorer, cache_stats1=cache_stats1, cache_stats2=cache_stats2)
 
   # Print win stats
   wins = [x/float(num_samples) for x in wins]
