@@ -3,14 +3,14 @@ import argparse
 import operator
 
 # In-package imports
-import ngram_utils
-import stat_utils
-import corpus_utils
-import sign_utils
-import scorers
-import bucketers
-import arg_utils
-import print_utils
+from . import ngram_utils
+from . import stat_utils
+from . import corpus_utils
+from . import sign_utils
+from . import scorers
+from . import bucketers
+from . import arg_utils
+from . import print_utils
 
 
 def print_score_report(ref, out1, out2,
@@ -283,8 +283,7 @@ def print_sentence_examples(ref, out1, out2,
     print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
 
 
-if __name__ == '__main__':
-
+def main():
   parser = argparse.ArgumentParser(
       description='Program to compare MT results',
   )
@@ -388,3 +387,7 @@ if __name__ == '__main__':
       kargs = arg_utils.parse_profile(profile)
       print_sentence_examples(ref, out1, out2, **kargs)
       print()
+
+
+if __name__ == '__main__':
+  main()

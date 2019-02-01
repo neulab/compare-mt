@@ -1,10 +1,10 @@
 import argparse
 
 # In-package imports
-import corpus_utils
-import bucketers
-import arg_utils
-import print_utils
+from . import corpus_utils
+from . import bucketers
+from . import arg_utils
+from . import print_utils
 
 def print_word_likelihood_report(ref, ll1, ll2, bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
@@ -55,9 +55,7 @@ def print_word_likelihood_report(ref, ll1, ll2, bucket_type='freq',
     print()
 
 
-
-if __name__ == '__main__':
-
+def main():
     parser = argparse.ArgumentParser(
         description='Program to compare MT results',
     )
@@ -86,3 +84,7 @@ if __name__ == '__main__':
             kargs = arg_utils.parse_profile(profile)
             print_word_likelihood_report(ref, ll1, ll2, **kargs)
             print()
+
+
+if __name__ == '__main__':
+  main()
