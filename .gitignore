@@ -1,3 +1,9 @@
 .idea
 __pycache__
 *.swp
+# setup.py build artifacts
+*.egg-info
+dist/
+build/
+# Virtualenv for developing
+env/
