@@ -34,7 +34,7 @@ def generate_score_report(ref, out1, out2,
   score2, str2 = scorer.score_corpus(ref,out2)
 
   if int(bootstrap) > 0:
-    wins, sys1_stats, sys2_stats = sign_utils.eval_with_paired_bootstrap(ref, out1, out2, score_type=score_type, num_samples=int(bootstrap))
+    wins, sys1_stats, sys2_stats = sign_utils.eval_with_paired_bootstrap(ref, out1, out2, scorer, num_samples=int(bootstrap))
   else:
     wins = sys1_stats = sys2_stats = None
 
