@@ -44,7 +44,7 @@ setup(
   entry_points={
     "console_scripts": [
       "compare-mt=compare_mt.compare_mt:main",
-      "compare-ll=compare_ll.compare_ll:main",
+      "compare-ll=compare_mt.compare_ll:main",
     ],
   },
   include_package_data=True
