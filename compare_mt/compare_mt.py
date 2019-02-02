@@ -327,68 +327,36 @@ def main():
                       Compare sentences. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_sentence_examples' to see which arguments are available.
                       """)
-  parser.add_argument('--output_directory', type=str, default='outputs',
-                      help='a path to the directory that saves all the report outputs')
-  parser.add_argument('--output_html_file', type=str, default='report.html',
-                      help='the file name of the html report')
-  parser.add_argument('--output_latex_file', type=str, default='report.tex',
-                      help='the file name of the latex report')
+  parser.add_argument('--output_directory', type=str, default=None,
+                      help="""
+                      A path to a directory where a graphical report will be saved. Open index.html in the directory
+                      to read the report.
+                      """)
   args = parser.parse_args()
 
   ref, out1, out2 = [corpus_utils.load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
   src = corpus_utils.load_tokens(args.src_file) if args.src_file else None
   reports = []
 
-  # Aggregate scores
-  if args.compare_scores:
-    for profile in args.compare_scores:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_score_report(ref, out1, out2, **kargs)
-      reports.append(report)
+  report_types = [
+    (args.compare_scores, generate_score_report, 'Aggregate Scores', False),
+    (args.compare_word_accuracies, generate_word_accuracy_report, 'Word Accuracies', False),
+    (args.compare_src_word_accuracies, generate_src_word_accuracy_report, 'Source Word Accuracies', True),
+    (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', False),
+    (args.compare_ngrams, generate_ngram_report, 'Characteristic N-grams', False),
+    (args.compare_sentence_examples, generate_sentence_examples, 'Sentence Examples', False),
+  ]
 
-  # Word accuracy analysis
-  if args.compare_word_accuracies:
-    for profile in args.compare_word_accuracies:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_word_accuracy_report(ref, out1, out2, **kargs)
-      reports.append(report)
+  for arg, func, name, use_src in report_types:
+    if arg is not None:
+      if use_src:
+        reports.append( (name, [func(src, ref, out1, out2, **arg_utils.parse_profile(x)) for x in arg]) )
+      else:
+        reports.append( (name, [func(ref, out1, out2, **arg_utils.parse_profile(x)) for x in arg]) )
 
-  # Source word analysis
-  if args.compare_src_word_accuracies:
-    if not src:
-      raise ValueError("Must specify the source file when performing source analysis.")
-    for profile in args.compare_src_word_accuracies:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_src_word_accuracy_report(src, ref, out1, out2, **kargs)
-      reports.append(report)
-
-  # Sentence count analysis
-  if args.compare_sentence_buckets:
-    for profile in args.compare_sentence_buckets:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_sentence_bucketed_report(ref, out1, out2, **kargs)
-      reports.append(report)
-
-  # n-gram difference analysis
-  if args.compare_ngrams:  
-    for profile in args.compare_ngrams:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_ngram_report(ref, out1, out2, **kargs)
-      reports.append(report)
-
-  # Sentence example analysis
-  if args.compare_sentence_examples:
-    for profile in args.compare_sentence_examples:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_sentence_examples(ref, out1, out2, **kargs)
-      reports.append(report)
-
-  # Write all reports into a single html file 
-  reporters.generate_html_report(reports, args.output_html_file, args.output_directory)
-
-  # Write all reports into a latex file 
-  reporters.generate_latex_report(reports, args.output_latex_file, args.output_directory)
-
+  # Write all reports into a single html file
+  if args.output_directory != None:
+    reporters.generate_html_report(reports, args.output_directory)
 
 if __name__ == '__main__':
   main()
