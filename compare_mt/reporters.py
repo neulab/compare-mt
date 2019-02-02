@@ -37,7 +37,7 @@ table {
 """
 
 javascript_style = """
-function myFunction(elem) {
+function showhide(elem) {
   var x = document.getElementById(elem);
   if (x.style.display === "none") {
     x.style.display = "block";
@@ -84,9 +84,17 @@ def make_bar_chart(datas,
   plt.savefig(out_file, format=output_fig_format, bbox_inches='tight')
 
 def html_img_reference(fig_file, title):
+  latex_code = (
+    "\\begin{figure}[h]\n"+
+    "  \centering\n"+
+    "  \includegraphics{"+fig_file+".pdf}\n"+
+    "  \caption{"+title+"}\n"+
+    "  \label{fig:"+fig_file+"}\n"+
+    "\end{figure}"
+  )
   return (f'<img src="{fig_file}.png" alt="{title}"> <br/>' +
-          f'<button onclick="showhide(\\"{fig_file}_latex\\")">Show/Hide LaTeX</button> <br/>' +
-          f'<div id="{fig_file}_latex">Test</div>')
+          f'<button onclick="showhide(\'{fig_file}_latex\')">Show/Hide LaTeX</button> <br/>' +
+          f'<pre id="{fig_file}_latex" style="display:none">{latex_code}</pre>')
 
 class Report: 
   # def __init__(self, iterable=(), **kwargs):
