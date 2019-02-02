@@ -36,6 +36,17 @@ table {
 }
 """
 
+javascript_style = """
+function myFunction(elem) {
+  var x = document.getElementById(elem);
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+"""
+
 bar_colors = ["#7293CB", "#E1974C", "#84BA5B", "#D35E60", "#808585", "#9067A7", "#AB6857", "#CCC210"]
 
 
@@ -152,7 +163,9 @@ class ScoreReport(Report):
                 f"[{sys2_stats['lower_bound']:.3f},{sys2_stats['upper_bound']:.3f}]"]]
       html += html_table(table, caption='Significance Test') 
     self.plot(output_directory, self.output_fig_file, 'png')
-    html += f'<img src="{self.output_fig_file}.png" alt="Aggregate Scores"> <br>'
+    html += f'<img src="{self.output_fig_file}.png" alt="Aggregate Scores"> <br/>'
+    html += f'<button onclick="showhide(\\"{self.output_fig_file}_latex\\")">Show/Hide LaTeX</button> <br/>'
+    html += f'<div id="{self.output_fig_file}_latex">Test</div>'
     return html
     
 class WordReport(Report):
@@ -395,7 +408,8 @@ def generate_html_report(reports, output_directory):
   html_file = os.path.join(output_directory, 'index.html')
   with open(html_file, 'w') as f:
     message = (f'<html>\n<head>\n<link rel="stylesheet" href="compare_mt.css">\n</head>\n'+
-               f'\n<body>\n<h1>compare_mt.py Analysis Report</h1>\n {content} \n</body>\n</html>')
+               f'<script>\n{javascript_style}\n</script>\n'+
+               f'<body>\n<h1>compare_mt.py Analysis Report</h1>\n {content} \n</body>\n</html>')
     f.write(message)
   css_file = os.path.join(output_directory, 'compare_mt.css')
   with open(css_file, 'w') as f:

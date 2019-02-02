@@ -7,3 +7,5 @@ dist/
 build/
 # Virtualenv for developing
 env/
+# Outputs
+outputs/
