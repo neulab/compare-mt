@@ -3,15 +3,15 @@ import argparse
 import operator
 
 # In-package imports
-import ngram_utils
-import stat_utils
-import corpus_utils
-import sign_utils
-import scorers
-import bucketers
-import reporters
-import arg_utils
-import print_utils
+from . import ngram_utils
+from . import stat_utils
+from . import corpus_utils
+from . import sign_utils
+from . import scorers
+from . import bucketers
+from . import reporters
+from . import arg_utils
+from . import print_utils
 
 def generate_score_report(ref, outs,
                        score_type='bleu',
@@ -115,6 +115,8 @@ def generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns,
     src_labels: either a filename of a file full of source labels, or a list of strings corresponding to `ref`.
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+  if not src or not ref_align or not out_aligns:
+    raise ValueError("Must specify the source and the alignment files when performing source analysis.")
 
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
@@ -277,8 +279,7 @@ def generate_sentence_examples(ref, outs,
   reporter.generate_report()
   return reporter 
 
-if __name__ == '__main__':
-
+def main():
   parser = argparse.ArgumentParser(
       description='Program to compare MT results',
   )
@@ -330,69 +331,43 @@ if __name__ == '__main__':
                       Compare sentences. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_sentence_examples' to see which arguments are available.
                       """)
-  parser.add_argument('--output_directory', type=str, default='outputs',
-                      help='a path to the directory that saves all the report outputs')
-  parser.add_argument('--output_html_file', type=str, default='report.html',
-                      help='the file name of the html report')
-  parser.add_argument('--output_latex_file', type=str, default='report.tex',
-                      help='the file name of the latex report')
+  parser.add_argument('--output_directory', type=str, default=None,
+                      help="""
+                      A path to a directory where a graphical report will be saved. Open index.html in the directory
+                      to read the report.
+                      """)
   args = parser.parse_args()
 
   ref = corpus_utils.load_tokens(args.ref_file)
   outs = [corpus_utils.load_tokens(x) for x in args.out_files]
 
+  src = corpus_utils.load_tokens(args.src_file) if args.src_file else None 
+  ref_align = corpus_utils.load_tokens(args.ref_align_file) if args.ref_align_file else None
+  out_aligns = [corpus_utils.load_tokens(x) for x in args.out_align_files] if args.out_align_files else None
 
   reports = []
 
-  # Aggregate scores
-  if args.compare_scores:
-    for profile in args.compare_scores:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_score_report(ref, outs, **kargs)
-      reports.append(report)
-
-  # Word accuracy analysis
-  if args.compare_word_accuracies:
-    for profile in args.compare_word_accuracies:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_word_accuracy_report(ref, outs, **kargs)
-      reports.append(report)
-
   # Source word analysis
-  if args.compare_src_word_accuracies:
-    if not args.src_file or not args.ref_align_file or not args.out_align_files:
-      raise ValueError("Must specify the source and the alignment files when performing source analysis.")
-    src = corpus_utils.load_tokens(args.src_file) 
-    ref_align = corpus_utils.load_tokens(args.ref_align_file) 
-    out_aligns = [corpus_utils.load_tokens(x) for x in args.out_align_files] 
-    for profile in args.compare_src_word_accuracies:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns, **kargs)
-      reports.append(report)
 
-  # Sentence count analysis
-  if args.compare_sentence_buckets:
-    for profile in args.compare_sentence_buckets:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_sentence_bucketed_report(ref, outs, **kargs)
-      reports.append(report)
+  report_types = [
+    (args.compare_scores, generate_score_report, 'Aggregate Scores', False),
+    (args.compare_word_accuracies, generate_word_accuracy_report, 'Word Accuracies', False),
+    (args.compare_src_word_accuracies, generate_src_word_accuracy_report, 'Source Word Accuracies', True),
+    (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', False),
+    (args.compare_ngrams, generate_ngram_report, 'Characteristic N-grams', False),
+    (args.compare_sentence_examples, generate_sentence_examples, 'Sentence Examples', False),
+  ]
 
-  # n-gram difference analysis
-  if args.compare_ngrams:  
-    for profile in args.compare_ngrams:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_ngram_report(ref, outs, **kargs)
-      reports.append(report)
+  for arg, func, name, use_src in report_types:
+    if arg is not None:
+      if use_src:
+        reports.append( (name, [func(src, ref, outs, ref_align, out_aligns, **arg_utils.parse_profile(x)) for x in arg]) )
+      else:
+        reports.append( (name, [func(ref, outs, **arg_utils.parse_profile(x)) for x in arg]) )
 
-  # Sentence example analysis
-  if args.compare_sentence_examples:
-    for profile in args.compare_sentence_examples:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_sentence_examples(ref, outs, **kargs)
-      reports.append(report)
+  # Write all reports into a single html file
+  if args.output_directory != None:
+    reporters.generate_html_report(reports, args.output_directory)
 
-  # Write all reports into a single html file 
-  reporters.generate_html_report(reports, args.output_html_file, args.output_directory)
-
-  # Write all reports into a latex file 
-  reporters.generate_latex_report(reports, args.output_latex_file, args.output_directory)
+if __name__ == '__main__':
+  main()

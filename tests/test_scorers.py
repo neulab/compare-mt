@@ -4,9 +4,9 @@ import unittest
 import sys
 compare_mt_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 sys.path.append(compare_mt_root)
-import scorers
+from compare_mt import scorers
 import numpy as np
-from corpus_utils import load_tokens
+from compare_mt.corpus_utils import load_tokens
 
 import nltk.translate.ribes_score
 

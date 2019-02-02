@@ -18,9 +18,6 @@ class Report:
   def plot(self, output_directory, output_fig_file, output_fig_type):
     raise NotImplementedError('plot must be implemented in subclasses of Report')
 
-  def write_html(self, output_directory, output_html_file):
-    raise NotImplementedError('write_html must be implemented in subclasses of Report')
-
   def print_header(self, header):
     print(f'********************** {header} ************************')
 
@@ -111,19 +108,17 @@ class ScoreReport(Report):
     plt.savefig(out_file, format=output_fig_format, bbox_inches='tight')
     
   def html_content(self, output_directory):
-    html = f'<h2>Aggregate Scores</h2>\n'
-    table = []
-    for i in range(len(self.scores)):
-      table.append(f'Sys{i}')
-    table = [table]
     line = []
+    for i in range(len(self.scores)):
+      line.append(f'Sys{i}')
+    table = [line]
     for i, (score, string) in enumerate(zip(self.scores, self.strs)):
       if string is not None:
         line.append(f' Sys{i}: {score:.4f} ({string})')
       else:
         line.append(f' Sys{i}: {score:.4f}')
     table.append(line)
-    html += html_table(table, caption=self.scorer_name) 
+    html = html_table(table, caption=self.scorer_name)
     if self.wins is not None:
       wins, sys_stats = self.wins, self.sys_stats
       table = []
@@ -219,7 +214,7 @@ class WordReport(Report):
     if self.output_fig_format != 'png' or os.path.exists(os.path.join(output_directory, f'{self.output_fig_file}-{acc_type[0]}.png')):
       self.plot(output_directory, self.output_fig_file, 'png')
 
-    html = f'<h2>{self.header}</h2>\n'
+    html = ''
     for at in acc_types:
       if at not in acc_type_map:
         raise ValueError(f'Unknown accuracy type {at}')
@@ -272,8 +267,7 @@ class NgramReport(Report):
 
   def html_content(self, output_directory=None):
     report_length = self.report_length
-    html = f'<h2>N-gram Difference Analysis</h2>\n'
-    html += tag_str('p', f'min_ngram_length={self.min_ngram_length}, max_ngram_length={self.max_ngram_length}')
+    html = tag_str('p', f'min_ngram_length={self.min_ngram_length}, max_ngram_length={self.max_ngram_length}')
     html += tag_str('p', f'report_length={report_length}, alpha={self.alpha}, compare_type={self.compare_type}')
     if self.label_files is not None:
       html += tag_str('p', self.label_files)
@@ -286,7 +280,7 @@ class NgramReport(Report):
 
       caption = f'{report_length} n-grams that System {right} had higher {self.compare_type}'
       table = [['n-gram', self.compare_type, f'Sys{left}', f'Sys{right}']]
-      table.extend([[' '.join(k), f'{v:.2f}', self.matches[left][k], self.matches[right][k]] for k, v in self.scorelist[i][:report_length]])
+      table.extend([[' '.join(k), f'{v:.2f}', self.matches[left][k], self.matches[right][k]] for k, v in reversed(self.scorelist[i][-report_length:])])
       html += html_table(table, caption)
     return html 
 
@@ -338,9 +332,7 @@ class SentenceReport(Report):
 
   def html_content(self, output_directory=None):
     bucketer, stats, bucket_type, statistic_type, score_measure = self.bucketer, self.sys_stats, self.bucket_type, self.statistic_type, self.score_measure
-    html = f'<h2>Sentence Bucket Analysis</h2>\n'
     caption = (f'bucket_type={bucket_type}, statistic_type={statistic_type}, score_measure={score_measure}')
-    table = [[bucket_type, 'Sys1', 'Sys2']]
     table = [[bucket_type]]
     for i in range(len(stats)):
       table[0].append(f'Sys{i}')
@@ -349,7 +341,7 @@ class SentenceReport(Report):
       for stat in stats:
         line.append(f'{stat[i]:.4f}')
       table.extend([line])
-    html += html_table(table, caption)
+    html = html_table(table, caption)
     # create the figure if it does not exist
     if not os.path.exists(os.path.join(output_directory, f'{self.output_fig_file}.png')):
       self.plot(output_directory, self.output_fig_file, 'png')
@@ -382,10 +374,9 @@ class SentenceExampleReport(Report):
 
   def html_content(self, output_directory=None):
     report_length = self.report_length 
-    html = f'<h2>Sentence Example Analysis</h2>\n'
     for cnt, (left, right) in enumerate(self.compare_directions):
       ref, out1, out2 = self.ref, self.outs[left], self.outs[right]
-      html += tag_str('h4', f'{report_length} sentences where Sys{left}>Sys{right} at {self.scorer_name}')
+      html = tag_str('h4', f'{report_length} sentences where Sys{left}>Sys{right} at {self.scorer_name}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
         caption = f'sys{left}-sys{right}={-bdiff:.2f}, sys{left}={s1:.2f}, sys{right}={s2:.2f}'
         table = [['Ref', ' '.join(ref[i])], [f'Sys{left}', ' '.join(out1[i])], [f'Sys{right}', ' '.join(out2[i])]]
@@ -396,6 +387,7 @@ class SentenceExampleReport(Report):
         caption = f'sys{right}-sys{left}={bdiff:.2f}, sys{left}={s1:.2f}, sys{right}={s2:.2f}'
         table = [['Ref', ' '.join(ref[i])], [f'Sys{left}', ' '.join(out1[i])], [f'Sys{right}', ' '.join(out2[i])]]
         html += html_table(table, caption, first_line_bold=False)
+
     return html 
 
 
@@ -416,18 +408,17 @@ def html_table(table, caption=None, first_line_bold=True):
   html += '\n</table>\n <br>'
   return html
 
-def generate_html_report(reports, output_html_file, output_directory):
+def generate_html_report(reports, output_directory):
   content = []
-  for r in reports:
-    content.append(r.html_content(output_directory))
+  for name, rep in reports:
+    content.append(f'<h2>{name}</h2>')
+    for r in rep:
+      content.append(r.html_content(output_directory))
   content = "\n".join(content)
   
   if not os.path.exists(output_directory):
         os.makedirs(output_directory)
-  output_file = os.path.join(output_directory, output_html_file)
+  output_file = os.path.join(output_directory, 'index.html')
   with open(output_file, 'w') as f:
     message = f'<html>\n<h1>compare_mt.py Analysis Report</h1>\n<body>\n {content} \n</body>\n</html>' 
     f.write(message)
-
-def generate_latex_report(reports, output_latex_file, output_directory):
-  pass 

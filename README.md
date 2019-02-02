@@ -10,13 +10,20 @@ the systems, which will make it easier for you to figure out what things one sys
 
 ## Basic Usage
 
-First, you need to install the requirements:
+First, you need to install the package:
 
-    pip install -r requirements.txt
+```bash
+# Requirements
+pip install -r requirements.txt
+# Install the package
+python setup.py install
+```
 
 Then, as an example, you can run this over two included system outputs.
 
-    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
+```bash
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
+```
 
 Here, system 1 and system 2 are the baseline phrase-based and neural Slovak-English systems from our
 [EMNLP 2018 paper](http://aclweb.org/anthology/D18-1103). This will print out a number of statistics including:
@@ -52,7 +59,10 @@ We do highlight a few particularly useful and common types of analysis below:
 The script allows you to perform statistical significance tests for scores based on bootstrap resampling. You can set
 the number of samplings manually. Here is an example using the example data:
 
-    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_scores score_type=bleu,bootstrap=1000
+
+```bash
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_scores score_type=bleu,bootstrap=1000
+```
 
 ### Using Training Set Frequency
 
@@ -62,8 +72,11 @@ demonstrates the models' robustness to words they haven't seen much, or at all, 
 corpus used to calculate word frequency and use the training set (or some other set), you can set the `freq_corpus_file`
 option to the appropriate corpus.
 
-    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
+
+```bash
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
         --compare_word_accuracies bucket_type=freq,freq_corpus_file=example/ted.train.eng
+```
 
 ### Incorporating Word Labels
 
@@ -71,9 +84,12 @@ If you're interested in performing aggregate analysis over labels for each word 
 is possible to do so. As an example, we've included POS tags for each of the example outputs. You can use these in
 aggregate analysis, or n-gram-based analysis. The following gives an example:
 
-    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
-        --compare_word_accuracies bucket_type=label,ref_labels=example/ted.ref.eng.tag,out1_labels=example/ted.sys1.eng.tag,out2_labels=example/ted.sys2.eng.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
-        --compare_ngrams compare_type=match,ref_labels=example/ted.ref.eng.tag,out1_labels=example/ted.sys1.eng.tag,out2_labels=example/ted.sys2.eng.tag
+
+```bash
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
+    --compare_word_accuracies bucket_type=label,ref_labels=example/ted.ref.eng.tag,out1_labels=example/ted.sys1.eng.tag,out2_labels=example/ted.sys2.eng.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
+    --compare_ngrams compare_type=match,ref_labels=example/ted.ref.eng.tag,out1_labels=example/ted.sys1.eng.tag,out2_labels=example/ted.sys2.eng.tag
+```
 
 This will calculate word accuracies and n-gram matches by POS bucket, and allows you to see things like the fact
 that the phrase-based MT system is better at translating content words such as nouns and verbs, while neural MT
@@ -85,17 +101,24 @@ If you have a source corpus that is aligned to the target, you can also analyze 
 source language words, which would allow you to examine whether, for example, infrequent words on the source side are
 hard to output properly. Here is an example using the example data:
 
-    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk --ref_align_file example/ted.ref.align --out_align_files example/ted.sys1.align example/ted.sys2.align --compare_src_word_accuracies bucket_type=freq 
+```bash
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk --ref_align_file example/ted.ref.align --out_align_files example/ted.sys1.align example/ted.sys2.align
+        --compare_src_word_accuracies bucket_type=freq
+```
 
 ### Analyzing Word Likelihoods
 
 If you wish to analyze the word log likelihoods by two systems on the target corpus, you can use the following
 
-    python compare_ll.py --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=freq,freq_corpus_file=example/ll_test.txt
+```bash
+compare-ll --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=freq,freq_corpus_file=example/ll_test.txt
+```
 
 You can analyze the word log likelihoods over labels for each word instead of the words themselves:
 
-    python compare_ll.py --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=label,label_corpus=example/ll_test.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
+```bash
+compare-ll --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=label,label_corpus=example/ll_test.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
+```
 
 NOTE: You can also use the above to also analyze the word likelihoods produced by two language models.
 
