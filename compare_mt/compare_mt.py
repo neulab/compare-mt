@@ -3,15 +3,15 @@ import argparse
 import operator
 
 # In-package imports
-import ngram_utils
-import stat_utils
-import corpus_utils
-import sign_utils
-import scorers
-import bucketers
-import reporters
-import arg_utils
-import print_utils
+from . import ngram_utils
+from . import stat_utils
+from . import corpus_utils
+from . import sign_utils
+from . import scorers
+from . import bucketers
+from . import reporters
+from . import arg_utils
+from . import print_utils
 
 def generate_score_report(ref, out1, out2,
                        score_type='bleu',
@@ -34,7 +34,7 @@ def generate_score_report(ref, out1, out2,
   score2, str2 = scorer.score_corpus(ref,out2)
 
   if int(bootstrap) > 0:
-    wins, sys1_stats, sys2_stats = sign_utils.eval_with_paired_bootstrap(ref, out1, out2, score_type=score_type, num_samples=int(bootstrap))
+    wins, sys1_stats, sys2_stats = sign_utils.eval_with_paired_bootstrap(ref, out1, out2, scorer, num_samples=int(bootstrap))
   else:
     wins = sys1_stats = sys2_stats = None
 
@@ -277,8 +277,7 @@ def generate_sentence_examples(ref, out1, out2,
   # for bdiff, s1, s2, str1, str2, i in scorediff_list[-report_length:]:
   #   print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
 
-if __name__ == '__main__':
-
+def main():
   parser = argparse.ArgumentParser(
       description='Program to compare MT results',
   )
@@ -389,3 +388,7 @@ if __name__ == '__main__':
 
   # Write all reports into a latex file 
   reporters.generate_latex_report(reports, args.output_latex_file, args.output_directory)
+
+
+if __name__ == '__main__':
+  main()

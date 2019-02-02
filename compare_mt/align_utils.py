@@ -1,5 +1,5 @@
 from collections import defaultdict
-import corpus_utils
+from . import corpus_utils
 
 def _count_ngram(sent, order):
   gram_pos = dict()

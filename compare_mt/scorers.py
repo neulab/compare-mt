@@ -2,9 +2,9 @@ import nltk
 import nltk.translate.chrf_score  # This is necessary to avoid an AttributeError in NLTK
 import math
 from collections import Counter
-import corpus_utils
-import align_utils
-import ngram_utils
+from . import corpus_utils
+from . import align_utils
+from . import ngram_utils
 
 class Scorer(object):
   def score_corpus(self, ref, out):
