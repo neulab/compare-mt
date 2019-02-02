@@ -1,10 +1,92 @@
 import matplotlib
 from matplotlib import pyplot as plt 
-plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'sans-serif'
 import numpy as np
 import os
 
+css_style = """
+html {
+  font-family: sans-serif;
+}
+
+table, th, td {
+  border: 1px solid black;
+}
+
+th, td {
+  padding: 2px;
+}
+
+tr:hover {background-color: #f5f5f5;}
+
+tr:nth-child(even) {background-color: #f2f2f2;}
+
+th {
+  background-color: #396AB1;
+  color: white;
+}
+
+caption {
+  font-size: 14pt;
+  font-weight: bold;
+}
+
+table {
+  border-collapse: collapse;
+}
+"""
+
+javascript_style = """
+function myFunction(elem) {
+  var x = document.getElementById(elem);
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+"""
+
+bar_colors = ["#7293CB", "#E1974C", "#84BA5B", "#D35E60", "#808585", "#9067A7", "#AB6857", "#CCC210"]
+
+def make_bar_chart(datas,
+                   output_directory, output_fig_file, output_fig_format='png',
+                   errs=None, sysnames=None, title=None, xlabel=None, xticklabels=None, ylabel=None):
+  fig, ax = plt.subplots() 
+  ind = np.arange(len(datas[0]))
+  width = 0.7/len(datas)
+  bars = []
+  for i, data in enumerate(datas):
+    err = errs[i] if errs != None else None
+    bars.append(ax.bar(ind+i*width, data, width, color=bar_colors[i], bottom=0, yerr=err))
+  ax.set_xticks(ind + width / 2)
+  # Set axis/title labels
+  if title is not None:
+    ax.set_title(title)
+  if xlabel is not None:
+    ax.set_xlabel(xlabel)
+  if ylabel is not None:
+    ax.set_ylabel(ylabel)
+  if xticklabels is not None:
+    ax.set_xticks(ind + width / 2)
+    ax.set_xticklabels(xticklabels)
+  else:
+    ax.xaxis.set_visible(False) 
+
+  if sysnames is None:
+    sysnames = [f'Sys{i+1}' for (i, x) in enumerate(datas)]
+  ax.legend(bars, sysnames)
+  ax.autoscale_view()
+
+  if not os.path.exists(output_directory):
+    os.makedirs(output_directory)
+  out_file = os.path.join(output_directory, f'{output_fig_file}.{output_fig_format}')
+  plt.savefig(out_file, format=output_fig_format, bbox_inches='tight')
+
+def html_img_reference(fig_file, title):
+  return (f'<img src="{fig_file}.png" alt="{title}"> <br/>' +
+          f'<button onclick="showhide(\\"{fig_file}_latex\\")">Show/Hide LaTeX</button> <br/>' +
+          f'<div id="{fig_file}_latex">Test</div>')
 
 class Report: 
   # def __init__(self, iterable=(), **kwargs):
@@ -64,8 +146,6 @@ class ScoreReport(Report):
     
   def plot(self, output_directory='outputs', output_fig_file='score', output_fig_format='pdf'):
     self.output_fig_file = output_fig_file
-    fig, ax = plt.subplots() 
-    width = 0.35
     if self.wins is not None:
       wins, sys1_stats, sys2_stats = self.wins, self.sys1_stats, self.sys2_stats
       mean, lrb, urb = sys1_stats['mean'], sys1_stats['lower_bound'], sys1_stats['upper_bound']
@@ -79,27 +159,17 @@ class ScoreReport(Report):
       sys2_err = np.zeros((2, N))
       sys2_err[0, 0] = self.score2 - lrb 
       sys2_err[1, 0] = urb - self.score2
-      xlabel = [self.scorer_name, 'Bootstrap Mean', 'Bootstrap Median']
+      xticklabels = [self.scorer_name, 'Bootstrap Mean', 'Bootstrap Median']
     else:
       sys1 = [self.score1]
       sys2 = [self.score2]
-      sys1_err = sys2_err = np.zeros((2,1))
-      xlabel = [self.scorer_name]
+      sys1_err = sys2_err = None
+      xticklabels = None
 
-    ax.set_title('Aggregate Scores')
-    ind = np.arange(len(sys1))
-    p1 = ax.bar(ind, sys1, width, color='r', bottom=0, yerr=sys1_err)
-    p2 = ax.bar(ind+width, sys2, width, color='#f4e604', bottom=0, yerr=sys2_err)
-    ax.set_xticks(ind + width / 2)
-    ax.set_xticklabels(xlabel)
-
-    ax.legend((p1[0], p2[0]), ('Sys1', 'Sys2'))
-    ax.autoscale_view()
-
-    if not os.path.exists(output_directory):
-      os.makedirs(output_directory)
-    out_file = os.path.join(output_directory, f'{output_fig_file}.{output_fig_format}')
-    plt.savefig(out_file, format=output_fig_format, bbox_inches='tight')
+    make_bar_chart([sys1, sys2],
+                   output_directory, output_fig_file, output_fig_format=output_fig_format,
+                   errs=[sys1_err, sys2_err], title='Score Comparison', ylabel=self.scorer_name,
+                   xticklabels=xticklabels)
     
   def html_content(self, output_directory):
     table = [['Sys1', 'Sys2']]
@@ -118,10 +188,8 @@ class ScoreReport(Report):
                 f"[{sys1_stats['lower_bound']:.3f},{sys1_stats['upper_bound']:.3f}]", 
                 f"[{sys2_stats['lower_bound']:.3f},{sys2_stats['upper_bound']:.3f}]"]]
       html += html_table(table, caption='Significance Test') 
-    # create the figure if it does not exist
-    if not os.path.exists(os.path.join(output_directory, f'{self.output_fig_file}.png')):
-      self.plot(output_directory, self.output_fig_file, 'png')
-    html += f'<img src="{self.output_fig_file}.png" alt="Aggregate Scores"> <br>'
+    self.plot(output_directory, self.output_fig_file, 'png')
+    html += html_img_reference(self.output_fig_file, 'Score Comparison')
     return html
     
 class WordReport(Report):
@@ -160,31 +228,19 @@ class WordReport(Report):
       aid = self.acc_type_map[at]
       sys1 = [match1[aid] for match1 in self.matches1]
       sys2 = [match2[aid] for match2 in self.matches2]
-      xlabel = [s for s in self.bucketer.bucket_strs] 
+      xticklabels = [s for s in self.bucketer.bucket_strs] 
 
-      fig, ax = plt.subplots()
-      # ax.set_title(f'Word Accuracy Analysis: {at}')
-      ind = np.arange(len(sys1))
-      p1 = ax.bar(ind, sys1, width, color='r', bottom=0)
-      p2 = ax.bar(ind+width, sys2, width, color='#f4e604', bottom=0)
-      ax.set_xticks(ind + width / 2)
-      ax.set_xticklabels(xlabel)
-      plt.xticks(rotation=30)
-      ax.legend((p1[0], p2[0]), ('Sys1', 'Sys2'))
-      ax.autoscale_view()
-
-      if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
-      output_file = os.path.join(output_directory, f'{output_fig_file}-{at}.{output_fig_format}')
-      plt.savefig(output_file, format=output_fig_format, bbox_inches='tight')
+      make_bar_chart([sys1, sys2],
+                     output_directory, output_fig_file, output_fig_format=output_fig_format,
+                     title='Word Accuracy Comparison', ylabel=at,
+                     xticklabels=xticklabels)
     
   def html_content(self, output_directory):
     acc_type_map = self.acc_type_map
     bucketer, matches1, matches2, acc_type, header = self.bucketer, self.matches1, self.matches2, self.acc_type, self.header
     acc_types = acc_type.split('+') 
     
-    if self.output_fig_format != 'png' or os.path.exists(os.join(output_directory, f'{self.output_fig_file}-{acc_type[0]}.png')):
-      self.plot(output_directory, self.output_fig_file, 'png')
+    self.plot(output_directory, self.output_fig_file, 'png')
 
     html = ''
     for at in acc_types:
@@ -195,7 +251,7 @@ class WordReport(Report):
       table = [[bucketer.name(), 'Sys1', 'Sys2']]
       table += [[bs, f'{m1[aid]:.4f}', f'{m2[aid]:.4f}'] for bs, m1, m2 in zip(bucketer.bucket_strs, matches1, matches2)]
       html += html_table(table, caption)
-      html += f'<img src="{self.output_fig_file}-{at}.png" alt="{self.header}">'
+      html += html_img_reference(f'{self.output_fig_file}-{at}', self.header)
     return html 
 
 class NgramReport(Report):
@@ -268,25 +324,14 @@ class SentenceReport(Report):
 
   def plot(self, output_directory='outputs', output_fig_file='word-acc', output_fig_format='pdf'):
     self.output_fig_file = output_fig_file
-    width = 0.35
     sys1 = self.sys1_stats
     sys2 = self.sys2_stats
-    xlabel = [s for s in self.bucketer.bucket_strs] 
+    xticklabels = [s for s in self.bucketer.bucket_strs] 
 
-    fig, ax = plt.subplots()
-    ind = np.arange(len(sys1))
-    p1 = ax.bar(ind, sys1, width, color='r', bottom=0)
-    p2 = ax.bar(ind+width, sys2, width, color='#f4e604', bottom=0)
-    ax.set_xticks(ind + width / 2)
-    ax.set_xticklabels(xlabel)
-    plt.xticks(rotation=45)
-    ax.legend((p1[0], p2[0]), ('Sys1', 'Sys2'))
-    ax.autoscale_view()
-
-    if not os.path.exists(output_directory):
-      os.makedirs(output_directory)
-    plt.savefig(os.path.join(output_directory, f'{output_fig_file}.{output_fig_format}'), 
-                format=output_fig_format, bbox_inches='tight')
+    make_bar_chart([sys1, sys2],
+                   output_directory, output_fig_file, output_fig_format=output_fig_format,
+                   title='Sentence Bucket Analysis', xlabel=self.bucket_type, ylabel=self.statistic_type,
+                   xticklabels=xticklabels)
 
   def html_content(self, output_directory=None):
     bucketer, stats1, stats2, bucket_type, statistic_type, score_measure = self.bucketer, self.sys1_stats, self.sys2_stats, self.bucket_type, self.statistic_type, self.score_measure
@@ -294,10 +339,8 @@ class SentenceReport(Report):
     table = [[bucket_type, 'Sys1', 'Sys2']]
     table.extend([[bs, f'{s1:.4f}', f'{s2:.4f}'] for bs, s1, s2 in zip(bucketer.bucket_strs, stats1, stats2)])
     html = html_table(table, caption)
-    # create the figure if it does not exist
-    if not os.path.exists(os.path.join(output_directory, f'{self.output_fig_file}.png')):
-      self.plot(output_directory, self.output_fig_file, 'png')
-    html += f'<img src="{self.output_fig_file}.png" alt="Sentence Bucket Analysis"> <br>'
+    self.plot(output_directory, self.output_fig_file, 'png')
+    html += html_img_reference(self.output_fig_file, 'Sentence Bucket Analysis')
     return html 
 
 class SentenceExampleReport(Report):
@@ -364,7 +407,13 @@ def generate_html_report(reports, output_directory):
   
   if not os.path.exists(output_directory):
         os.makedirs(output_directory)
-  output_file = os.path.join(output_directory, 'index.html')
-  with open(output_file, 'w') as f:
-    message = f'<html>\n<h1>compare_mt.py Analysis Report</h1>\n<body>\n {content} \n</body>\n</html>' 
+  html_file = os.path.join(output_directory, 'index.html')
+  with open(html_file, 'w') as f:
+    message = (f'<html>\n<head>\n<link rel="stylesheet" href="compare_mt.css">\n</head>\n'+
+               f'<script>\n{javascript_style}\n</script>\n'+
+               f'<body>\n<h1>compare_mt.py Analysis Report</h1>\n {content} \n</body>\n</html>')
     f.write(message)
+  css_file = os.path.join(output_directory, 'compare_mt.css')
+  with open(css_file, 'w') as f:
+    f.write(css_style)
+  
