@@ -338,49 +338,21 @@ def main():
   src = corpus_utils.load_tokens(args.src_file) if args.src_file else None
   reports = []
 
-  # Aggregate scores
-  if args.compare_scores:
-    for profile in args.compare_scores:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_score_report(ref, out1, out2, **kargs)
-      reports.append(report)
+  report_types = [
+    (args.compare_scores, generate_score_report, 'Aggregate Scores', False),
+    (args.compare_word_accuracies, generate_word_accuracy_report, 'Word Accuracies', False),
+    (args.compare_src_word_accuracies, generate_src_word_accuracy_report, 'Source Word Accuracies', True),
+    (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', False),
+    (args.compare_ngrams, generate_ngram_report, 'Characteristic N-grams', False),
+    (args.compare_sentence_examples, generate_sentence_examples, 'Sentence Examples', False),
+  ]
 
-  # Word accuracy analysis
-  if args.compare_word_accuracies:
-    for profile in args.compare_word_accuracies:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_word_accuracy_report(ref, out1, out2, **kargs)
-      reports.append(report)
-
-  # Source word analysis
-  if args.compare_src_word_accuracies:
-    if not src:
-      raise ValueError("Must specify the source file when performing source analysis.")
-    for profile in args.compare_src_word_accuracies:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_src_word_accuracy_report(src, ref, out1, out2, **kargs)
-      reports.append(report)
-
-  # Sentence count analysis
-  if args.compare_sentence_buckets:
-    for profile in args.compare_sentence_buckets:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_sentence_bucketed_report(ref, out1, out2, **kargs)
-      reports.append(report)
-
-  # n-gram difference analysis
-  if args.compare_ngrams:  
-    for profile in args.compare_ngrams:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_ngram_report(ref, out1, out2, **kargs)
-      reports.append(report)
-
-  # Sentence example analysis
-  if args.compare_sentence_examples:
-    for profile in args.compare_sentence_examples:
-      kargs = arg_utils.parse_profile(profile)
-      report = generate_sentence_examples(ref, out1, out2, **kargs)
-      reports.append(report)
+  for arg, func, name, use_src in report_types:
+    if arg is not None:
+      if use_src:
+        reports.append( (name, [func(src, ref, out1, out2, **arg_utils.parse_profile(x)) for x in arg]) )
+      else:
+        reports.append( (name, [func(ref, out1, out2, **arg_utils.parse_profile(x)) for x in arg]) )
 
   # Write all reports into a single html file
   if args.output_directory != None:
