@@ -13,51 +13,51 @@ import reporters
 import arg_utils
 import print_utils
 
-def generate_score_report(ref, out1, out2,
+def generate_score_report(ref, outs,
                        score_type='bleu',
                        bootstrap=0,
+                       compare_directions='0-1',
                        case_insensitive=False):
   """
-  Generate a report comparing overall scores of the two systems in both plain text and graphs.
+  Generate a report comparing overall scores of system(s) in both plain text and graphs.
 
   Args:
     ref: Tokens from the reference
-    out1: Tokens from the output file 1
-    out2: Tokens from the output file 2
+    outs: Tokens from the output file(s)
     score_type: A string specifying the scoring type (bleu/length)
     bootstrap: Number of samples for significance test (0 to disable)
+    compare_directions: A string specifying which systems to compare
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
   scorer = scorers.create_scorer_from_profile(score_type)
 
-  score1, str1 = scorer.score_corpus(ref,out1)
-  score2, str2 = scorer.score_corpus(ref,out2)
+  scores, strs = zip(*[scorer.score_corpus(ref, out) for out in outs])
 
   if int(bootstrap) > 0:
-    wins, sys1_stats, sys2_stats = sign_utils.eval_with_paired_bootstrap(ref, out1, out2, score_type=score_type, num_samples=int(bootstrap))
+    direcs = arg_utils.parse_compare_directions(compare_directions)
+    wins, sys_stats = sign_utils.eval_with_paired_bootstrap(ref, outs, scorer, direcs, num_samples=int(bootstrap))
   else:
-    wins = sys1_stats = sys2_stats = None
+    wins = sys_stats = direcs = None
 
-  reporter = reporters.ScoreReport(scorer_name=scorer.name(), score1=score1, str1=str1, score2=score2, str2=str2,
-                                   wins=wins, sys1_stats=sys1_stats, sys2_stats=sys2_stats)
+  reporter = reporters.ScoreReport(scorer_name=scorer.name(), scores=scores, strs=strs, 
+                                   wins=wins, sys_stats=sys_stats, compare_directions=direcs)
   reporter.generate_report(output_fig_file=f'score-{score_type}-{bootstrap}',
                            output_fig_format='pdf', 
                            output_directory='outputs')
   return reporter 
 
-def generate_word_accuracy_report(ref, out1, out2,
+def generate_word_accuracy_report(ref, outs,
                           acc_type='fmeas', bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
-                          ref_labels=None, out1_labels=None, out2_labels=None,
+                          ref_labels=None, out_labels=None,
                           case_insensitive=False):
   """
   Generate a report comparing the word accuracy in both plain text and graphs.
 
   Args:
     ref: Tokens from the reference
-    out1: Tokens from the output file 1
-    out2: Tokens from the output file 2
+    outs: Tokens from the output file(s)
     acc_type: The type of accuracy to show (prec/rec/fmeas). Can also have multiple separated by '+'.
     bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
     freq_corpus_file: When using "freq" as a bucketer, which corpus to use to calculate frequency.
@@ -66,10 +66,12 @@ def generate_word_accuracy_report(ref, out1, out2,
                       training corpus.
     freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
     ref_labels: either a filename of a file full of reference labels, or a list of strings corresponding to `ref`.
-    out1_labels: output 1 labels. must be specified if ref_labels is specified.
-    out2_labels: output 2 labels. must be specified if ref_labels is specified.
+    out_labels: output labels. must be specified if ref_labels is specified.
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+  if out_labels is not None and len(out_labels) != len(outs):
+    raise ValueError(f'The number of output files should be equal to the number of output labels.')
+
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
                                                          freq_corpus_file=freq_corpus_file,
@@ -77,12 +79,10 @@ def generate_word_accuracy_report(ref, out1, out2,
                                                          label_set=label_set,
                                                          case_insensitive=case_insensitive)
   ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
-  out1_labels = corpus_utils.load_tokens(out1_labels) if type(out1_labels) == str else out1_labels
-  out2_labels = corpus_utils.load_tokens(out2_labels) if type(out2_labels) == str else out2_labels
-  matches1 = bucketer.calc_bucketed_matches(ref, out1, ref_labels=ref_labels, out_labels=out1_labels)
-  matches2 = bucketer.calc_bucketed_matches(ref, out2, ref_labels=ref_labels, out_labels=out2_labels)
+  out_labels = [corpus_utils.load_tokens(out_labels[i]) if not out_labels is None else None for i in range(len(outs))]
+  matches = [bucketer.calc_bucketed_matches(ref, out, ref_labels=ref_labels, out_labels=out_label) for out, out_label in zip(outs, out_labels)]
   
-  reporter = reporters.WordReport(bucketer=bucketer, matches1=matches1, matches2=matches2, 
+  reporter = reporters.WordReport(bucketer=bucketer, matches=matches, 
                                   acc_type=acc_type, header="Word Accuracy Analysis")
   reporter.generate_report(output_fig_file=f'word-acc',
                            output_fig_format='pdf', 
@@ -90,7 +90,7 @@ def generate_word_accuracy_report(ref, out1, out2,
   return reporter 
   
 
-def generate_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_align, out2_align,
+def generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns,
                           acc_type='fmeas', bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
@@ -102,11 +102,9 @@ def generate_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_alig
   Args:
     src: Tokens from the source
     ref: Tokens from the reference
-    out1: Tokens from the output file 1
-    out2: Tokens from the output file 2
+    outs: Tokens from the output file(s)
     ref_align: Alignment file for the reference
-    out1_align: Alignment file for the output file 1
-    out2_align: Alignment file for the output file 2
+    out_aligns: Alignment file for the output file
     acc_type: The type of accuracy to show (prec/rec/fmeas). Can also have multiple separated by '+'.
     bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
     freq_corpus_file: When using "freq" as a bucketer, which corpus to use to calculate frequency.
@@ -118,24 +116,22 @@ def generate_src_word_accuracy_report(src, ref, out1, out2, ref_align, out1_alig
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
 
-  ref_align, out1_align, out2_align = [corpus_utils.load_tokens(x) for x in (ref_align, out1_align, out2_align)]
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
                                                          freq_corpus_file=freq_corpus_file,
                                                          freq_data=src,
                                                          label_set=label_set)
   src_labels = corpus_utils.load_tokens(src_labels) if type(src_labels) == str else src_labels
-  matches1 = bucketer.calc_source_bucketed_matches(src, ref, out1, ref_align, out1_align, src_labels=src_labels)
-  matches2 = bucketer.calc_source_bucketed_matches(src, ref, out2, ref_align, out2_align, src_labels=src_labels)
+  matches = [bucketer.calc_source_bucketed_matches(src, ref, out, ref_align, out_align, src_labels=src_labels) for out, out_align in zip(outs, out_aligns)]
 
-  reporter = reporters.WordReport(bucketer=bucketer, matches1=matches1, matches2=matches2, 
+  reporter = reporters.WordReport(bucketer=bucketer, matches=matches, 
                                   acc_type=acc_type, header="Source Word Accuracy Analysis")
   reporter.generate_report(output_fig_file=f'src-word-acc',
                            output_fig_format='pdf', 
                            output_directory='outputs')
   return reporter 
 
-def generate_sentence_bucketed_report(ref, out1, out2,
+def generate_sentence_bucketed_report(ref, outs,
                                    bucket_type='score', statistic_type='count',
                                    score_measure='bleu',
                                    case_insensitive=False):
@@ -144,16 +140,14 @@ def generate_sentence_bucketed_report(ref, out1, out2,
 
   Args:
     ref: Tokens from the reference
-    out1: Tokens from the output file 1
-    out2: Tokens from the output file 2
+    outs: Tokens from the output file(s)
     bucket_type: The type of bucketing method to use
     score_measure: If using 'score' as either bucket_type or statistic_type, which scorer to use
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
 
   bucketer = bucketers.create_sentence_bucketer_from_profile(bucket_type, score_type=score_measure, case_insensitive=case_insensitive)
-  bc1 = bucketer.create_bucketed_corpus(out1, ref=ref)
-  bc2 = bucketer.create_bucketed_corpus(out2, ref=ref)
+  bcs = [bucketer.create_bucketed_corpus(out, ref=ref) for out in outs]
 
   if statistic_type == 'count':
     aggregator = lambda out,ref: len(out)
@@ -163,11 +157,10 @@ def generate_sentence_bucketed_report(ref, out1, out2,
   else:
     raise ValueError(f'Illegal statistic_type {statistic_type}')
 
-  stats1 = [aggregator(out,ref) for (out,ref) in bc1]
-  stats2 = [aggregator(out,ref) for (out,ref) in bc2]
+  stats = [[aggregator(out,ref) for (out,ref) in bc] for bc in bcs]
 
   reporter = reporters.SentenceReport(bucketer=bucketer, bucket_type=bucket_type,
-                                      sys1_stats=stats1, sys2_stats=stats2,
+                                      sys_stats=stats,
                                       statistic_type=statistic_type, score_measure=score_measure)
   reporter.generate_report(output_fig_file=f'sentence-{statistic_type}-{score_measure}',
                            output_fig_format='pdf', 
@@ -175,18 +168,18 @@ def generate_sentence_bucketed_report(ref, out1, out2,
   return reporter 
   
 
-def generate_ngram_report(ref, out1, out2,
+def generate_ngram_report(ref, outs,
                        min_ngram_length=1, max_ngram_length=4,
                        report_length=50, alpha=1.0, compare_type='match',
-                       ref_labels=None, out1_labels=None, out2_labels=None,
+                       ref_labels=None, out_labels=None,
+                       compare_directions='0-1',
                        case_insensitive=False):
   """
   Generate a report comparing aggregate n-gram statistics in both plain text and graphs
 
   Args:
     ref: Tokens from the reference
-    out1: Tokens from the output file 1
-    out2: Tokens from the output file 2
+    outs: Tokens from the output file(s)
     min_ngram_length: minimum n-gram length
     max_ngram_length: maximum n-gram length
     report_length: the number of n-grams to report
@@ -196,12 +189,18 @@ def generate_ngram_report(ref, out1, out2,
                   (match: n-grams that match the reference, over: over-produced ngrams, under: under-produced ngrams)
     ref_labels: either a filename of a file full of reference labels, or a list of strings corresponding to `ref`.
                 If specified, will aggregate statistics over labels instead of n-grams.
-    out1_labels: output 1 labels. must be specified if ref_labels is specified.
-    out2_labels: output 2 labels. must be specified if ref_labels is specified.
+    out_labels: output labels. must be specified if ref_labels is specified.
+    compare_directions: A string specifying which systems to compare
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+  if out_labels is not None and len(out_labels) != len(outs):
+    raise ValueError(f'The number of output files should be equal to the number of output labels.')
+
   if type(ref_labels) == str:
-    label_files = (f'    ref_labels={ref_labels}, out1_labels={out1_labels}, out2_labels={out2_labels}')
+    label_files_str = f'    ref_labels={ref_labels},'
+    for i, out_label in enumerate(out_labels):
+      label_files_str += f' out{i}_labels={out_label},'
+    label_files = (label_files_str)
   else:
     label_files = None
 
@@ -210,72 +209,73 @@ def generate_ngram_report(ref, out1, out2,
 
   if not type(ref_labels) == str and case_insensitive:
     ref = corpus_utils.lower(ref)
-    out1 = corpus_utils.lower(out1)
-    out2 = corpus_utils.lower(out2)
+    outs = [corpus_utils.lower(out) for out in outs]
 
   ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
-  out1_labels = corpus_utils.load_tokens(out1_labels) if type(out1_labels) == str else out1_labels
-  out2_labels = corpus_utils.load_tokens(out2_labels) if type(out2_labels) == str else out2_labels
-  total1, match1, over1, under1 = ngram_utils.compare_ngrams(ref, out1, ref_labels=ref_labels, out_labels=out1_labels,
-                                                             min_length=min_ngram_length, max_length=max_ngram_length)
-  total2, match2, over2, under2 = ngram_utils.compare_ngrams(ref, out2, ref_labels=ref_labels, out_labels=out2_labels,
-                                                             min_length=min_ngram_length, max_length=max_ngram_length)
-  if compare_type == 'match':
-    scores = stat_utils.extract_salient_features(match1, match2, alpha=alpha)
-  elif compare_type == 'over':
-    scores = stat_utils.extract_salient_features(over1, over2, alpha=alpha)
-  elif compare_type == 'under':
-    scores = stat_utils.extract_salient_features(under1, under2, alpha=alpha)
-  else:
-    raise ValueError(f'Illegal compare_type "{compare_type}"')
-  scorelist = sorted(scores.items(), key=operator.itemgetter(1), reverse=True)
+  out_labels = [corpus_utils.load_tokens(out_labels[i]) if not out_labels is None else None for i in range(len(outs))]
+  totals, matchs, overs, unders = zip(*[ngram_utils.compare_ngrams(ref, out, ref_labels=ref_labels, out_labels=out_label,
+                                                             min_length=min_ngram_length, max_length=max_ngram_length) for out, out_label in zip(outs, out_labels)])
+  direcs = arg_utils.parse_compare_directions(compare_directions)
+  scores = []
+  for (left, right) in direcs:
+    if compare_type == 'match':
+      scores.append(stat_utils.extract_salient_features(matchs[left], matchs[right], alpha=alpha))
+    elif compare_type == 'over':
+      scores.append(stat_utils.extract_salient_features(overs[left], overs[right], alpha=alpha))
+    elif compare_type == 'under':
+      scores.append(stat_utils.extract_salient_features(unders[left], unders[right], alpha=alpha))
+    else:
+      raise ValueError(f'Illegal compare_type "{compare_type}"')
+  scorelist = [sorted(score.items(), key=operator.itemgetter(1), reverse=True) for score in scores]
 
   reporter = reporters.NgramReport(scorelist=scorelist, report_length=report_length,
                                    min_ngram_length=min_ngram_length, 
                                    max_ngram_length=max_ngram_length,
-                                   matches1=match1, matches2=match2, 
+                                   matches=matchs,
                                    compare_type=compare_type, alpha=alpha,
+                                   compare_directions=direcs,
                                    label_files=label_files)                                   
   reporter.generate_report(output_fig_file=f'ngram-min{min_ngram_length}-max{max_ngram_length}-{compare_type}',
                            output_fig_format='pdf', 
                            output_directory='outputs')
   return reporter 
 
-def generate_sentence_examples(ref, out1, out2,
+def generate_sentence_examples(ref, outs,
                             score_type='sentbleu',
                             report_length=10,
+                            compare_directions='0-1',
                             case_insensitive=False):
   """
   Generate examples of sentences that satisfy some criterion, usually score of one system better
 
   Args:
     ref: Tokens from the reference
-    out1: Tokens from the output file 1
-    out2: Tokens from the output file 2
+    outs: Tokens from the output file(s)
     score_type: The type of scorer to use
     report_length: Number of sentences to print for each system being better or worse
+    compare_directions: A string specifying which systems to compare
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
     
   scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive)
-  scorediff_list = []
-  for i, (o1, o2, r) in enumerate(zip(out1, out2, ref)):
-    s1, str1 = scorer.score_sentence(r, o1)
-    s2, str2 = scorer.score_sentence(r, o2)
-    scorediff_list.append((s2-s1, s1, s2, str1, str2, i))
-  scorediff_list.sort()
+  direcs = arg_utils.parse_compare_directions(compare_directions)
 
-  reporter = reporters.SentenceExampleReport(report_length=report_length, scorediff_list=scorediff_list,
+  scorediff_lists=[]
+  for (left, right) in direcs:
+    scorediff_list = []
+    for i, (o1, o2, r) in enumerate(zip(outs[left], outs[right], ref)):
+      s1, str1 = scorer.score_sentence(r, o1)
+      s2, str2 = scorer.score_sentence(r, o2)
+      scorediff_list.append((s2-s1, s1, s2, str1, str2, i))
+    scorediff_list.sort()
+    scorediff_lists.append(scorediff_list)
+
+  reporter = reporters.SentenceExampleReport(report_length=report_length, scorediff_lists=scorediff_lists,
                                              scorer_name=scorer.name(),
-                                             ref=ref, out1=out1, out2=out2)
+                                             ref=ref, outs=outs,
+                                             compare_directions=direcs)
   reporter.generate_report()
   return reporter 
-  # print(f'--- {report_length} sentences where Sys1>Sys2 at {sname}')
-  # for bdiff, s1, s2, str1, str2, i in scorediff_list[:report_length]:
-  #   print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
-  # print(f'--- {report_length} sentences where Sys2>Sys1 at {sname}')
-  # for bdiff, s1, s2, str1, str2, i in scorediff_list[-report_length:]:
-  #   print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
 
 if __name__ == '__main__':
 
@@ -284,12 +284,14 @@ if __name__ == '__main__':
   )
   parser.add_argument('ref_file', type=str,
                       help='A path to a correct reference file')
-  parser.add_argument('out1_file', type=str,
-                      help='A path to a system output')
-  parser.add_argument('out2_file', type=str,
-                      help='A path to another system output')
+  parser.add_argument('out_files', type=str, nargs='+',
+                      help='Paths to system outputs')
   parser.add_argument('--src_file', type=str, default=None,
                       help='A path to the source file')
+  parser.add_argument('--ref_align_file', type=str, default=None,
+                      help='A path to a reference alignment file')
+  parser.add_argument('--out_align_files', type=str, nargs='+', default=None,
+                      help='Path to system alignment files')
   parser.add_argument('--compare_scores', type=str, nargs='*',
                       default=['score_type=bleu', 'score_type=length'],
                       help="""
@@ -305,7 +307,7 @@ if __name__ == '__main__':
   parser.add_argument('--compare_src_word_accuracies', type=str, nargs='*',
                       default=None,
                       help="""
-                      Source analysis. Can specify arguments in 'ref_align=file1,out1_align=file2,out2_align=file3,...' format.
+                      Source analysis. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_src_word_accuracy_report' to see which arguments are available.
                       """)
   parser.add_argument('--compare_sentence_buckets', type=str, nargs='*',
@@ -336,52 +338,57 @@ if __name__ == '__main__':
                       help='the file name of the latex report')
   args = parser.parse_args()
 
-  ref, out1, out2 = [corpus_utils.load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
-  src = corpus_utils.load_tokens(args.src_file) if args.src_file else None
+  ref = corpus_utils.load_tokens(args.ref_file)
+  outs = [corpus_utils.load_tokens(x) for x in args.out_files]
+
+
   reports = []
 
   # Aggregate scores
   if args.compare_scores:
     for profile in args.compare_scores:
       kargs = arg_utils.parse_profile(profile)
-      report = generate_score_report(ref, out1, out2, **kargs)
+      report = generate_score_report(ref, outs, **kargs)
       reports.append(report)
 
   # Word accuracy analysis
   if args.compare_word_accuracies:
     for profile in args.compare_word_accuracies:
       kargs = arg_utils.parse_profile(profile)
-      report = generate_word_accuracy_report(ref, out1, out2, **kargs)
+      report = generate_word_accuracy_report(ref, outs, **kargs)
       reports.append(report)
 
   # Source word analysis
   if args.compare_src_word_accuracies:
-    if not src:
-      raise ValueError("Must specify the source file when performing source analysis.")
+    if not args.src_file or not args.ref_align_file or not args.out_align_files:
+      raise ValueError("Must specify the source and the alignment files when performing source analysis.")
+    src = corpus_utils.load_tokens(args.src_file) 
+    ref_align = corpus_utils.load_tokens(args.ref_align_file) 
+    out_aligns = [corpus_utils.load_tokens(x) for x in args.out_align_files] 
     for profile in args.compare_src_word_accuracies:
       kargs = arg_utils.parse_profile(profile)
-      report = generate_src_word_accuracy_report(src, ref, out1, out2, **kargs)
+      report = generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns, **kargs)
       reports.append(report)
 
   # Sentence count analysis
   if args.compare_sentence_buckets:
     for profile in args.compare_sentence_buckets:
       kargs = arg_utils.parse_profile(profile)
-      report = generate_sentence_bucketed_report(ref, out1, out2, **kargs)
+      report = generate_sentence_bucketed_report(ref, outs, **kargs)
       reports.append(report)
 
   # n-gram difference analysis
   if args.compare_ngrams:  
     for profile in args.compare_ngrams:
       kargs = arg_utils.parse_profile(profile)
-      report = generate_ngram_report(ref, out1, out2, **kargs)
+      report = generate_ngram_report(ref, outs, **kargs)
       reports.append(report)
 
   # Sentence example analysis
   if args.compare_sentence_examples:
     for profile in args.compare_sentence_examples:
       kargs = arg_utils.parse_profile(profile)
-      report = generate_sentence_examples(ref, out1, out2, **kargs)
+      report = generate_sentence_examples(ref, outs, **kargs)
       reports.append(report)
 
   # Write all reports into a single html file 

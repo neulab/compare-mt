@@ -85,18 +85,17 @@ If you have a source corpus that is aligned to the target, you can also analyze 
 source language words, which would allow you to examine whether, for example, infrequent words on the source side are
 hard to output properly. Here is an example using the example data:
 
-    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk
-        --compare_src_word_accuracies ref_align=example/ted.ref.align,out1_align=example/ted.sys1.align,out2_align=example/ted.sys2.align
+    python compare_mt.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk --ref_align_file example/ted.ref.align --out_align_files example/ted.sys1.align example/ted.sys2.align --compare_src_word_accuracies bucket_type=freq 
 
 ### Analyzing Word Likelihoods
 
 If you wish to analyze the word log likelihoods by two systems on the target corpus, you can use the following
 
-    python compare_ll.py --ref example/ll_test.txt --ll1-file example/ll_test.sys1.likelihood --ll2-file example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=freq,freq_corpus_file=example/ll_test.txt
+    python compare_ll.py --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=freq,freq_corpus_file=example/ll_test.txt
 
 You can analyze the word log likelihoods over labels for each word instead of the words themselves:
 
-    python compare_ll.py --ref example/ll_test.txt --ll1-file example/ll_test.sys1.likelihood --ll2-file example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=label,label_corpus=example/ll_test.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
+    python compare_ll.py --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=label,label_corpus=example/ll_test.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
 
 NOTE: You can also use the above to also analyze the word likelihoods produced by two language models.
 
