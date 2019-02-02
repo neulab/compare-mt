@@ -327,12 +327,11 @@ def main():
                       Compare sentences. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_sentence_examples' to see which arguments are available.
                       """)
-  parser.add_argument('--output_directory', type=str, default='outputs',
-                      help='a path to the directory that saves all the report outputs')
-  parser.add_argument('--output_html_file', type=str, default='report.html',
-                      help='the file name of the html report')
-  parser.add_argument('--output_latex_file', type=str, default='report.tex',
-                      help='the file name of the latex report')
+  parser.add_argument('--output_directory', type=str, default=None,
+                      help="""
+                      A path to a directory where a graphical report will be saved. Open index.html in the directory
+                      to read the report.
+                      """)
   args = parser.parse_args()
 
   ref, out1, out2 = [corpus_utils.load_tokens(x) for x in (args.ref_file, args.out1_file, args.out2_file)]
@@ -383,12 +382,9 @@ def main():
       report = generate_sentence_examples(ref, out1, out2, **kargs)
       reports.append(report)
 
-  # Write all reports into a single html file 
-  reporters.generate_html_report(reports, args.output_html_file, args.output_directory)
-
-  # Write all reports into a latex file 
-  reporters.generate_latex_report(reports, args.output_latex_file, args.output_directory)
-
+  # Write all reports into a single html file
+  if args.output_directory != None:
+    reporters.generate_html_report(reports, args.output_directory)
 
 if __name__ == '__main__':
   main()

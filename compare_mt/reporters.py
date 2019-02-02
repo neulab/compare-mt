@@ -17,9 +17,6 @@ class Report:
   def plot(self, output_directory, output_fig_file, output_fig_type):
     raise NotImplementedError('plot must be implemented in subclasses of Report')
 
-  def write_html(self, output_directory, output_html_file):
-    raise NotImplementedError('write_html must be implemented in subclasses of Report')
-
   def print_header(self, header):
     print(f'********************** {header} ************************')
 
@@ -361,7 +358,7 @@ def html_table(table, caption=None):
   html += '\n</table>\n <br>'
   return html
 
-def generate_html_report(reports, output_html_file, output_directory):
+def generate_html_report(reports, output_directory):
   content = []
   for r in reports:
     content.append(r.html_content(output_directory))
@@ -369,10 +366,7 @@ def generate_html_report(reports, output_html_file, output_directory):
   
   if not os.path.exists(output_directory):
         os.makedirs(output_directory)
-  output_file = os.path.join(output_directory, output_html_file)
+  output_file = os.path.join(output_directory, 'index.html')
   with open(output_file, 'w') as f:
     message = f'<html>\n<h1>compare_mt.py Analysis Report</h1>\n<body>\n {content} \n</body>\n</html>' 
     f.write(message)
-
-def generate_latex_report(reports, output_latex_file, output_directory):
-  pass 
