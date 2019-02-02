@@ -1,9 +1,42 @@
 import matplotlib
 from matplotlib import pyplot as plt 
-plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'sans-serif'
 import numpy as np
 import os
+
+css_style = """
+html {
+  font-family: sans-serif;
+}
+
+table, th, td {
+  border: 1px solid black;
+}
+
+th, td {
+  padding: 2px;
+}
+
+tr:hover {background-color: #f5f5f5;}
+
+tr:nth-child(even) {background-color: #f2f2f2;}
+
+th {
+  background-color: #396AB1;
+  color: white;
+}
+
+caption {
+  font-size: 14pt;
+  font-weight: bold;
+}
+
+table {
+  border-collapse: collapse;
+}
+"""
+
+bar_colors = ["#7293CB", "#E1974C", "#84BA5B", "#D35E60", "#808585", "#9067A7", "#AB6857", "#CCC210"]
 
 
 class Report: 
@@ -88,8 +121,8 @@ class ScoreReport(Report):
 
     ax.set_title('Aggregate Scores')
     ind = np.arange(len(sys1))
-    p1 = ax.bar(ind, sys1, width, color='r', bottom=0, yerr=sys1_err)
-    p2 = ax.bar(ind+width, sys2, width, color='#f4e604', bottom=0, yerr=sys2_err)
+    p1 = ax.bar(ind, sys1, width, color=bar_colors[0], bottom=0, yerr=sys1_err)
+    p2 = ax.bar(ind+width, sys2, width, color=bar_colors[1], bottom=0, yerr=sys2_err)
     ax.set_xticks(ind + width / 2)
     ax.set_xticklabels(xlabel)
 
@@ -118,9 +151,7 @@ class ScoreReport(Report):
                 f"[{sys1_stats['lower_bound']:.3f},{sys1_stats['upper_bound']:.3f}]", 
                 f"[{sys2_stats['lower_bound']:.3f},{sys2_stats['upper_bound']:.3f}]"]]
       html += html_table(table, caption='Significance Test') 
-    # create the figure if it does not exist
-    if not os.path.exists(os.path.join(output_directory, f'{self.output_fig_file}.png')):
-      self.plot(output_directory, self.output_fig_file, 'png')
+    self.plot(output_directory, self.output_fig_file, 'png')
     html += f'<img src="{self.output_fig_file}.png" alt="Aggregate Scores"> <br>'
     return html
     
@@ -165,8 +196,8 @@ class WordReport(Report):
       fig, ax = plt.subplots()
       # ax.set_title(f'Word Accuracy Analysis: {at}')
       ind = np.arange(len(sys1))
-      p1 = ax.bar(ind, sys1, width, color='r', bottom=0)
-      p2 = ax.bar(ind+width, sys2, width, color='#f4e604', bottom=0)
+      p1 = ax.bar(ind, sys1, width, color=bar_colors[0], bottom=0)
+      p2 = ax.bar(ind+width, sys2, width, color=bar_colors[1], bottom=0)
       ax.set_xticks(ind + width / 2)
       ax.set_xticklabels(xlabel)
       plt.xticks(rotation=30)
@@ -183,8 +214,7 @@ class WordReport(Report):
     bucketer, matches1, matches2, acc_type, header = self.bucketer, self.matches1, self.matches2, self.acc_type, self.header
     acc_types = acc_type.split('+') 
     
-    if self.output_fig_format != 'png' or os.path.exists(os.join(output_directory, f'{self.output_fig_file}-{acc_type[0]}.png')):
-      self.plot(output_directory, self.output_fig_file, 'png')
+    self.plot(output_directory, self.output_fig_file, 'png')
 
     html = ''
     for at in acc_types:
@@ -275,8 +305,8 @@ class SentenceReport(Report):
 
     fig, ax = plt.subplots()
     ind = np.arange(len(sys1))
-    p1 = ax.bar(ind, sys1, width, color='r', bottom=0)
-    p2 = ax.bar(ind+width, sys2, width, color='#f4e604', bottom=0)
+    p1 = ax.bar(ind, sys1, width, color=bar_colors[0], bottom=0)
+    p2 = ax.bar(ind+width, sys2, width, color=bar_colors[1], bottom=0)
     ax.set_xticks(ind + width / 2)
     ax.set_xticklabels(xlabel)
     plt.xticks(rotation=45)
@@ -294,9 +324,7 @@ class SentenceReport(Report):
     table = [[bucket_type, 'Sys1', 'Sys2']]
     table.extend([[bs, f'{s1:.4f}', f'{s2:.4f}'] for bs, s1, s2 in zip(bucketer.bucket_strs, stats1, stats2)])
     html = html_table(table, caption)
-    # create the figure if it does not exist
-    if not os.path.exists(os.path.join(output_directory, f'{self.output_fig_file}.png')):
-      self.plot(output_directory, self.output_fig_file, 'png')
+    self.plot(output_directory, self.output_fig_file, 'png')
     html += f'<img src="{self.output_fig_file}.png" alt="Sentence Bucket Analysis"> <br>'
     return html 
 
@@ -364,7 +392,12 @@ def generate_html_report(reports, output_directory):
   
   if not os.path.exists(output_directory):
         os.makedirs(output_directory)
-  output_file = os.path.join(output_directory, 'index.html')
-  with open(output_file, 'w') as f:
-    message = f'<html>\n<h1>compare_mt.py Analysis Report</h1>\n<body>\n {content} \n</body>\n</html>' 
+  html_file = os.path.join(output_directory, 'index.html')
+  with open(html_file, 'w') as f:
+    message = (f'<html>\n<head>\n<link rel="stylesheet" href="compare_mt.css">\n</head>\n'+
+               f'\n<body>\n<h1>compare_mt.py Analysis Report</h1>\n {content} \n</body>\n</html>')
     f.write(message)
+  css_file = os.path.join(output_directory, 'compare_mt.css')
+  with open(css_file, 'w') as f:
+    f.write(css_style)
+  

@@ -1,6 +1,10 @@
 <html>
-<h1>compare_mt.py Analysis Report</h1>
+<head>
+<link rel="stylesheet" href="compare_mt.css">
+</head>
+
 <body>
+<h1>compare_mt.py Analysis Report</h1>
  <h2>Aggregate Scores</h2>
 <table border="1">
 <caption> BLEU </caption><th> Sys1 </th>
@@ -8,14 +12,13 @@
   <td> 0.2403 </td> </tr>
 </table>
  <br><img src="score-bleu-0.png" alt="Aggregate Scores"> <br>
-<h2>Aggregate Scores</h2>
 <table border="1">
 <caption> length ratio </caption><th> Sys1 </th>
   <th> Sys2 </th><tr> <td> 0.9479 (ref=48183, out=45672) </td>
   <td> 0.9382 (ref=48183, out=45207) </td> </tr>
 </table>
  <br><img src="score-length-0.png" alt="Aggregate Scores"> <br>
-<h2>Word Accuracy Analysis</h2>
+<h2>Word Accuracies</h2>
 <table border="1">
 <caption> Word fmeas by frequency bucket </caption><th> frequency </th>
   <th> Sys1 </th>
@@ -40,32 +43,7 @@
   <td> 0.7585 </td> </tr>
 </table>
  <br><img src="word-acc-fmeas.png" alt="Word Accuracy Analysis">
-<h2>Word Accuracy Analysis</h2>
-<table border="1">
-<caption> Word fmeas by frequency bucket </caption><th> frequency </th>
-  <th> Sys1 </th>
-  <th> Sys2 </th><tr> <td> x < 1 </td>
-  <td> 0.1005 </td>
-  <td> 0.0493 </td> </tr><tr> <td> x = 1 </td>
-  <td> 0.2226 </td>
-  <td> 0.0850 </td> </tr><tr> <td> x = 2 </td>
-  <td> 0.3430 </td>
-  <td> 0.1735 </td> </tr><tr> <td> x = 3 </td>
-  <td> 0.3644 </td>
-  <td> 0.2408 </td> </tr><tr> <td> x = 4 </td>
-  <td> 0.4364 </td>
-  <td> 0.1667 </td> </tr><tr> <td> 5 <= x < 10 </td>
-  <td> 0.3664 </td>
-  <td> 0.2012 </td> </tr><tr> <td> 10 <= x < 100 </td>
-  <td> 0.4843 </td>
-  <td> 0.3880 </td> </tr><tr> <td> 100 <= x < 1000 </td>
-  <td> 0.5482 </td>
-  <td> 0.5160 </td> </tr><tr> <td> 1000 < x </td>
-  <td> 0.6377 </td>
-  <td> 0.6485 </td> </tr>
-</table>
- <br><img src="word-acc-fmeas.png" alt="Word Accuracy Analysis">
-<h2>Sentence Bucket Analysis</h2>
+<h2>Sentence Buckets</h2>
 <table border="1">
 <caption> bucket_type=score, statistic_type=count, score_measure=sentbleu </caption><th> score </th>
   <th> Sys1 </th>
@@ -92,7 +70,6 @@
   <td> 44.0000 </td> </tr>
 </table>
  <br><img src="sentence-count-sentbleu.png" alt="Sentence Bucket Analysis"> <br>
-<h2>Sentence Bucket Analysis</h2>
 <table border="1">
 <caption> bucket_type=lengthdiff, statistic_type=count, score_measure=bleu </caption><th> lengthdiff </th>
   <th> Sys1 </th>
@@ -133,7 +110,6 @@
   <td> 9.0000 </td> </tr>
 </table>
  <br><img src="sentence-count-bleu.png" alt="Sentence Bucket Analysis"> <br>
-<h2>Sentence Bucket Analysis</h2>
 <table border="1">
 <caption> bucket_type=length, statistic_type=score, score_measure=bleu </caption><th> length </th>
   <th> Sys1 </th>
@@ -154,7 +130,7 @@
   <td> 0.2470 </td> </tr>
 </table>
  <br><img src="sentence-score-bleu.png" alt="Sentence Bucket Analysis"> <br>
-<h2>N-gram Difference Analysis</h2>
+<h2>Characteristic N-grams</h2>
 <p> min_ngram_length=1, max_ngram_length=4 </p><p> report_length=50, alpha=1.0, compare_type=match </p><table border="1">
 <caption> 50 n-grams that System 1 had higher match </caption><th> n-gram </th>
   <th> match </th>
@@ -177,13 +153,13 @@
   <td> 0 </td> </tr><tr> <td> Avelile </td>
   <td> 0.86 </td>
   <td> 5 </td>
+  <td> 0 </td> </tr><tr> <td> my mother . </td>
+  <td> 0.86 </td>
+  <td> 5 </td>
   <td> 0 </td> </tr><tr> <td> else happened </td>
   <td> 0.86 </td>
   <td> 5 </td>
   <td> 0 </td> </tr><tr> <td> And so </td>
-  <td> 0.86 </td>
-  <td> 5 </td>
-  <td> 0 </td> </tr><tr> <td> my mother . </td>
   <td> 0.86 </td>
   <td> 5 </td>
   <td> 0 </td> </tr><tr> <td> the fusiform </td>
@@ -192,43 +168,43 @@
   <td> 0 </td> </tr><tr> <td> file </td>
   <td> 0.83 </td>
   <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> mother . " </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> Oz </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> centers </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> rightness </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> fusiform </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> and so on </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> fine </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
   <td> 0 </td> </tr><tr> <td> so on </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> Center </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> the phantom </td>
   <td> 0.83 </td>
   <td> 4 </td>
   <td> 0 </td> </tr><tr> <td> viewer </td>
   <td> 0.83 </td>
   <td> 4 </td>
+  <td> 0 </td> </tr><tr> <td> fine </td>
+  <td> 0.83 </td>
+  <td> 4 </td>
+  <td> 0 </td> </tr><tr> <td> Oz </td>
+  <td> 0.83 </td>
+  <td> 4 </td>
   <td> 0 </td> </tr><tr> <td> mother . " " </td>
   <td> 0.83 </td>
   <td> 4 </td>
+  <td> 0 </td> </tr><tr> <td> and so on </td>
+  <td> 0.83 </td>
+  <td> 4 </td>
   <td> 0 </td> </tr><tr> <td> my mother . " </td>
+  <td> 0.83 </td>
+  <td> 4 </td>
+  <td> 0 </td> </tr><tr> <td> the phantom </td>
+  <td> 0.83 </td>
+  <td> 4 </td>
+  <td> 0 </td> </tr><tr> <td> mother . " </td>
+  <td> 0.83 </td>
+  <td> 4 </td>
+  <td> 0 </td> </tr><tr> <td> fusiform </td>
+  <td> 0.83 </td>
+  <td> 4 </td>
+  <td> 0 </td> </tr><tr> <td> Center </td>
+  <td> 0.83 </td>
+  <td> 4 </td>
+  <td> 0 </td> </tr><tr> <td> rightness </td>
+  <td> 0.83 </td>
+  <td> 4 </td>
+  <td> 0 </td> </tr><tr> <td> centers </td>
   <td> 0.83 </td>
   <td> 4 </td>
   <td> 0 </td> </tr><tr> <td> instead </td>
@@ -237,76 +213,76 @@
   <td> 1 </td> </tr><tr> <td> exchange </td>
   <td> 0.81 </td>
   <td> 12 </td>
-  <td> 2 </td> </tr><tr> <td> creativity can </td>
+  <td> 2 </td> </tr><tr> <td> excited </td>
   <td> 0.80 </td>
   <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> found that </td>
+  <td> 0 </td> </tr><tr> <td> the Bible </td>
   <td> 0.80 </td>
   <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> command </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> The point </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> lose the ability </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> of women </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> archive </td>
+  <td> 0 </td> </tr><tr> <td> 10 billion pixels </td>
   <td> 0.80 </td>
   <td> 3 </td>
   <td> 0 </td> </tr><tr> <td> stronger </td>
   <td> 0.80 </td>
   <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> so on . </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> beautifully </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
   <td> 0 </td> </tr><tr> <td> Yeah </td>
   <td> 0.80 </td>
   <td> 7 </td>
-  <td> 1 </td> </tr><tr> <td> phantom limbs </td>
+  <td> 1 </td> </tr><tr> <td> fishermen </td>
   <td> 0.80 </td>
   <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> . The </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> amygdala </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> stroke </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> Limpopo </td>
+  <td> 0 </td> </tr><tr> <td> Galton </td>
   <td> 0.80 </td>
   <td> 3 </td>
   <td> 0 </td> </tr><tr> <td> pixels </td>
   <td> 0.80 </td>
   <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> abuse of women </td>
+  <td> 0 </td> </tr><tr> <td> amygdala </td>
   <td> 0.80 </td>
   <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> Bible </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> lose the ability to </td>
+  <td> 0 </td> </tr><tr> <td> command </td>
   <td> 0.80 </td>
   <td> 3 </td>
   <td> 0 </td> </tr><tr> <td> Beth </td>
   <td> 0.80 </td>
   <td> 3 </td>
+  <td> 0 </td> </tr><tr> <td> abuse of women </td>
+  <td> 0.80 </td>
+  <td> 3 </td>
+  <td> 0 </td> </tr><tr> <td> lose the ability to </td>
+  <td> 0.80 </td>
+  <td> 3 </td>
+  <td> 0 </td> </tr><tr> <td> lose the ability </td>
+  <td> 0.80 </td>
+  <td> 3 </td>
   <td> 0 </td> </tr><tr> <td> fusiform gyrus </td>
+  <td> 0.80 </td>
+  <td> 3 </td>
+  <td> 0 </td> </tr><tr> <td> Carter Center </td>
   <td> 0.80 </td>
   <td> 3 </td>
   <td> 0 </td> </tr><tr> <td> address </td>
   <td> 0.80 </td>
   <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> WikiLeaks </td>
+  <td> 0 </td> </tr><tr> <td> Limpopo </td>
+  <td> 0.80 </td>
+  <td> 3 </td>
+  <td> 0 </td> </tr><tr> <td> beautifully </td>
+  <td> 0.80 </td>
+  <td> 3 </td>
+  <td> 0 </td> </tr><tr> <td> exactly like </td>
+  <td> 0.80 </td>
+  <td> 3 </td>
+  <td> 0 </td> </tr><tr> <td> . The </td>
+  <td> 0.80 </td>
+  <td> 3 </td>
+  <td> 0 </td> </tr><tr> <td> fun </td>
+  <td> 0.80 </td>
+  <td> 3 </td>
+  <td> 0 </td> </tr><tr> <td> Beth Israel </td>
+  <td> 0.80 </td>
+  <td> 3 </td>
+  <td> 0 </td> </tr><tr> <td> like my mother </td>
   <td> 0.80 </td>
   <td> 3 </td>
   <td> 0 </td> </tr>
@@ -315,160 +291,160 @@
 <caption> 50 n-grams that System 2 had higher match </caption><th> n-gram </th>
   <th> match </th>
   <th> Sys1 </th>
-  <th> Sys2 </th><tr> <td> phantom </td>
-  <td> 0.95 </td>
-  <td> 34 </td>
-  <td> 1 </td> </tr><tr> <td> Amy </td>
-  <td> 0.91 </td>
-  <td> 9 </td>
-  <td> 0 </td> </tr><tr> <td> , who </td>
-  <td> 0.90 </td>
-  <td> 8 </td>
-  <td> 0 </td> </tr><tr> <td> my mother </td>
-  <td> 0.89 </td>
-  <td> 7 </td>
-  <td> 0 </td> </tr><tr> <td> something else happened </td>
-  <td> 0.86 </td>
-  <td> 5 </td>
-  <td> 0 </td> </tr><tr> <td> Avelile </td>
-  <td> 0.86 </td>
-  <td> 5 </td>
-  <td> 0 </td> </tr><tr> <td> else happened </td>
-  <td> 0.86 </td>
-  <td> 5 </td>
-  <td> 0 </td> </tr><tr> <td> And so </td>
-  <td> 0.86 </td>
-  <td> 5 </td>
-  <td> 0 </td> </tr><tr> <td> my mother . </td>
-  <td> 0.86 </td>
-  <td> 5 </td>
-  <td> 0 </td> </tr><tr> <td> the fusiform </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> file </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> mother . " </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> Oz </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> centers </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> rightness </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> fusiform </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> and so on </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> fine </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> so on </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> Center </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> the phantom </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> viewer </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> mother . " " </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> my mother . " </td>
-  <td> 0.83 </td>
-  <td> 4 </td>
-  <td> 0 </td> </tr><tr> <td> instead </td>
-  <td> 0.82 </td>
-  <td> 8 </td>
-  <td> 1 </td> </tr><tr> <td> exchange </td>
-  <td> 0.81 </td>
-  <td> 12 </td>
-  <td> 2 </td> </tr><tr> <td> creativity can </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> found that </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> command </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> The point </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> lose the ability </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> of women </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> archive </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> stronger </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> so on . </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> beautifully </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> Yeah </td>
-  <td> 0.80 </td>
-  <td> 7 </td>
-  <td> 1 </td> </tr><tr> <td> phantom limbs </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> . The </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> amygdala </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> stroke </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> Limpopo </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> pixels </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> abuse of women </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> Bible </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> lose the ability to </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> Beth </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> fusiform gyrus </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> address </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr><tr> <td> WikiLeaks </td>
-  <td> 0.80 </td>
-  <td> 3 </td>
-  <td> 0 </td> </tr>
+  <th> Sys2 </th><tr> <td> going to show you </td>
+  <td> 0.12 </td>
+  <td> 0 </td>
+  <td> 6 </td> </tr><tr> <td> going to show </td>
+  <td> 0.12 </td>
+  <td> 0 </td>
+  <td> 6 </td> </tr><tr> <td> Is it </td>
+  <td> 0.14 </td>
+  <td> 0 </td>
+  <td> 5 </td> </tr><tr> <td> Is </td>
+  <td> 0.14 </td>
+  <td> 0 </td>
+  <td> 5 </td> </tr><tr> <td> hemisphere </td>
+  <td> 0.14 </td>
+  <td> 0 </td>
+  <td> 5 </td> </tr><tr> <td> , because the </td>
+  <td> 0.14 </td>
+  <td> 0 </td>
+  <td> 5 </td> </tr><tr> <td> 't even </td>
+  <td> 0.14 </td>
+  <td> 0 </td>
+  <td> 5 </td> </tr><tr> <td> 'm going to show </td>
+  <td> 0.14 </td>
+  <td> 0 </td>
+  <td> 5 </td> </tr><tr> <td> left hemisphere </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> the camera </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> : Okay </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> the light </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> years old </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> process of </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> the presence of </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> : Okay , </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> presence of </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> the process </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> the present </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> yet </td>
+  <td> 0.17 </td>
+  <td> 0 </td>
+  <td> 4 </td> </tr><tr> <td> how do </td>
+  <td> 0.18 </td>
+  <td> 1 </td>
+  <td> 8 </td> </tr><tr> <td> with a </td>
+  <td> 0.18 </td>
+  <td> 1 </td>
+  <td> 8 </td> </tr><tr> <td> the surgeon </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> AG : Okay </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> I was a </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> core of the </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> a little bit </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> going to be </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> act </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> don 't even </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> don 't have to </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> if they </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> a very early </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> a computer mouse </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> , he </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> the panels </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> , as if </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> that . </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> to show you </td>
+  <td> 0.20 </td>
+  <td> 1 </td>
+  <td> 7 </td> </tr><tr> <td> little bit </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> death penalty </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> penalty </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> the kids </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> a computer </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> it doesn 't </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> to show </td>
+  <td> 0.20 </td>
+  <td> 1 </td>
+  <td> 7 </td> </tr><tr> <td> AG : Okay , </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> lots </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> the puzzle </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr><tr> <td> , all the </td>
+  <td> 0.20 </td>
+  <td> 0 </td>
+  <td> 3 </td> </tr>
 </table>
  <br>
-<h2>Sentence Example Analysis</h2>
+<h2>Sentence Examples</h2>
 <h4> 10 sentences where Sys1>Sys2 at sentence-level BLEU </h4><table border="1">
 <caption> sys2-sys1=-0.81, sys1=1.00, sys2=0.19 </caption><th> Ref </th>
   <th> That 's exciting in itself . </th><tr> <td> Sys1 </td>

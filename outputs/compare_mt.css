@@ -1,0 +1,30 @@
+
+html {
+  font-family: sans-serif;
+}
+
+table, th, td {
+  border: 1px solid black;
+}
+
+th, td {
+  padding: 2px;
+}
+
+tr:hover {background-color: #f5f5f5;}
+
+tr:nth-child(even) {background-color: #f2f2f2;}
+
+th {
+  background-color: #396AB1;
+  color: white;
+}
+
+caption {
+  font-size: 14pt;
+  font-weight: bold;
+}
+
+table {
+  border-collapse: collapse;
+}
