@@ -1,4 +1,5 @@
 import matplotlib
+matplotlib.use('agg')
 from matplotlib import pyplot as plt 
 plt.rcParams['font.family'] = 'sans-serif'
 import numpy as np
@@ -74,7 +75,7 @@ def make_bar_chart(datas,
     ax.xaxis.set_visible(False) 
 
   if sysnames is None:
-    sysnames = [f'Sys{i+1}' for (i, x) in enumerate(datas)]
+    sysnames = [f'Sys{i}' for (i, x) in enumerate(datas)]
   ax.legend(bars, sysnames)
   ax.autoscale_view()
 
@@ -117,94 +118,107 @@ class Report:
       self.plot(output_directory, output_fig_file, output_fig_format)
 
 class ScoreReport(Report):
-  def __init__(self, scorer_name, score1, str1, score2, str2, 
-               wins=None, sys1_stats=None, sys2_stats=None):
+  def __init__(self, scorer_name, scores, strs, 
+               wins=None, sys_stats=None, compare_directions=None):
     self.scorer_name = scorer_name 
-    self.score1 = score1
-    self.str1 = str1 
-    self.score2 = score2 
-    self.str2 = str2 
-    self.sys1_stats = sys1_stats 
-    self.sys2_stats = sys2_stats 
+    self.scores = scores
+    self.strs = strs
     self.wins = wins
+    self.sys_stats = sys_stats 
+    self.compare_directions = compare_directions
     self.output_fig_file = None
 
   def print(self):
     self.print_header('Aggregate Scores')
     print(f'{self.scorer_name}:')
-    if self.str1 is not None:
-      print(f' Sys1: {self.score1} ({self.str1})\n Sys2: {self.score2} ({self.str2})')
-    else:
-      print(f' Sys1: {self.score1}\n Sys2: {self.score2}')
-
+    for i, (score, string) in enumerate(zip(self.scores, self.strs)):
+      if string is not None:
+        print(f' Sys{i}: {score} ({string})')
+      else:
+        print(f' Sys{i}: {score}')
+      
     if self.wins is not None:
       print('Significance test.')
-      wins, sys1_stats, sys2_stats = self.wins, self.sys1_stats, self.sys2_stats
-      print('Win ratio: Sys1=%.3f, Sys2=%.3f, tie=%.3f' % (wins[0], wins[1], wins[2]))
-      if wins[0] > wins[1]:
-        print('(Sys1 is superior with p value p=%.3f)\n' % (1-wins[0]))
-      elif wins[1] > wins[0]:
-        print('(Sys2 is superior with p value p=%.3f)\n' % (1-wins[1]))
+      wins, sys_stats = self.wins, self.sys_stats
+      for i, (win, (left, right)) in enumerate(zip(wins, self.compare_directions)):
+        print(f'Win ratio: Sys{left}={win[0]:.3f}, Sys{right}={win[1]:.3f}, tie={win[2]:.3f}')
+        if win[0] > win[1]:
+          print(f'(Sys{left} is superior to Sys{right} with p value p={(1-win[0]):.3f})')
+        elif win[1] > win[0]:
+          print(f'(Sys{right} is superior to Sys{left} with p value p={(1-win[1]):.3f})')
 
-      print('Sys1: mean=%.3f, median=%.3f, 95%% confidence interval=[%.3f, %.3f]' %
-              (sys1_stats['mean'], sys1_stats['median'], sys1_stats['lower_bound'], sys1_stats['upper_bound']))
-      print('Sys2: mean=%.3f, median=%.3f, 95%% confidence interval=[%.3f, %.3f]' %
-              (sys2_stats['mean'], sys2_stats['median'], sys2_stats['lower_bound'], sys2_stats['upper_bound']))
-    print()
+      for i, sys_stat in enumerate(sys_stats):
+        print(f'Sys{i}: mean={sys_stat["mean"]:.3f}, median={sys_stat["median"]:.3f}, 95%% confidence interval=[{sys_stat["lower_bound"]:.3f}, {sys_stat["upper_bound"]:.3f}]') 
+      print()
     
   def plot(self, output_directory='outputs', output_fig_file='score', output_fig_format='pdf'):
     self.output_fig_file = output_fig_file
     if self.wins is not None:
-      wins, sys1_stats, sys2_stats = self.wins, self.sys1_stats, self.sys2_stats
-      mean, lrb, urb = sys1_stats['mean'], sys1_stats['lower_bound'], sys1_stats['upper_bound']
-      sys1 = [self.score1, mean, sys1_stats['median']]
-      N = len(sys1)
-      sys1_err = np.zeros((2, N))
-      sys1_err[0, 0] = self.score1 - lrb 
-      sys1_err[1, 0] = urb - self.score1
-      mean, lrb, urb = sys2_stats['mean'], sys2_stats['lower_bound'], sys2_stats['upper_bound']
-      sys2 = [self.score2, sys2_stats['mean'], sys2_stats['median']]
-      sys2_err = np.zeros((2, N))
-      sys2_err[0, 0] = self.score2 - lrb 
-      sys2_err[1, 0] = urb - self.score2
+      wins, sys_stats = self.wins, self.sys_stats
+      mean, lrb, urb = [], [], []
+      sys, sys_errs = [], []
+      for i, sys_stat in enumerate(sys_stats):
+        mean.append(sys_stat['mean'])
+        lrb.append(sys_stat['lower_bound'])
+        urb.append(sys_stat['upper_bound'])
+        sys.append([self.scores[i], sys_stat['mean'], sys_stat['median']])
+        N = len(sys[-1])
+        sys_err = np.zeros((2, N))
+        sys_err[0, 0] = self.scores[i] - lrb[-1] 
+        sys_err[1, 0] = urb[-1] - self.scores[i]
+        sys_errs.append(sys_err)
       xticklabels = [self.scorer_name, 'Bootstrap Mean', 'Bootstrap Median']
     else:
-      sys1 = [self.score1]
-      sys2 = [self.score2]
-      sys1_err = sys2_err = None
+      sys = [[score] for score in self.scores]
+      sys_errs = None
       xticklabels = None
 
-    make_bar_chart([sys1, sys2],
+    make_bar_chart(sys,
                    output_directory, output_fig_file, output_fig_format=output_fig_format,
-                   errs=[sys1_err, sys2_err], title='Score Comparison', ylabel=self.scorer_name,
+                   errs=sys_errs, title='Score Comparison', ylabel=self.scorer_name,
                    xticklabels=xticklabels)
     
   def html_content(self, output_directory):
-    table = [['Sys1', 'Sys2']]
-    if self.str1 is not None:
-      table.append([f'{self.score1:.4f} ({self.str1})', f'{self.score2:.4f} ({self.str2})'])
-    else:
-      table.append([f'{self.score1:.4f} ', f'{self.score2:.4f}'])
+    line = []
+    for i in range(len(self.scores)):
+      line.append(f'Sys{i}')
+    table = [line]
+    for i, (score, string) in enumerate(zip(self.scores, self.strs)):
+      if string is not None:
+        line.append(f' Sys{i}: {score:.4f} ({string})')
+      else:
+        line.append(f' Sys{i}: {score:.4f}')
+    table.append(line)
     html = html_table(table, caption=self.scorer_name)
     if self.wins is not None:
-      wins, sys1_stats, sys2_stats = self.wins, self.sys1_stats, self.sys2_stats
-      table = [['Metric', 'Sys1', 'Sys2'],
-               ['Win ratio', f'{wins[0]:.3f}', f'{wins[1]:.3f}'],
-               ['Mean', f"{sys1_stats['mean']:.3f}", f"{sys2_stats['mean']:.3f}"],
-               ['Median', f"{sys1_stats['median']:.3f}", f"{sys2_stats['median']:.3f}"],
-               ['95% confidence interval', 
-                f"[{sys1_stats['lower_bound']:.3f},{sys1_stats['upper_bound']:.3f}]", 
-                f"[{sys2_stats['lower_bound']:.3f},{sys2_stats['upper_bound']:.3f}]"]]
-      html += html_table(table, caption='Significance Test') 
+      wins, sys_stats = self.wins, self.sys_stats
+      table = []
+      name = ['Metric']
+      mean = ['Mean']
+      median = ['Median']
+      interval = ['95% confidence interval']
+      for i, sys_stat in enumerate(sys_stats):
+        name.append(f'Sys{i}')
+        mean.append(f'{sys_stat["mean"]:.3f}')
+        median.append(f'{sys_stat["median"]:.3f}')
+        interval.append(f'[{sys_stat["lower_bound"]:.3f},{sys_stat["upper_bound"]:.3f}]')
+      table = [name, mean, median, interval]
+      html += html_table(table, caption='Score Statistics') 
+      table = []
+      for i, (left, right) in enumerate(self.compare_directions):
+        name = ['System names', f'Sys{left}', f'Sys{right}']
+        win = ['Win ratio', f'{self.wins[i][0]:.3f}', f'{self.wins[i][1]:.3f}']
+        table.append(name)
+        table.append(win)
+      html += html_table(table, caption='Significance Test', first_line_bold=False) 
     self.plot(output_directory, self.output_fig_file, 'png')
     html += html_img_reference(self.output_fig_file, 'Score Comparison')
     return html
     
 class WordReport(Report):
-  def __init__(self, bucketer, matches1, matches2, acc_type, header):
+  def __init__(self, bucketer, matches, acc_type, header):
     self.bucketer = bucketer
-    self.matches1 = [m for m in matches1]
-    self.matches2 = [m for m in matches2]
+    self.matches = [[m for m in match] for match in matches]
     self.acc_type = acc_type
     self.header = header 
     self.acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
@@ -213,7 +227,7 @@ class WordReport(Report):
 
   def print(self):
     acc_type_map = self.acc_type_map
-    bucketer, matches1, matches2, acc_type, header = self.bucketer, self.matches1, self.matches2, self.acc_type, self.header
+    bucketer, matches, acc_type, header = self.bucketer, self.matches, self.acc_type, self.header
     self.print_header(header)
     acc_types = acc_type.split('+')
     for at in acc_types:
@@ -221,8 +235,11 @@ class WordReport(Report):
         raise ValueError(f'Unknown accuracy type {at}')
       aid = acc_type_map[at]
       print(f'--- word {acc_type} by {bucketer.name()} bucket')
-      for bucket_str, match1, match2 in zip(bucketer.bucket_strs, matches1, matches2):
-        print("{}\t{:.4f}\t{:.4f}".format(bucket_str, match1[aid], match2[aid]))
+      for i, bucket_str in enumerate(bucketer.bucket_strs):
+        print(f'{bucket_str}', end='')
+        for match in matches:
+          print(f'\t{match[i][aid]:.4f}', end='')
+        print()
       print()
 
   def plot(self, output_directory='outputs', output_fig_file='word-acc', output_fig_format='pdf'):
@@ -234,18 +251,17 @@ class WordReport(Report):
       if at not in self.acc_type_map:
         raise ValueError(f'Unknown accuracy type {at}')
       aid = self.acc_type_map[at]
-      sys1 = [match1[aid] for match1 in self.matches1]
-      sys2 = [match2[aid] for match2 in self.matches2]
+      sys = [[m[aid] for m in match] for match in self.matches]
       xticklabels = [s for s in self.bucketer.bucket_strs] 
 
-      make_bar_chart([sys1, sys2],
+      make_bar_chart(sys,
                      output_directory, output_fig_file, output_fig_format=output_fig_format,
                      title='Word Accuracy Comparison', ylabel=at,
                      xticklabels=xticklabels)
     
   def html_content(self, output_directory):
     acc_type_map = self.acc_type_map
-    bucketer, matches1, matches2, acc_type, header = self.bucketer, self.matches1, self.matches2, self.acc_type, self.header
+    bucketer, matches, acc_type, header = self.bucketer, self.matches, self.acc_type, self.header
     acc_types = acc_type.split('+') 
     
     self.plot(output_directory, self.output_fig_file, 'png')
@@ -256,23 +272,29 @@ class WordReport(Report):
         raise ValueError(f'Unknown accuracy type {at}')
       aid = acc_type_map[at]
       caption = f'Word {acc_type} by {bucketer.name()} bucket'
-      table = [[bucketer.name(), 'Sys1', 'Sys2']]
-      table += [[bs, f'{m1[aid]:.4f}', f'{m2[aid]:.4f}'] for bs, m1, m2 in zip(bucketer.bucket_strs, matches1, matches2)]
+      table = [[bucketer.name()]]
+      for i in range(len(matches)):
+        table[0].append(f'Sys{i}')
+      for i, bs in enumerate(bucketer.bucket_strs):
+        line = [bs]
+        for match in matches:
+          line.append(f'{match[i][aid]:.4f}')
+        table += [line] 
       html += html_table(table, caption)
       html += html_img_reference(f'{self.output_fig_file}-{at}', self.header)
     return html 
 
 class NgramReport(Report):
-  def __init__(self, scorelist, report_length, min_ngram_length, max_ngram_length, matches1, matches2, compare_type, alpha, label_files=None):
+  def __init__(self, scorelist, report_length, min_ngram_length, max_ngram_length, matches, compare_type, alpha, compare_directions=[(0, 1)], label_files=None):
     self.scorelist = scorelist
     self.report_length = report_length 
     self.min_ngram_length = min_ngram_length
     self.max_ngram_length = max_ngram_length
-    self.matches1 = matches1 
-    self.matches2 = matches2 
+    self.matches = matches
     self.compare_type = compare_type 
     self.label_files = label_files
     self.alpha = alpha
+    self.compare_directions = compare_directions
     self.output_fig_file = None
 
   def print(self):
@@ -283,13 +305,14 @@ class NgramReport(Report):
     if self.label_files is not None:
       print(self.label_files)
 
-    print(f'--- {report_length} n-grams that System 1 had higher {self.compare_type}')
-    for k, v in self.scorelist[:report_length]:
-      print('{}\t{} (sys1={}, sys2={})'.format(' '.join(k), v, self.matches1[k], self.matches2[k]))
-    print(f'\n--- {report_length} n-grams that System 2 had higher {self.compare_type}')
-    for k, v in reversed(self.scorelist[-report_length:]):
-      print('{}\t{} (sys1={}, sys2={})'.format(' '.join(k), v, self.matches1[k], self.matches2[k]))
-    print()
+    for i, (left, right) in enumerate(self.compare_directions):
+      print(f'--- {report_length} n-grams that System {left} had higher {self.compare_type}')
+      for k, v in self.scorelist[i][:report_length]:
+        print('{}\t{} (sys{}={}, sys{}={})'.format(' '.join(k), v, left, self.matches[left][k], right, self.matches[right][k]))
+      print(f'\n--- {report_length} n-grams that System {right} had higher {self.compare_type}')
+      for k, v in reversed(self.scorelist[i][-report_length:]):
+        print('{}\t{} (sys{}={}, sys{}={})'.format(' '.join(k), v, left, self.matches[left][k], right, self.matches[right][k]))
+      print()
 
   def plot(self, output_directory='outputs', output_fig_file='score', output_fig_format='pdf'):
     pass 
@@ -301,74 +324,83 @@ class NgramReport(Report):
     if self.label_files is not None:
       html += tag_str('p', self.label_files)
 
-    caption = f'{report_length} n-grams that System 1 had higher {self.compare_type}'
-    table = [['n-gram', self.compare_type, 'Sys1', 'Sys2']]
-    table.extend([[' '.join(k), f'{v:.2f}', self.matches1[k], self.matches2[k]] for k, v in self.scorelist[:report_length]])
-    html += html_table(table, caption)
+    for i, (left, right) in enumerate(self.compare_directions):
+      caption = f'{report_length} n-grams that System {left} had higher {self.compare_type}'
+      table = [['n-gram', self.compare_type, f'Sys{left}', f'Sys{right}']]
+      table.extend([[' '.join(k), f'{v:.2f}', self.matches[left][k], self.matches[right][k]] for k, v in self.scorelist[i][:report_length]])
+      html += html_table(table, caption)
 
-    caption = f'{report_length} n-grams that System 2 had higher {self.compare_type}'
-    table = [['n-gram', self.compare_type, 'Sys1', 'Sys2']]
-    table.extend([[' '.join(k), f'{v:.2f}', self.matches1[k], self.matches2[k]] for k, v in reversed(self.scorelist[-report_length:])])
-    html += html_table(table, caption)
+      caption = f'{report_length} n-grams that System {right} had higher {self.compare_type}'
+      table = [['n-gram', self.compare_type, f'Sys{left}', f'Sys{right}']]
+      table.extend([[' '.join(k), f'{v:.2f}', self.matches[left][k], self.matches[right][k]] for k, v in reversed(self.scorelist[i][-report_length:])])
+      html += html_table(table, caption)
     return html 
 
 class SentenceReport(Report):
-  def __init__(self, bucketer=None, bucket_type=None, sys1_stats=None, sys2_stats=None, statistic_type=None, score_measure=None):
+  def __init__(self, bucketer=None, bucket_type=None, sys_stats=None, statistic_type=None, score_measure=None):
     self.bucketer = bucketer
     self.bucket_type = bucket_type 
-    self.sys1_stats = [s for s in sys1_stats]
-    self.sys2_stats = [s for s in sys2_stats] 
+    self.sys_stats = [[s for s in stat] for stat in sys_stats]
     self.statistic_type = statistic_type
     self.score_measure = score_measure
     self.output_fig_file = None
 
   def print(self):
-    bucketer, stats1, stats2, bucket_type, statistic_type, score_measure = self.bucketer, self.sys1_stats, self.sys2_stats, self.bucket_type, self.statistic_type, self.score_measure
+    bucketer, stats, bucket_type, statistic_type, score_measure = self.bucketer, self.sys_stats, self.bucket_type, self.statistic_type, self.score_measure
     self.print_header('Sentence Bucket Analysis')
     print(f'--- bucket_type={bucket_type}, statistic_type={statistic_type}, score_measure={score_measure}')
-    for bs, s1, s2 in zip(bucketer.bucket_strs, stats1, stats2):
-      print(f'{bs}\t{s1}\t{s2}')
+    for i, bs in enumerate(bucketer.bucket_strs):
+      print(f'{bs}', end='')
+      for stat in stats:
+        print(f'\t{stat[i]}', end='')
+      print()
     print()
 
   def plot(self, output_directory='outputs', output_fig_file='word-acc', output_fig_format='pdf'):
     self.output_fig_file = output_fig_file
-    sys1 = self.sys1_stats
-    sys2 = self.sys2_stats
+    sys = self.sys_stats
     xticklabels = [s for s in self.bucketer.bucket_strs] 
 
-    make_bar_chart([sys1, sys2],
+    make_bar_chart(sys,
                    output_directory, output_fig_file, output_fig_format=output_fig_format,
                    title='Sentence Bucket Analysis', xlabel=self.bucket_type, ylabel=self.statistic_type,
                    xticklabels=xticklabels)
 
   def html_content(self, output_directory=None):
-    bucketer, stats1, stats2, bucket_type, statistic_type, score_measure = self.bucketer, self.sys1_stats, self.sys2_stats, self.bucket_type, self.statistic_type, self.score_measure
+    bucketer, stats, bucket_type, statistic_type, score_measure = self.bucketer, self.sys_stats, self.bucket_type, self.statistic_type, self.score_measure
     caption = (f'bucket_type={bucket_type}, statistic_type={statistic_type}, score_measure={score_measure}')
-    table = [[bucket_type, 'Sys1', 'Sys2']]
-    table.extend([[bs, f'{s1:.4f}', f'{s2:.4f}'] for bs, s1, s2 in zip(bucketer.bucket_strs, stats1, stats2)])
+    table = [[bucket_type]]
+    for i in range(len(stats)):
+      table[0].append(f'Sys{i}')
+    for i, bs in enumerate(bucketer.bucket_strs):
+      line = [bs]
+      for stat in stats:
+        line.append(f'{stat[i]:.4f}')
+      table.extend([line])
     html = html_table(table, caption)
     self.plot(output_directory, self.output_fig_file, 'png')
     html += html_img_reference(self.output_fig_file, 'Sentence Bucket Analysis')
     return html 
 
 class SentenceExampleReport(Report):
-  def __init__(self, report_length=None, scorediff_list=None, scorer_name=None, ref=None, out1=None, out2=None):
+  def __init__(self, report_length=None, scorediff_lists=None, scorer_name=None, ref=None, outs=None, compare_directions=[(0, 1)]):
     self.report_length = report_length 
-    self.scorediff_list = scorediff_list
+    self.scorediff_lists = scorediff_lists
     self.scorer_name = scorer_name
     self.ref = ref 
-    self.out1 = out1 
-    self.out2 = out2
+    self.outs = outs
+    self.compare_directions = compare_directions
 
   def print(self):
     report_length = self.report_length
-    ref, out1, out2 = self.ref, self.out1, self.out2
-    print(f'--- {report_length} sentences where Sys1>Sys2 at {self.scorer_name}')
-    for bdiff, s1, s2, str1, str2, i in self.scorediff_list[:report_length]:
-      print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
-    print(f'--- {report_length} sentences where Sys2>Sys1 at {self.scorer_name}')
-    for bdiff, s1, s2, str1, str2, i in self.scorediff_list[-report_length:]:
-      print ('sys2-sys1={}, sys1={}, sys2={}\nRef:  {}\nSys1: {}\nSys2: {}\n'.format(bdiff, s1, s2, ' '.join(ref[i]), ' '.join(out1[i]), ' '.join(out2[i])))
+    for cnt, (left, right) in enumerate(self.compare_directions):
+      ref, out1, out2 = self.ref, self.outs[left], self.outs[right]
+      print(f'--- {report_length} sentences where Sys{left}>Sys{right} at {self.scorer_name}')
+      for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
+        print ('sys{}-sys{}={}, sys{}={}, sys{}={}\nRef:  {}\nSys{}: {}\nSys{}: {}\n'.format(left, right, -bdiff, left, s1, right, s2, ' '.join(ref[i]), left, ' '.join(out1[i]), right, ' '.join(out2[i])))
+      print(f'--- {report_length} sentences where Sys{right}>Sys{left} at {self.scorer_name}')
+      for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
+        print ('sys{}-sys{}={}, sys{}={}, sys{}={}\nRef:  {}\nSys{}: {}\nSys{}: {}\n'.format(right, left, bdiff, left, s1, right, s2, ' '.join(ref[i]), left, ' '.join(out1[i]), right, ' '.join(out2[i])))
 
 
   def plot(self, output_directory='outputs', output_fig_file='word-acc', output_fig_format='pdf'):
@@ -376,29 +408,34 @@ class SentenceExampleReport(Report):
 
   def html_content(self, output_directory=None):
     report_length = self.report_length 
-    ref, out1, out2 = self.ref, self.out1, self.out2
-    html = tag_str('h4', f'{report_length} sentences where Sys1>Sys2 at {self.scorer_name}')
-    for bdiff, s1, s2, str1, str2, i in self.scorediff_list[:report_length]:
-      caption = f'sys2-sys1={bdiff:.2f}, sys1={s1:.2f}, sys2={s2:.2f}'
-      table = [['Ref', ' '.join(ref[i])], ['Sys1', ' '.join(out1[i])], ['Sys2', ' '.join(out2[i])]]
-      html += html_table(table, caption)
+    for cnt, (left, right) in enumerate(self.compare_directions):
+      ref, out1, out2 = self.ref, self.outs[left], self.outs[right]
+      html = tag_str('h4', f'{report_length} sentences where Sys{left}>Sys{right} at {self.scorer_name}')
+      for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
+        caption = f'sys{left}-sys{right}={-bdiff:.2f}, sys{left}={s1:.2f}, sys{right}={s2:.2f}'
+        table = [['Ref', ' '.join(ref[i])], [f'Sys{left}', ' '.join(out1[i])], [f'Sys{right}', ' '.join(out2[i])]]
+        html += html_table(table, caption, first_line_bold=False)
 
-    html += tag_str('h4', f'{report_length} sentences where Sys2>Sys1 at {self.scorer_name}')
-    for bdiff, s1, s2, str1, str2, i in self.scorediff_list[-report_length:]:
-      caption = f'sys2-sys1={bdiff:.2f}, sys1={s1:.2f}, sys2={s2:.2f}'
-      table = [['Ref', ' '.join(ref[i])], ['Sys1', ' '.join(out1[i])], ['Sys2', ' '.join(out2[i])]]
-      html += html_table(table, caption)
+      html += tag_str('h4', f'{report_length} sentences where Sys{left}>Sys{right} at {self.scorer_name}')
+      for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
+        caption = f'sys{right}-sys{left}={bdiff:.2f}, sys{left}={s1:.2f}, sys{right}={s2:.2f}'
+        table = [['Ref', ' '.join(ref[i])], [f'Sys{left}', ' '.join(out1[i])], [f'Sys{right}', ' '.join(out2[i])]]
+        html += html_table(table, caption, first_line_bold=False)
+
     return html 
 
 
 def tag_str(tag, str, new_line=''):
   return f'<{tag}>{new_line} {str} {new_line}</{tag}>'
 
-def html_table(table, caption=None):
+def html_table(table, caption=None, first_line_bold=True):
   html = '<table border="1">\n'
   if caption is not None:
     html += tag_str('caption', caption)
-  html += '\n  '.join(tag_str('th', ri) for ri in table[0])
+  if first_line_bold:
+    html += '\n  '.join(tag_str('th', ri) for ri in table[0])
+  else:
+    html += '\n  '.join(tag_str('td', ri) for ri in table[0])
   for row in table[1:]:
     table_row = '\n  '.join(tag_str('td', ri) for ri in row)
     html += tag_str('tr', table_row)
