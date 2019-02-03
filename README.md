@@ -86,9 +86,9 @@ aggregate analysis, or n-gram-based analysis. The following gives an example:
 
 
 ```bash
-compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
-    --compare_word_accuracies bucket_type=label,ref_labels=example/ted.ref.eng.tag,out1_labels=example/ted.sys1.eng.tag,out2_labels=example/ted.sys2.eng.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
-    --compare_ngrams compare_type=match,ref_labels=example/ted.ref.eng.tag,out1_labels=example/ted.sys1.eng.tag,out2_labels=example/ted.sys2.eng.tag
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng 
+    --compare_word_accuracies bucket_type=label,ref_labels=example/ted.ref.eng.tag,out_labels="example/ted.sys1.eng.tag;example/ted.sys2.eng.tag",label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ 
+    --compare_ngrams compare_type=match,ref_labels=example/ted.ref.eng.tag,out_labels="example/ted.sys1.eng.tag;example/ted.sys2.eng.tag"
 ```
 
 This will calculate word accuracies and n-gram matches by POS bucket, and allows you to see things like the fact
