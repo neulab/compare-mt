@@ -69,8 +69,10 @@ def generate_word_accuracy_report(ref, outs,
     out_labels: output labels. must be specified if ref_labels is specified.
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  if out_labels is not None and len(out_labels) != len(outs):
-    raise ValueError(f'The number of output files should be equal to the number of output labels.')
+  if out_labels is not None:
+    out_labels = arg_utils.parse_files(out_labels)
+    if len(out_labels) != len(outs):
+      raise ValueError(f'The number of output files should be equal to the number of output labels.')
 
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
@@ -195,8 +197,10 @@ def generate_ngram_report(ref, outs,
     compare_directions: A string specifying which systems to compare
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  if out_labels is not None and len(out_labels) != len(outs):
-    raise ValueError(f'The number of output files should be equal to the number of output labels.')
+  if out_labels is not None:
+    out_labels = arg_utils.parse_files(out_labels)
+    if len(out_labels) != len(outs):
+      raise ValueError(f'The number of output files should be equal to the number of output labels.')
 
   if type(ref_labels) == str:
     label_files_str = f'    ref_labels={ref_labels},'

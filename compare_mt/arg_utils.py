@@ -13,3 +13,9 @@ def parse_compare_directions(compare_directions):
     direcs.append((left, right))
   return direcs
 
+def parse_files(filenames):
+  files = []
+  for f in filenames.split(';'):
+    files.append(f)
+  return files
+
