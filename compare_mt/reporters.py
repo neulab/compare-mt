@@ -53,13 +53,10 @@ bar_colors = ["#7293CB", "#E1974C", "#84BA5B", "#D35E60", "#808585", "#9067A7", 
 def make_bar_chart(datas,
                    output_directory, output_fig_file, output_fig_format='png',
                    errs=None, sysnames=None, title=None, xlabel=None, xticklabels=None, ylabel=None):
-
   fig, ax = plt.subplots() 
   ind = np.arange(len(datas[0]))
   width = 0.7/len(datas)
   bars = []
-  legend_handles = []
-  legend_labels = []
   for i, data in enumerate(datas):
     err = errs[i] if errs != None else None
     bars.append(ax.bar(ind+i*width, data, width, color=bar_colors[i], bottom=0, yerr=err))

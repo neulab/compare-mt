@@ -219,13 +219,13 @@ def generate_ngram_report(ref, outs,
 
   ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
   out_labels = [corpus_utils.load_tokens(out_labels[i]) if not out_labels is None else None for i in range(len(outs))]
-  totals, matchs, overs, unders = zip(*[ngram_utils.compare_ngrams(ref, out, ref_labels=ref_labels, out_labels=out_label,
+  totals, matches, overs, unders = zip(*[ngram_utils.compare_ngrams(ref, out, ref_labels=ref_labels, out_labels=out_label,
                                                              min_length=min_ngram_length, max_length=max_ngram_length) for out, out_label in zip(outs, out_labels)])
   direcs = arg_utils.parse_compare_directions(compare_directions)
   scores = []
   for (left, right) in direcs:
     if compare_type == 'match':
-      scores.append(stat_utils.extract_salient_features(matchs[left], matchs[right], alpha=alpha))
+      scores.append(stat_utils.extract_salient_features(matches[left], matches[right], alpha=alpha))
     elif compare_type == 'over':
       scores.append(stat_utils.extract_salient_features(overs[left], overs[right], alpha=alpha))
     elif compare_type == 'under':
@@ -237,7 +237,7 @@ def generate_ngram_report(ref, outs,
   reporter = reporters.NgramReport(scorelist=scorelist, report_length=report_length,
                                    min_ngram_length=min_ngram_length, 
                                    max_ngram_length=max_ngram_length,
-                                   matches=matchs,
+                                   matches=matches,
                                    compare_type=compare_type, alpha=alpha,
                                    compare_directions=direcs,
                                    label_files=label_files)                                   
@@ -350,8 +350,6 @@ def main():
   out_aligns = [corpus_utils.load_tokens(x) for x in args.out_align_files] if args.out_align_files else None
 
   reports = []
-
-  # Source word analysis
 
   report_types = [
     (args.compare_scores, generate_score_report, 'Aggregate Scores', False),
