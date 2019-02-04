@@ -48,11 +48,15 @@ function showhide(elem) {
 }
 """
 
-plot_counter = 0
-def next_plot_id():
-  global plot_counter
-  plot_counter += 1
-  return f'{plot_counter:03d}'
+fig_counter, tab_counter = 0, 0
+def next_fig_id():
+  global fig_counter
+  fig_counter += 1
+  return f'{fig_counter:03d}'
+def next_tab_id():
+  global tab_counter
+  tab_counter += 1
+  return f'{tab_counter:03d}'
 
 bar_colors = ["#7293CB", "#E1974C", "#84BA5B", "#D35E60", "#808585", "#9067A7", "#AB6857", "#CCC210"]
 
@@ -132,7 +136,7 @@ class ScoreReport(Report):
     self.wins = wins
     self.sys_stats = sys_stats
     self.sys_names = sys_names
-    self.output_fig_file = f'{next_plot_id()}-score-{scorer.idstr()}'
+    self.output_fig_file = f'{next_fig_id()}-score-{scorer.idstr()}'
     self.prob_thresh = 0.05
 
   def winstr_pval(self, my_wins):
@@ -206,7 +210,7 @@ class WordReport(Report):
     self.header = header
     self.sys_names = sys_names
     self.acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
-    self.output_fig_file = f'{next_plot_id()}-wordacc-{bucketer.name()}'
+    self.output_fig_file = f'{next_fig_id()}-wordacc-{bucketer.name()}'
 
   def print(self):
     acc_type_map = self.acc_type_map
@@ -328,7 +332,7 @@ class SentenceReport(Report):
     self.scorer = scorer
     self.yname = scorer.name() if statistic_type == 'score' else statistic_type
     self.yidstr = scorer.idstr() if statistic_type == 'score' else statistic_type
-    self.output_fig_file = f'{next_plot_id()}-sent-{bucketer.idstr()}-{self.yidstr}'
+    self.output_fig_file = f'{next_fig_id()}-sent-{bucketer.idstr()}-{self.yidstr}'
     if scorer:
       self.description = f'bucket type: {bucketer.name()}, statistic type: {scorer.name()}'
     else:
@@ -433,7 +437,20 @@ def html_table(table, caption=None, bold_rows=1, bold_cols=1):
     tag_type = 'th' if (i < bold_rows) else 'td'
     table_row = '\n  '.join(tag_str('th' if j < bold_cols else tag_type, rdata) for (j, rdata) in enumerate(row))
     html += tag_str('tr', table_row)
-  html += '\n</table>\n <br>'
+  html += '\n</table>\n <br/>'
+
+  tab_id = next_tab_id()
+  latex_code = "\\begin{table}[t]\n  \\centering\n"
+  cs = ['c'] * len(table[0])
+  if bold_cols != 0:
+    cs[bold_cols-1] = 'c||'
+  latex_code += "  \\begin{tabular}{"+''.join(cs)+"}\n"
+  for i, row in enumerate(table):
+    latex_code += ' & '.join([str(x) for x in row]) + (' \\\\\n' if i != bold_rows-1 else ' \\\\ \\hline \\hline\n')
+  latex_code += "  \\end{tabular}\n  \\caption{Caption}\n  \\label{tab:table"+tab_id+"}\n\\end{table}"
+
+  html += (f'<button onclick="showhide(\'{tab_id}_latex\')">Show/Hide LaTeX</button> <br/>' +
+           f'<pre id="{tab_id}_latex" style="display:none">{latex_code}</pre>')
   return html
 
 def generate_html_report(reports, output_directory):
