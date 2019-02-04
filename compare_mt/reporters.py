@@ -141,15 +141,14 @@ class ScoreReport(Report):
       
     if self.wins is not None:
       print('Significance test.')
-      wins, sys_stats = self.wins, self.sys_stats
-      for i, (win, (left, right)) in enumerate(zip(wins, self.compare_directions)):
+      for i, (win, (left, right)) in enumerate(zip(self.wins, self.compare_directions)):
         print(f'Win ratio: {self.sys_names[left]}={win[0]:.3f}, {self.sys_names[right]}={win[1]:.3f}, tie={win[2]:.3f}')
         if win[0] > win[1]:
           print(f'({self.sys_names[left]} is superior to {self.sys_names[right]} with p value p={(1-win[0]):.3f})')
         elif win[1] > win[0]:
           print(f'({self.sys_names[right]} is superior to {self.sys_names[left]} with p value p={(1-win[1]):.3f})')
 
-      for i, (sys_stat, sys_name) in enumerate(zip(sys_stats, sys_names)):
+      for i, (sys_stat, sys_name) in enumerate(zip(self.sys_stats, self.sys_names)):
         print(f'{sys_name}: mean={sys_stat["mean"]:.3f}, median={sys_stat["median"]:.3f}, 95%% confidence interval=[{sys_stat["lower_bound"]:.3f}, {sys_stat["upper_bound"]:.3f}]')
       print()
     
