@@ -39,7 +39,7 @@ def generate_score_report(ref, outs,
   else:
     wins = sys_stats = direcs = None
 
-  reporter = reporters.ScoreReport(scorer_name=scorer.name(), scores=scores, strs=strs, 
+  reporter = reporters.ScoreReport(scorer=scorer, scores=scores, strs=strs, 
                                    wins=wins, sys_stats=sys_stats, compare_directions=direcs)
   reporter.generate_report(output_fig_file=f'score-{score_type}-{bootstrap}',
                            output_fig_format='pdf', 
@@ -154,6 +154,7 @@ def generate_sentence_bucketed_report(ref, outs,
   bcs = [bucketer.create_bucketed_corpus(out, ref=ref) for out in outs]
 
   if statistic_type == 'count':
+    scorer = None
     aggregator = lambda out,ref: len(out)
   elif statistic_type == 'score':
     scorer = scorers.create_scorer_from_profile(score_measure, case_insensitive=case_insensitive)
@@ -163,9 +164,10 @@ def generate_sentence_bucketed_report(ref, outs,
 
   stats = [[aggregator(out,ref) for (out,ref) in bc] for bc in bcs]
 
-  reporter = reporters.SentenceReport(bucketer=bucketer, bucket_type=bucket_type,
+  reporter = reporters.SentenceReport(bucketer=bucketer,
                                       sys_stats=stats,
-                                      statistic_type=statistic_type, score_measure=score_measure)
+                                      statistic_type=statistic_type, scorer=scorer)
+
   reporter.generate_report(output_fig_file=f'sentence-{statistic_type}-{score_measure}',
                            output_fig_format='pdf', 
                            output_directory='outputs')
@@ -264,6 +266,7 @@ def generate_sentence_examples(ref, outs,
   """
     
   scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive)
+
   direcs = arg_utils.parse_compare_directions(compare_directions)
 
   scorediff_lists=[]
@@ -277,7 +280,7 @@ def generate_sentence_examples(ref, outs,
     scorediff_lists.append(scorediff_list)
 
   reporter = reporters.SentenceExampleReport(report_length=report_length, scorediff_lists=scorediff_lists,
-                                             scorer_name=scorer.name(),
+                                             scorer=scorer,
                                              ref=ref, outs=outs,
                                              compare_directions=direcs)
   reporter.generate_report()
