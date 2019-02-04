@@ -17,7 +17,6 @@ def generate_score_report(ref, outs,
                        sys_names,
                        score_type='bleu',
                        bootstrap=0,
-                       compare_directions='0-1',
                        case_insensitive=False):
   """
   Generate a report comparing overall scores of system(s) in both plain text and graphs.
@@ -34,14 +33,18 @@ def generate_score_report(ref, outs,
 
   scores, strs = zip(*[scorer.score_corpus(ref, out) for out in outs])
 
-  if int(bootstrap) > 0:
-    direcs = arg_utils.parse_compare_directions(compare_directions)
+  if bootstrap != 0:
+    direcs = []
+    for i in range(len(scores)):
+      for j in range(i+1, len(scores)):
+        direcs.append( (i,j) )
     wins, sys_stats = sign_utils.eval_with_paired_bootstrap(ref, outs, scorer, direcs, num_samples=int(bootstrap))
+    wins = list(zip(direcs, wins))
   else:
     wins = sys_stats = direcs = None
 
   reporter = reporters.ScoreReport(scorer=scorer, scores=scores, strs=strs, 
-                                   wins=wins, sys_stats=sys_stats, sys_names=sys_names, compare_directions=direcs)
+                                   wins=wins, sys_stats=sys_stats, sys_names=sys_names)
   reporter.generate_report(output_fig_file=f'score-{score_type}-{bootstrap}',
                            output_fig_format='pdf', 
                            output_directory='outputs')

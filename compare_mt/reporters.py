@@ -115,63 +115,71 @@ class Report:
   def print_header(self, header):
     print(f'********************** {header} ************************')
 
+  def print_tabbed_table(self, tab):
+    for x in tab:
+      print('\t'.join([str(y) if y else '' for y in x]))
+    print()
+
   def generate_report(self, output_fig_file=None, output_fig_format=None, output_directory=None):
     self.print()
 
 class ScoreReport(Report):
   def __init__(self, scorer, scores, strs, sys_names,
-               wins=None, sys_stats=None, compare_directions=None):
+               wins=None, sys_stats=None):
     self.scorer = scorer 
     self.scores = scores
-    self.strs = strs
+    self.strs = [f'{x:.4f} ({y})' if y else f'{x:.4f}' for (x,y) in zip(scores,strs)]
     self.wins = wins
     self.sys_stats = sys_stats
     self.sys_names = sys_names
-    self.compare_directions = compare_directions
     self.output_fig_file = f'{next_plot_id()}-score-{scorer.idstr()}'
+    self.prob_thresh = 0.05
+
+  def winstr_pval(self, my_wins):
+    if 1-my_wins[0] < self.prob_thresh:
+      winstr = 's1>s2'
+    elif 1-my_wins[1] < self.prob_thresh:
+      winstr = 's2>s1'
+    else:
+      winstr = '-'
+    pval = 1-(my_wins[0] if my_wins[0] > my_wins[1] else my_wins[1])
+    return winstr, pval
+
+  def scores_to_tables(self):
+    if self.wins is None:
+      # Single table with just scores
+      return [[""]+self.sys_names, [self.scorer.name()]+self.strs], None
+    elif len(self.scores) == 2:
+      # Single table with scores and wins for two systems
+      winstr, pval = self.winstr_pval(self.wins[0][1])
+      return [
+        [""]+self.sys_names+["Win?"],
+        [self.scorer.name()]+self.strs+[winstr],
+        [""]+[f'[{x["lower_bound"]:.4f},{x["upper_bound"]:.4f}]' for x in self.sys_stats]+[f'p={pval:.4f}']
+      ], None
+    else:
+      # Table with scores, and separate one with wins for multiple systems
+      wptable = [['v s1 / s2 ->'] + [self.sys_names[i] for i in range(1,len(self.scores))]]
+      for i in range(0, len(self.scores)-1):
+        wptable.append([self.sys_names[i]] + [""] * (len(self.scores)-1))
+      for (left,right), my_wins in self.wins:
+        winstr, pval = self.winstr_pval(my_wins)
+        wptable[left+1][right] = f'{winstr} (p={pval:.4f})'
+      return [[""]+self.sys_names, [self.scorer.name()]+self.strs], wptable
 
   def print(self):
+    aggregate_table, win_table = self.scores_to_tables()
     self.print_header('Aggregate Scores')
     print(f'{self.scorer.name()}:')
-    for i, (score, string) in enumerate(zip(self.scores, self.strs)):
-      if string is not None:
-        print(f' {self.sys_names[i]}: {score} ({string})')
-      else:
-        print(f' {self.sys_names[i]}: {score}')
-      
-    if self.wins is not None:
-      print('Significance test.')
-      for i, (win, (left, right)) in enumerate(zip(self.wins, self.compare_directions)):
-        print(f'Win ratio: {self.sys_names[left]}={win[0]:.3f}, {self.sys_names[right]}={win[1]:.3f}, tie={win[2]:.3f}')
-        if win[0] > win[1]:
-          print(f'({self.sys_names[left]} is superior to {self.sys_names[right]} with p value p={(1-win[0]):.3f})')
-        elif win[1] > win[0]:
-          print(f'({self.sys_names[right]} is superior to {self.sys_names[left]} with p value p={(1-win[1]):.3f})')
+    self.print_tabbed_table(aggregate_table)
+    if win_table:
+      self.print_tabbed_table(win_table)
 
-      for i, (sys_stat, sys_name) in enumerate(zip(self.sys_stats, self.sys_names)):
-        print(f'{sys_name}: mean={sys_stat["mean"]:.3f}, median={sys_stat["median"]:.3f}, 95%% confidence interval=[{sys_stat["lower_bound"]:.3f}, {sys_stat["upper_bound"]:.3f}]')
-      print()
-    
   def plot(self, output_directory, output_fig_file, output_fig_format='pdf'):
-    if self.wins is not None:
-      wins, sys_stats = self.wins, self.sys_stats
-      mean, lrb, urb = [], [], []
-      sys, sys_errs = [], []
-      for i, sys_stat in enumerate(sys_stats):
-        mean.append(sys_stat['mean'])
-        lrb.append(sys_stat['lower_bound'])
-        urb.append(sys_stat['upper_bound'])
-        sys.append([self.scores[i], sys_stat['mean'], sys_stat['median']])
-        N = len(sys[-1])
-        sys_err = np.zeros((2, N))
-        sys_err[0, 0] = self.scores[i] - lrb[-1] 
-        sys_err[1, 0] = urb[-1] - self.scores[i]
-        sys_errs.append(sys_err)
-      xticklabels = [self.scorer.name(), 'Bootstrap Mean', 'Bootstrap Median']
-    else:
-      sys = [[score] for score in self.scores]
-      sys_errs = None
-      xticklabels = None
+    sys = [[score] for score in self.scores]
+    if self.wins:
+      sys_errs = [np.array([[score-stat['lower_bound'], stat['upper_bound']-score]]) for (score,stat) in zip(self.scores, self.sys_stats)]
+    xticklabels = None
 
     make_bar_chart(sys,
                    output_directory, output_fig_file,
@@ -181,38 +189,10 @@ class ScoreReport(Report):
                    xticklabels=xticklabels)
 
   def html_content(self, output_directory):
-    table = [self.sys_names]
-    line = []
-    for i, (score, string) in enumerate(zip(self.scores, self.strs)):
-      if string is not None:
-        line.append(f'{score:.4f} ({string})')
-      else:
-        line.append(f'{score:.4f}')
-    table.append(line)
-
-    html = html_table(table, caption=self.scorer.name())
-
-    if self.wins is not None:
-      wins, sys_stats = self.wins, self.sys_stats
-      table = []
-      name = ['Metric'] + self.sys_names
-      mean = ['Mean']
-      median = ['Median']
-      interval = ['95% confidence interval']
-      for i, sys_stat in enumerate(sys_stats):
-        mean.append(f'{sys_stat["mean"]:.3f}')
-        median.append(f'{sys_stat["median"]:.3f}')
-        interval.append(f'[{sys_stat["lower_bound"]:.3f},{sys_stat["upper_bound"]:.3f}]')
-      table = [name, mean, median, interval]
-      html += html_table(table, caption='Score Statistics') 
-      table = []
-      for i, (left, right) in enumerate(self.compare_directions):
-        name = ['System names', f'{self.sys_names[left]}', f'{self.sys_names[right]}']
-        win = ['Win ratio', f'{self.wins[i][0]:.3f}', f'{self.wins[i][1]:.3f}']
-        table.append(name)
-        table.append(win)
-      html += html_table(table, caption='Significance Test', first_line_bold=False) 
-
+    aggregate_table, win_table = self.scores_to_tables()
+    html = html_table(aggregate_table, caption=self.scorer.name())
+    if win_table:
+      html += html_table(win_table, caption=f'{self.scorer.name()} Wins')
     for ext in ('png', 'pdf'):
       self.plot(output_directory, self.output_fig_file, ext)
     html += html_img_reference(self.output_fig_file, 'Score Comparison')
@@ -421,31 +401,37 @@ class SentenceExampleReport(Report):
       ref, out1, out2 = self.ref, self.outs[left], self.outs[right]
       html = tag_str('h4', f'{report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
-        caption = f'{sleft}-{sright}={-bdiff:.2f}, {sleft}={s1:.2f}, {sright}={s2:.2f}'
-        table = [['Ref', ' '.join(ref[i])], [f'{sleft}', ' '.join(out1[i])], [f'{sright}', ' '.join(out2[i])]]
-        html += html_table(table, caption, first_line_bold=False)
+        table = [
+          ['', 'Output', f'{self.scorer.idstr()}'],
+          ['Ref', ' '.join(ref[i]), ''],
+          [f'{sleft}', ' '.join(out1[i]), f'{s1:.4f}'],
+          [f'{sright}', ' '.join(out2[i]), f'{s2:.4f}']
+        ]
+        html += html_table(table, None)
 
       html += tag_str('h4', f'{report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
-        caption = f'{sright}-{sleft}={bdiff:.2f}, {sleft}={s1:.2f}, {sright}={s2:.2f}'
-        table = [['Ref', ' '.join(ref[i])], [f'{sleft}', ' '.join(out1[i])], [f'{sright}', ' '.join(out2[i])]]
-        html += html_table(table, caption, first_line_bold=False)
-    return html 
+        table = [
+          ['', 'Output', f'{self.scorer.idstr()}'],
+          ['Ref', ' '.join(ref[i]), ''],
+          [f'{sleft}', ' '.join(out1[i]), f'{s1:.4f}'],
+          [f'{sright}', ' '.join(out2[i]), f'{s2:.4f}']
+        ]
+        html += html_table(table, None)
+
+    return html
 
 
 def tag_str(tag, str, new_line=''):
   return f'<{tag}>{new_line} {str} {new_line}</{tag}>'
 
-def html_table(table, caption=None, first_line_bold=True):
+def html_table(table, caption=None, bold_rows=1, bold_cols=1):
   html = '<table border="1">\n'
   if caption is not None:
     html += tag_str('caption', caption)
-  if first_line_bold:
-    html += '\n  '.join(tag_str('th', ri) for ri in table[0])
-  else:
-    html += '\n  '.join(tag_str('td', ri) for ri in table[0])
-  for row in table[1:]:
-    table_row = '\n  '.join(tag_str('td', ri) for ri in row)
+  for i, row in enumerate(table):
+    tag_type = 'th' if (i < bold_rows) else 'td'
+    table_row = '\n  '.join(tag_str('th' if j < bold_cols else tag_type, rdata) for (j, rdata) in enumerate(row))
     html += tag_str('tr', table_row)
   html += '\n</table>\n <br>'
   return html
