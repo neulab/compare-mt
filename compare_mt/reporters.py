@@ -128,7 +128,7 @@ class ScoreReport(Report):
     self.strs = strs
     self.wins = wins
     self.sys_stats = sys_stats 
-    self.wins = wins
+    self.compare_directions = compare_directions
     self.output_fig_file = f'{next_plot_id()}-score-{scorer.idstr()}'
 
   def print(self):
