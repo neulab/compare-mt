@@ -17,6 +17,15 @@ class Scorer(object):
     return None
 
   def name(self):
+    """
+    A name that can have spaces that describes the scorer.
+    """
+    return None
+
+  def idstr(self):
+    """
+    An ID string that contains no spaces but identifies the scorer.
+    """
     return None
 
 class SentenceFactoredScorer(Scorer):
@@ -179,6 +188,9 @@ class BleuScorer(Scorer):
   def name(self):
     return "BLEU"
 
+  def idstr(self):
+    return "bleu"
+
 class SentBleuScorer(SentenceFactoredScorer):
   """
   A scorer that calculates sentence-level smoothed BLEU score.
@@ -222,6 +234,9 @@ class SentBleuScorer(SentenceFactoredScorer):
   def name(self):
     return "sentence-level BLEU"
 
+  def idstr(self):
+    return "sentbleu"
+
 class LengthScorer(Scorer):
   """
   A scorer that calculate the length ratio
@@ -256,6 +271,9 @@ class LengthScorer(Scorer):
 
   def name(self):
     return "length ratio"
+
+  def idstr(self):
+    return "lengthrat"
 
 class RibesScorer(SentenceFactoredScorer):
   """
@@ -323,6 +341,9 @@ class RibesScorer(SentenceFactoredScorer):
   def name(self):
     return "RIBES"
 
+  def idstr(self):
+    return "ribes"
+
 
 class ChrFScorer(Scorer):
   """
@@ -364,6 +385,9 @@ class ChrFScorer(Scorer):
 
   def name(self):
     return "ChrF"
+
+  def idstr(self):
+    return "chrf"
 
 
 def create_scorer_from_profile(profile, case_insensitive=False):

@@ -38,7 +38,7 @@ def generate_score_report(ref, out1, out2,
   else:
     wins = sys1_stats = sys2_stats = None
 
-  reporter = reporters.ScoreReport(scorer_name=scorer.name(), score1=score1, str1=str1, score2=score2, str2=str2,
+  reporter = reporters.ScoreReport(scorer=scorer, score1=score1, str1=str1, score2=score2, str2=str2,
                                    wins=wins, sys1_stats=sys1_stats, sys2_stats=sys2_stats)
   reporter.generate_report(output_fig_file=f'score-{score_type}-{bootstrap}',
                            output_fig_format='pdf', 
@@ -156,6 +156,7 @@ def generate_sentence_bucketed_report(ref, out1, out2,
   bc2 = bucketer.create_bucketed_corpus(out2, ref=ref)
 
   if statistic_type == 'count':
+    scorer = None
     aggregator = lambda out,ref: len(out)
   elif statistic_type == 'score':
     scorer = scorers.create_scorer_from_profile(score_measure, case_insensitive=case_insensitive)
@@ -166,9 +167,9 @@ def generate_sentence_bucketed_report(ref, out1, out2,
   stats1 = [aggregator(out,ref) for (out,ref) in bc1]
   stats2 = [aggregator(out,ref) for (out,ref) in bc2]
 
-  reporter = reporters.SentenceReport(bucketer=bucketer, bucket_type=bucket_type,
+  reporter = reporters.SentenceReport(bucketer=bucketer,
                                       sys1_stats=stats1, sys2_stats=stats2,
-                                      statistic_type=statistic_type, score_measure=score_measure)
+                                      statistic_type=statistic_type, scorer=scorer)
   reporter.generate_report(output_fig_file=f'sentence-{statistic_type}-{score_measure}',
                            output_fig_format='pdf', 
                            output_directory='outputs')
@@ -266,7 +267,7 @@ def generate_sentence_examples(ref, out1, out2,
   scorediff_list.sort()
 
   reporter = reporters.SentenceExampleReport(report_length=report_length, scorediff_list=scorediff_list,
-                                             scorer_name=scorer.name(),
+                                             scorer=scorer,
                                              ref=ref, out1=out1, out2=out2)
   reporter.generate_report()
   return reporter 

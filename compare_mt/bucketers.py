@@ -11,12 +11,12 @@ class Bucketer:
     self.bucket_strs = []
     for i, x in enumerate(bucket_cutoffs):
       if i == 0:
-        self.bucket_strs.append(f'x < {x}')
+        self.bucket_strs.append(f'<{x}')
       elif num_type == 'int' and x-1 == bucket_cutoffs[i-1]:
-        self.bucket_strs.append(f'x = {x-1}')
+        self.bucket_strs.append(f'{x-1}')
       else:
-        self.bucket_strs.append(f'{bucket_cutoffs[i-1]} <= x < {x}')
-    self.bucket_strs.append(f'{x} < x')
+        self.bucket_strs.append(f'[{bucket_cutoffs[i-1]},{x})')
+    self.bucket_strs.append(f'>={x}')
 
   def cutoff_into_bucket(self, value):
     for i, v in enumerate(self.bucket_cutoffs):
@@ -272,6 +272,9 @@ class FreqWordBucketer(WordBucketer):
   def name(self):
     return "frequency"
 
+  def idstr(self):
+    return "freq"
+
 class LabelWordBucketer(WordBucketer):
 
   def __init__(self,
@@ -301,6 +304,9 @@ class LabelWordBucketer(WordBucketer):
       raise ValueError('When calculating buckets by label, ref_label or out_label must be non-zero')
 
   def name(self):
+    return "labels"
+
+  def idstr(self):
     return "labels"
 
 class SentenceBucketer(Bucketer):
@@ -351,6 +357,9 @@ class ScoreSentenceBucketer(SentenceBucketer):
   def name(self):
     return self.scorer.name()
 
+  def idstr(self):
+    return self.scorer.idstr()
+
 class LengthSentenceBucketer(SentenceBucketer):
   """
   Bucket sentences by length
@@ -367,6 +376,9 @@ class LengthSentenceBucketer(SentenceBucketer):
   def name(self):
     return "length"
 
+  def idstr(self):
+    return "length"
+
 class LengthDiffSentenceBucketer(SentenceBucketer):
   """
   Bucket sentences by length
@@ -381,7 +393,10 @@ class LengthDiffSentenceBucketer(SentenceBucketer):
     return self.cutoff_into_bucket(len(ref) - len(val))
 
   def name(self):
-    return "length difference"
+    return "reference-output length difference"
+
+  def idstr(self):
+    return "lengthdiff"
 
 
 def create_word_bucketer_from_profile(bucket_type,
