@@ -20,4 +20,4 @@ script:
   - compare-ll --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=freq,freq_corpus_file=example/ll_test.txt
   - compare-ll --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=label,label_corpus=example/ll_test.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
   # Check that running with python still works
-  - python compare_mt/main.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
+  - python compare_mt/compare_mt_main.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
