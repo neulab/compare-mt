@@ -43,8 +43,8 @@ setup(
   packages=find_packages(),
   entry_points={
     "console_scripts": [
-      "compare-mt=compare_mt.compare_mt:main",
-      "compare-ll=compare_mt.compare_ll:main",
+      "compare-mt=compare_mt.main:main",
+      "compare-ll=compare_mt.main_ll:main",
     ],
   },
   include_package_data=True

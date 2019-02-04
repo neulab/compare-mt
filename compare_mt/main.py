@@ -3,15 +3,15 @@ import argparse
 import operator
 
 # In-package imports
-from . import ngram_utils
-from . import stat_utils
-from . import corpus_utils
-from . import sign_utils
-from . import scorers
-from . import bucketers
-from . import reporters
-from . import arg_utils
-from . import print_utils
+from compare_mt import ngram_utils
+from compare_mt import stat_utils
+from compare_mt import corpus_utils
+from compare_mt import sign_utils
+from compare_mt import scorers
+from compare_mt import bucketers
+from compare_mt import reporters
+from compare_mt import arg_utils
+from compare_mt import print_utils
 
 def generate_score_report(ref, out1, out2,
                        score_type='bleu',

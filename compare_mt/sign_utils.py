@@ -11,7 +11,7 @@
 ########################################################################################
 
 import numpy as np
-from . import scorers
+from compare_mt import scorers
 import nltk
 
 def sample_and_compare(gold, sys1, sys2, sample_ratio, 

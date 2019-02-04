@@ -1,8 +1,8 @@
 import itertools
 from collections import defaultdict
 
-from . import corpus_utils
-from . import scorers
+from compare_mt import corpus_utils
+from compare_mt import scorers
 
 class Bucketer:
 
