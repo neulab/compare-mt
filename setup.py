@@ -31,7 +31,7 @@ setup(
   long_description_content_type="text/markdown",
   url="https://github.com/neulab/compare-mt",
   author="Graham Neubig",
-  license="[TODO]",
+  license="BSD 3-Clause",
   test_suite="setup.test_suite",
   classifiers=[
   "Intended Audience :: Developers",
@@ -43,8 +43,8 @@ setup(
   packages=find_packages(),
   entry_points={
     "console_scripts": [
-      "compare-mt=compare_mt.main:main",
-      "compare-ll=compare_mt.main_ll:main",
+      "compare-mt=compare_mt.compare_mt_main:main",
+      "compare-ll=compare_mt.compare_ll_main:main",
     ],
   },
   include_package_data=True
