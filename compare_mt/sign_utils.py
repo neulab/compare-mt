@@ -11,7 +11,7 @@
 ########################################################################################
 
 import numpy as np
-from . import scorers
+from compare_mt import scorers
 import nltk
 
 def eval_with_paired_bootstrap(ref, outs,
