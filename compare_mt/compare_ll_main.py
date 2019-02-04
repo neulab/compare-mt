@@ -1,10 +1,10 @@
 import argparse
 
 # In-package imports
-from . import corpus_utils
-from . import bucketers
-from . import arg_utils
-from . import print_utils
+from compare_mt import corpus_utils
+from compare_mt import bucketers
+from compare_mt import arg_utils
+from compare_mt import print_utils
 
 def print_word_likelihood_report(ref, lls, bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
