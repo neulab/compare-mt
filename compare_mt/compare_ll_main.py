@@ -68,7 +68,7 @@ def main():
   # Set formatting
   
   # Set formatting
-  formatting.fmt.set_decimals(args.decimals).set_decimals(args.decimals)
+  formatting.fmt.set_decimals(args.decimals)
 
   ref = corpus_utils.load_tokens(args.ref_file)
   lls = [corpus_utils.load_nums(x) for x in args.ll_files] 
