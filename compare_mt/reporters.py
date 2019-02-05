@@ -188,6 +188,8 @@ class ScoreReport(Report):
     sys = [[score] for score in self.scores]
     if self.wins:
       sys_errs = [np.array([[score-stat['lower_bound'], stat['upper_bound']-score]]) for (score,stat) in zip(self.scores, self.sys_stats)]
+    else:
+      sys_errs = None
     xticklabels = None
 
     make_bar_chart(sys,
