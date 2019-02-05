@@ -24,6 +24,8 @@ def print_word_likelihood_report(ref, lls, bucket_type='freq',
   label_set: the permissible set of labels when using "label" as a bucket type
   case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+  case_insensitive = True if case_insensitive == 'True' else False
+
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type=bucket_type,
                                                        freq_count_file=freq_count_file,
                                                        freq_corpus_file=freq_corpus_file,
