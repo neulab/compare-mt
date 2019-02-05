@@ -412,22 +412,40 @@ class SentenceExampleReport(Report):
       ref, out1, out2 = self.ref, self.outs[left], self.outs[right]
       html = tag_str('h4', f'{report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
-        table = [
-          ['', 'Output', f'{self.scorer.idstr()}'],
-          ['Ref', ' '.join(ref[i]), ''],
-          [f'{sleft}', ' '.join(out1[i]), f'{s1:.4f}'],
-          [f'{sright}', ' '.join(out2[i]), f'{s2:.4f}']
-        ]
+        if self.src:
+          table = [
+            ['', 'Output', f'{self.scorer.idstr()}'],
+            ['Src', ' '.join(src[i]), ''],
+            ['Ref', ' '.join(ref[i]), ''],
+            [f'{sleft}', ' '.join(out1[i]), f'{s1:.4f}'],
+            [f'{sright}', ' '.join(out2[i]), f'{s2:.4f}']
+          ]
+        else:
+          table = [
+            ['', 'Output', f'{self.scorer.idstr()}'],
+            ['Ref', ' '.join(ref[i]), ''],
+            [f'{sleft}', ' '.join(out1[i]), f'{s1:.4f}'],
+            [f'{sright}', ' '.join(out2[i]), f'{s2:.4f}']
+          ]
         html += html_table(table, None)
 
       html += tag_str('h4', f'{report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
-        table = [
-          ['', 'Output', f'{self.scorer.idstr()}'],
-          ['Ref', ' '.join(ref[i]), ''],
-          [f'{sleft}', ' '.join(out1[i]), f'{s1:.4f}'],
-          [f'{sright}', ' '.join(out2[i]), f'{s2:.4f}']
-        ]
+        if self.src:
+          table = [
+            ['', 'Output', f'{self.scorer.idstr()}'],
+            ['Src', ' '.join(src[i]), ''],
+            ['Ref', ' '.join(ref[i]), ''],
+            [f'{sleft}', ' '.join(out1[i]), f'{s1:.4f}'],
+            [f'{sright}', ' '.join(out2[i]), f'{s2:.4f}']
+          ]
+        else:
+          table = [
+            ['', 'Output', f'{self.scorer.idstr()}'],
+            ['Ref', ' '.join(ref[i]), ''],
+            [f'{sleft}', ' '.join(out1[i]), f'{s1:.4f}'],
+            [f'{sright}', ' '.join(out2[i]), f'{s2:.4f}']
+          ]
         html += html_table(table, None)
 
     return html
