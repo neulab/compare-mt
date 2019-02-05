@@ -305,6 +305,8 @@ def main():
                       help='A path to a reference alignment file')
   parser.add_argument('--out_align_files', type=str, nargs='+', default=None,
                       help='Path to system alignment files')
+  parser.add_argument('--fig_size', type=str, default='6x4.5',
+                      help='The size of figures, in "width x height" format.')
   parser.add_argument('--compare_scores', type=str, nargs='*',
                       default=['score_type=bleu', 'score_type=length'],
                       help="""
@@ -357,6 +359,7 @@ def main():
   ref_align = corpus_utils.load_tokens(args.ref_align_file) if args.ref_align_file else None
   out_aligns = [corpus_utils.load_tokens(x) for x in args.out_align_files] if args.out_align_files else None
   reporters.sys_names = args.sys_names if args.sys_names else [f'sys{i+1}' for i in range(len(outs))]
+  reporters.fig_size = tuple([float(x) for x in args.fig_size.split('x')])
   if len(reporters.sys_names) != len(outs):
     raise ValueError(f'len(sys_names) != len(outs) -- {len(sys_names)} != {len(outs)}')
 

@@ -7,6 +7,7 @@ import os
 
 # Global variables used by all reporters. These are set by compare_mt_main.py
 sys_names = None
+fig_size = None
 
 # The CSS style file to use
 css_style = """
@@ -68,7 +69,7 @@ bar_colors = ["#7293CB", "#E1974C", "#84BA5B", "#D35E60", "#808585", "#9067A7", 
 def make_bar_chart(datas,
                    output_directory, output_fig_file, output_fig_format='png',
                    errs=None, title=None, xlabel=None, xticklabels=None, ylabel=None):
-  fig, ax = plt.subplots() 
+  fig, ax = plt.subplots(figsize=fig_size)
   ind = np.arange(len(datas[0]))
   width = 0.7/len(datas)
   bars = []
@@ -343,7 +344,7 @@ class SentenceReport(Report):
     for i, bs in enumerate(self.bucketer.bucket_strs):
       print(f'{bs}', end='')
       for stat in self.sys_stats:
-        print(f'\t{stat[i]}', end='')
+        print(f'\t{stat[i]:.4f}', end='')
       print()
     print()
 
@@ -358,7 +359,7 @@ class SentenceReport(Report):
                    xticklabels=xticklabels)
 
   def html_content(self, output_directory=None):
-    table = [ [self.bucketer.name()] + sys_names ]
+    table = [ [self.bucketer.idstr()] + sys_names ]
     for i, bs in enumerate(self.bucketer.bucket_strs):
       line = [bs]
       for stat in self.sys_stats:
@@ -387,10 +388,10 @@ class SentenceExampleReport(Report):
       sleft, sright = sys_names[left], sys_names[right]
       print(f'--- {report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
-        print ('{}-{}={}, {}={}, {}={}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sleft, sright, -bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
+        print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sleft, sright, -bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
       print(f'--- {report_length} sentences where {sright}>{sleft} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
-        print ('{}-{}={}, {}={}, {}={}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sright, sleft, bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
+        print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sright, sleft, bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
 
   def plot(self, output_directory, output_fig_file, output_fig_format='pdf'):
     pass 
