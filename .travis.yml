@@ -12,13 +12,12 @@ script:
   # Unit tests
   - pytest
   # Integration tests (all examples in README.md)
-  - mkdir output
-  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --output_directory output
-  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_scores score_type=bleu,bootstrap=10
-  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_word_accuracies bucket_type=freq,freq_corpus_file=example/ted.train.eng
-  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_word_accuracies bucket_type=label,ref_labels=example/ted.ref.eng.tag,out_labels="example/ted.sys1.eng.tag;example/ted.sys2.eng.tag",label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ --compare_ngrams compare_type=match,ref_labels=example/ted.ref.eng.tag,out_labels="example/ted.sys1.eng.tag;example/ted.sys2.eng.tag"
-  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk --ref_align_file example/ted.ref.align --out_align_files example/ted.sys1.align example/ted.sys2.align --compare_src_word_accuracies bucket_type=freq
-  - compare-ll --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=freq,freq_corpus_file=example/ll_test.txt
+  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --decimals 2 --output_directory output
+  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_scores score_type=bleu,bootstrap=10 --output_directory output
+  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_word_accuracies bucket_type=freq,freq_corpus_file=example/ted.train.eng --output_directory output
+  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_word_accuracies bucket_type=label,ref_labels=example/ted.ref.eng.tag,out_labels="example/ted.sys1.eng.tag;example/ted.sys2.eng.tag",label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ --compare_ngrams compare_type=match,ref_labels=example/ted.ref.eng.tag,out_labels="example/ted.sys1.eng.tag;example/ted.sys2.eng.tag" --output_directory output
+  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk --ref_align_file example/ted.ref.align --out_align_files example/ted.sys1.align example/ted.sys2.align --compare_src_word_accuracies bucket_type=freq --output_directory output
+  - compare-ll --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=freq,freq_corpus_file=example/ll_test.txt --decimals 2
   - compare-ll --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood example/ll_test.sys2.likelihood --compare-word-likelihoods bucket_type=label,label_corpus=example/ll_test.tag,label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ
   # Check that running with python still works
-  - python compare_mt/compare_mt_main.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
+  - python compare_mt/compare_mt_main.py example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --output_directory output

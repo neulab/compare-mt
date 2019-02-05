@@ -5,6 +5,7 @@ from compare_mt import corpus_utils
 from compare_mt import bucketers
 from compare_mt import arg_utils
 from compare_mt import print_utils
+from compare_mt import formatting
 
 def print_word_likelihood_report(ref, lls, bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
@@ -42,10 +43,7 @@ def print_word_likelihood_report(ref, lls, bucket_type='freq',
   for i, bucket_str in enumerate(bucketer.bucket_strs):
     print (bucket_str + "\t", end='')
     for ll_out in lls_out:
-      if type(ll_out[i]) == str:
-        print (ll_out[i] + "\t", end='')
-      else:
-        print ("%.4f\t" %(ll_out[i]), end='')
+      print(f"{formatting.fmt(ll_out[i])}\t", end="")
     print()
 
 def main():
@@ -62,8 +60,15 @@ def main():
                     Compare word log likelihoods by buckets. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                     See documentation for 'print_word_likelihood_report' to see which arguments are available.
                     """)
+  parser.add_argument('--decimals', type=int, default=4,
+                      help="Number of decimals to print for floating point numbers")
 
   args = parser.parse_args()
+
+  # Set formatting
+  
+  # Set formatting
+  formatting.fmt.set_decimals(args.decimals)
 
   ref = corpus_utils.load_tokens(args.ref_file)
   lls = [corpus_utils.load_nums(x) for x in args.ll_files] 
