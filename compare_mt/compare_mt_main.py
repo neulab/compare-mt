@@ -326,9 +326,9 @@ def main():
                       See documentation for 'print_src_word_accuracy_report' to see which arguments are available.
                       """)
   parser.add_argument('--compare_sentence_buckets', type=str, nargs='*',
-                      default=['bucket_type=score,score_measure=sentbleu',
+                      default=['bucket_type=length,statistic_type=score,score_measure=bleu',
                                'bucket_type=lengthdiff',
-                               'bucket_type=length,statistic_type=score,score_measure=bleu'],
+                               'bucket_type=score,score_measure=sentbleu'],
                       help="""
                       Compare sentence counts by buckets. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_sentence_buckets_report' to see which arguments are available.
