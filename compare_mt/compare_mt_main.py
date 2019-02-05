@@ -12,6 +12,7 @@ from compare_mt import bucketers
 from compare_mt import reporters
 from compare_mt import arg_utils
 from compare_mt import print_utils
+from compare_mt import formatting
 
 def generate_score_report(ref, outs,
                        score_type='bleu',
@@ -28,7 +29,10 @@ def generate_score_report(ref, outs,
     compare_directions: A string specifying which systems to compare
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  scorer = scorers.create_scorer_from_profile(score_type)
+  bootstrap = int(bootstrap)
+  case_insensitive = True if case_insensitive == 'True' else False
+
+  scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive)
 
   scores, strs = zip(*[scorer.score_corpus(ref, out) for out in outs])
 
@@ -37,7 +41,7 @@ def generate_score_report(ref, outs,
     for i in range(len(scores)):
       for j in range(i+1, len(scores)):
         direcs.append( (i,j) )
-    wins, sys_stats = sign_utils.eval_with_paired_bootstrap(ref, outs, scorer, direcs, num_samples=int(bootstrap))
+    wins, sys_stats = sign_utils.eval_with_paired_bootstrap(ref, outs, scorer, direcs, num_samples=bootstrap)
     wins = list(zip(direcs, wins))
   else:
     wins = sys_stats = direcs = None
@@ -72,6 +76,8 @@ def generate_word_accuracy_report(ref, outs,
     out_labels: output labels. must be specified if ref_labels is specified.
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+  case_insensitive = True if case_insensitive == 'True' else False
+
   if out_labels is not None:
     out_labels = arg_utils.parse_files(out_labels)
     if len(out_labels) != len(outs):
@@ -120,6 +126,8 @@ def generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns,
     src_labels: either a filename of a file full of source labels, or a list of strings corresponding to `ref`.
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+  case_insensitive = True if case_insensitive == 'True' else False
+  
   if not src or not ref_align or not out_aligns:
     raise ValueError("Must specify the source and the alignment files when performing source analysis.")
 
@@ -127,7 +135,8 @@ def generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns,
                                                          freq_count_file=freq_count_file,
                                                          freq_corpus_file=freq_corpus_file,
                                                          freq_data=src,
-                                                         label_set=label_set)
+                                                         label_set=label_set,
+                                                         case_insensitive=case_insensitive)
   src_labels = corpus_utils.load_tokens(src_labels) if type(src_labels) == str else src_labels
   matches = [bucketer.calc_source_bucketed_matches(src, ref, out, ref_align, out_align, src_labels=src_labels) for out, out_align in zip(outs, out_aligns)]
 
@@ -152,6 +161,7 @@ def generate_sentence_bucketed_report(ref, outs,
     score_measure: If using 'score' as either bucket_type or statistic_type, which scorer to use
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+  case_insensitive = True if case_insensitive == 'True' else False
 
   bucketer = bucketers.create_sentence_bucketer_from_profile(bucket_type, score_type=score_measure, case_insensitive=case_insensitive)
   bcs = [bucketer.create_bucketed_corpus(out, ref=ref) for out in outs]
@@ -202,6 +212,10 @@ def generate_ngram_report(ref, outs,
     compare_directions: A string specifying which systems to compare
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+  min_ngram_length, max_ngram_length, report_length = int(min_ngram_length), int(max_ngram_length), int(report_length)
+  alpha = float(alpha)
+  case_insensitive = True if case_insensitive == 'True' else False
+
   if out_labels is not None:
     out_labels = arg_utils.parse_files(out_labels)
     if len(out_labels) != len(outs):
@@ -278,6 +292,8 @@ def generate_sentence_examples(ref, outs,
     compare_directions: A string specifying which systems to compare
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
+  report_length = int(report_length)
+  case_insensitive = True if case_insensitive == 'True' else False
     
   scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive)
 
@@ -347,9 +363,9 @@ def main():
                       See documentation for 'print_src_word_accuracy_report' to see which arguments are available.
                       """)
   parser.add_argument('--compare_sentence_buckets', type=str, nargs='*',
-                      default=['bucket_type=score,score_measure=sentbleu',
+                      default=['bucket_type=length,statistic_type=score,score_measure=bleu',
                                'bucket_type=lengthdiff',
-                               'bucket_type=length,statistic_type=score,score_measure=bleu'],
+                               'bucket_type=score,score_measure=sentbleu'],
                       help="""
                       Compare sentence counts by buckets. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
                       See documentation for 'print_sentence_buckets_report' to see which arguments are available.
@@ -371,7 +387,12 @@ def main():
                       A path to a directory where a graphical report will be saved. Open index.html in the directory
                       to read the report.
                       """)
+  parser.add_argument('--decimals', type=int, default=4,
+                      help="Number of decimals to print for floating point numbers")
   args = parser.parse_args()
+
+  # Set formatting
+  formatting.fmt.set_decimals(args.decimals)
 
   ref = corpus_utils.load_tokens(args.ref_file)
   outs = [corpus_utils.load_tokens(x) for x in args.out_files]
@@ -386,14 +407,22 @@ def main():
 
   reports = []
 
-  report_types = [
-    (args.compare_scores, generate_score_report, 'Aggregate Scores', False),
-    (args.compare_word_accuracies, generate_word_accuracy_report, 'Word Accuracies', False),
-    (args.compare_src_word_accuracies, generate_src_word_accuracy_report, 'Source Word Accuracies', True),
-    (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', False),
-    (args.compare_ngrams, generate_ngram_report, 'Characteristic N-grams', False),
-    (args.compare_sentence_examples, generate_sentence_examples, 'Sentence Examples', False),
-  ]
+  if len(outs) == 1:
+    report_types = [
+      (args.compare_scores, generate_score_report, 'Aggregate Scores', False),
+      (args.compare_word_accuracies, generate_word_accuracy_report, 'Word Accuracies', False),
+      (args.compare_src_word_accuracies, generate_src_word_accuracy_report, 'Source Word Accuracies', True),
+      (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', False),
+    ]
+  else:
+    report_types = [
+      (args.compare_scores, generate_score_report, 'Aggregate Scores', False),
+      (args.compare_word_accuracies, generate_word_accuracy_report, 'Word Accuracies', False),
+      (args.compare_src_word_accuracies, generate_src_word_accuracy_report, 'Source Word Accuracies', True),
+      (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', False),
+      (args.compare_ngrams, generate_ngram_report, 'Characteristic N-grams', False),
+      (args.compare_sentence_examples, generate_sentence_examples, 'Sentence Examples', False),
+    ]
 
   for arg, func, name, use_src in report_types:
     if arg is not None:

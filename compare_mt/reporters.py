@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 plt.rcParams['font.family'] = 'sans-serif'
 import numpy as np
 import os
+from compare_mt.formatting import fmt
 
 # Global variables used by all reporters. These are set by compare_mt_main.py
 sys_names = None
@@ -127,7 +128,7 @@ class Report:
 
   def print_tabbed_table(self, tab):
     for x in tab:
-      print('\t'.join([str(y) if y else '' for y in x]))
+      print('\t'.join([fmt(y) if y else '' for y in x]))
     print()
 
   def generate_report(self, output_fig_file=None, output_fig_format=None, output_directory=None):
@@ -138,7 +139,7 @@ class ScoreReport(Report):
                wins=None, sys_stats=None):
     self.scorer = scorer 
     self.scores = scores
-    self.strs = [f'{x:.4f} ({y})' if y else f'{x:.4f}' for (x,y) in zip(scores,strs)]
+    self.strs = [f'{fmt(x)} ({y})' if y else fmt(x) for (x,y) in zip(scores,strs)]
     self.wins = wins
     self.sys_stats = sys_stats
     self.output_fig_file = f'{next_fig_id()}-score-{scorer.idstr()}'
@@ -171,7 +172,7 @@ class ScoreReport(Report):
       return [
         [""]+sys_names+["Win?"],
         [self.scorer.name()]+self.strs+[winstr],
-        [""]+[f'[{x["lower_bound"]:.4f},{x["upper_bound"]:.4f}]' for x in self.sys_stats]+[f'p={pval:.4f}']
+        [""]+[f'[{fmt(x["lower_bound"])},{fmt(x["upper_bound"])}]' for x in self.sys_stats]+[f'p={fmt(pval)}']
       ], None
     else:
       # Table with scores, and separate one with wins for multiple systems
@@ -180,7 +181,7 @@ class ScoreReport(Report):
         wptable.append([sys_names[i]] + [""] * (len(self.scores)-1))
       for (left,right), my_wins in self.wins:
         winstr, pval = self.winstr_pval(my_wins)
-        wptable[left+1][right] = f'{winstr} (p={pval:.4f})'
+        wptable[left+1][right] = f'{winstr} (p={fmt(pval)})'
       return [[""]+sys_names, [self.scorer.name()]+self.strs], wptable
 
   def print(self):
@@ -195,12 +196,14 @@ class ScoreReport(Report):
     sys = [[score] for score in self.scores]
     if self.wins:
       sys_errs = [np.array([[score-stat['lower_bound'], stat['upper_bound']-score]]) for (score,stat) in zip(self.scores, self.sys_stats)]
+    else:
+      sys_errs = None
     xticklabels = None
 
     make_bar_chart(sys,
                    output_directory, output_fig_file,
                    output_fig_format=output_fig_format,
-                   errs=sys_errs, title='Score Comparison', ylabel=self.scorer.name(),
+                   errs=sys_errs, ylabel=self.scorer.name(),
                    xticklabels=xticklabels)
 
   def html_content(self, output_directory):
@@ -235,7 +238,7 @@ class WordReport(Report):
       for i, bucket_str in enumerate(bucketer.bucket_strs):
         print(f'{bucket_str}', end='')
         for match in matches:
-          print(f'\t{match[i][aid]:.4f}', end='')
+          print(f'\t{fmt(match[i][aid])}', end='')
         print()
       print()
 
@@ -251,7 +254,7 @@ class WordReport(Report):
       make_bar_chart(sys,
                      output_directory, output_fig_file,
                      output_fig_format=output_fig_format,
-                     title='Word Accuracy Comparison', xlabel=self.bucketer.name(), ylabel=at,
+                     xlabel=self.bucketer.name(), ylabel=at,
                      xticklabels=xticklabels)
     
   def html_content(self, output_directory):
@@ -269,7 +272,7 @@ class WordReport(Report):
       for i, bs in enumerate(bucketer.bucket_strs):
         line = [bs]
         for match in matches:
-          line.append(f'{match[i][aid]:.4f}')
+          line.append(f'{fmt(match[i][aid])}')
         table += [line] 
       html += html_table(table, caption)
       img_name = f'{self.output_fig_file}-{at}'
@@ -299,21 +302,14 @@ class NgramReport(Report):
     if self.label_files is not None:
       print(self.label_files)
 
-    if len(self.scorelist) == 1:
-      # Single system analysis
-      print(f'--- {report_length} n-grams that {sys_names[0]} had high {self.compare_type}')
-      for k, v in self.scorelist[0][:report_length]:
-        print('{}\t{} (sys{}={})'.format(' '.join(k), v, 1, self.matches[0][k]))
+    for i, (left, right) in enumerate(self.compare_directions):
+      print(f'--- {report_length} n-grams that {sys_names[left]} had higher {self.compare_type}')
+      for k, v in self.scorelist[i][:report_length]:
+        print(f"{' '.join(k)}\t{fmt(v)} (sys{left+1}={self.matches[left][k]}, sys{right+1}={self.matches[right][k]})")
+      print(f'\n--- {report_length} n-grams that {sys_names[right]} had higher {self.compare_type}')
+      for k, v in reversed(self.scorelist[i][-report_length:]):
+        print(f"{' '.join(k)}\t{fmt(v)} (sys{left+1}={self.matches[left][k]}, sys{right+1}={self.matches[right][k]})")
       print()
-    else:
-      for i, (left, right) in enumerate(self.compare_directions):
-        print(f'--- {report_length} n-grams that {sys_names[left]} had higher {self.compare_type}')
-        for k, v in self.scorelist[i][:report_length]:
-          print('{}\t{} (sys{}={}, sys{}={})'.format(' '.join(k), v, left+1, self.matches[left][k], right+1, self.matches[right][k]))
-        print(f'\n--- {report_length} n-grams that {sys_names[right]} had higher {self.compare_type}')
-        for k, v in reversed(self.scorelist[i][-report_length:]):
-          print('{}\t{} (sys{}={}, sys{}={})'.format(' '.join(k), v, left+1, self.matches[left][k], right+1, self.matches[right][k]))
-        print()
 
   def plot(self, output_directory, output_fig_file, output_fig_format='pdf'):
     raise NotImplementedError('Plotting is not implemented for n-gram reports')
@@ -325,23 +321,16 @@ class NgramReport(Report):
     if self.label_files is not None:
       html += tag_str('p', self.label_files)
 
-    if len(self.scorelist) == 1:
-      # Single system analysis
-      caption = f'{report_length} n-grams that {sys_names[0]} had high {self.compare_type}'
-      table = [['n-gram', self.compare_type, f'{sys_names[0]}']]
-      table.extend([[' '.join(k), f'{v:.2f}', self.matches[0][k]] for k, v in self.scorelist[0][:report_length]])
+    for i, (left, right) in enumerate(self.compare_directions):
+      caption = f'{report_length} n-grams that {sys_names[left]} had higher {self.compare_type}'
+      table = [['n-gram', self.compare_type, f'{sys_names[left]}', f'{sys_names[right]}']]
+      table.extend([[' '.join(k), fmt(v), self.matches[left][k], self.matches[right][k]] for k, v in self.scorelist[i][:report_length]])
       html += html_table(table, caption)
-    else:
-      for i, (left, right) in enumerate(self.compare_directions):
-        caption = f'{report_length} n-grams that {sys_names[left]} had higher {self.compare_type}'
-        table = [['n-gram', self.compare_type, f'{sys_names[left]}', f'{sys_names[right]}']]
-        table.extend([[' '.join(k), f'{v:.2f}', self.matches[left][k], self.matches[right][k]] for k, v in self.scorelist[i][:report_length]])
-        html += html_table(table, caption)
 
-        caption = f'{report_length} n-grams that {sys_names[right]} had higher {self.compare_type}'
-        table = [['n-gram', self.compare_type, f'{sys_names[left]}', f'{sys_names[right]}']]
-        table.extend([[' '.join(k), f'{v:.2f}', self.matches[left][k], self.matches[right][k]] for k, v in reversed(self.scorelist[i][-report_length:])])
-        html += html_table(table, caption)
+      caption = f'{report_length} n-grams that {sys_names[right]} had higher {self.compare_type}'
+      table = [['n-gram', self.compare_type, f'{sys_names[left]}', f'{sys_names[right]}']]
+      table.extend([[' '.join(k), fmt(v), self.matches[left][k], self.matches[right][k]] for k, v in reversed(self.scorelist[i][-report_length:])])
+      html += html_table(table, caption)
     return html 
 
 class SentenceReport(Report):
@@ -365,7 +354,7 @@ class SentenceReport(Report):
     for i, bs in enumerate(self.bucketer.bucket_strs):
       print(f'{bs}', end='')
       for stat in self.sys_stats:
-        print(f'\t{stat[i]:.4f}', end='')
+        print(f'\t{fmt(stat[i])}', end='')
       print()
     print()
 
@@ -376,7 +365,7 @@ class SentenceReport(Report):
     make_bar_chart(sys,
                    output_directory, output_fig_file,
                    output_fig_format=output_fig_format,
-                   title='Sentence Bucket Analysis', xlabel=self.bucketer.name(), ylabel=self.yname,
+                   xlabel=self.bucketer.name(), ylabel=self.yname,
                    xticklabels=xticklabels)
 
   def html_content(self, output_directory=None):
@@ -384,7 +373,7 @@ class SentenceReport(Report):
     for i, bs in enumerate(self.bucketer.bucket_strs):
       line = [bs]
       for stat in self.sys_stats:
-        line.append(f'{stat[i]:.4f}')
+        line.append(fmt(stat[i]))
       table.extend([line])
     html = html_table(table, self.description)
     for ext in ('png', 'pdf'):
@@ -404,23 +393,26 @@ class SentenceExampleReport(Report):
 
   def print(self):
     report_length = self.report_length
-    if len(self.outs) == 1:
-      # Single system analysis
-      ref, out1 = self.ref, self.outs[0]
-      sname = sys_names[0]
-      print(f'--- {report_length} sentences where {sname} had high {self.scorer.name()}')
-      for s1, str1, i in self.scorediff_lists[0][-report_length:]:
-        print ('{}={:.4f}\nRef:  {}\n{}: {}\n'.format(sname, s1, ' '.join(ref[i]), sname, ' '.join(out1[i])))
-    else:
-      for cnt, (left, right) in enumerate(self.compare_directions):
-        ref, out1, out2 = self.ref, self.outs[left], self.outs[right]
-        sleft, sright = sys_names[left], sys_names[right]
-        print(f'--- {report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
-        for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
-          print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sleft, sright, -bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
-        print(f'--- {report_length} sentences where {sright}>{sleft} at {self.scorer.name()}')
-        for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
-          print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sright, sleft, bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
+    for cnt, (left, right) in enumerate(self.compare_directions):
+      ref, out1, out2 = self.ref, self.outs[left], self.outs[right]
+      sleft, sright = sys_names[left], sys_names[right]
+      print(f'--- {report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
+      for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
+        print (
+          f"{sleft}-{sright}={fmt(-bdiff)}, {sleft}={fmt(s1)}, {sright}={fmt(s2)}\n"
+          f"Ref:  {' '.join(ref[i])}\n"
+          f"{sleft}: {' '.join(out1[i])}\n"
+          f"{sright}: {' '.join(out2[i])}\n"
+        )
+
+      print(f'--- {report_length} sentences where {sright}>{sleft} at {self.scorer.name()}')
+      for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
+          print (
+          f"{sleft}-{sright}={fmt(-bdiff)}, {sleft}={fmt(s1)}, {sright}={fmt(s2)}\n"
+          f"Ref:  {' '.join(ref[i])}\n"
+          f"{sleft}: {' '.join(out1[i])}\n"
+          f"{sright}: {' '.join(out2[i])}\n"
+        )
 
   def plot(self, output_directory, output_fig_file, output_fig_format='pdf'):
     pass 
@@ -435,8 +427,8 @@ class SentenceExampleReport(Report):
         table = [
           ['', 'Output', f'{self.scorer.idstr()}'],
           ['Ref', ' '.join(ref[i]), ''],
-          [f'{sleft}', ' '.join(out1[i]), f'{s1:.4f}'],
-          [f'{sright}', ' '.join(out2[i]), f'{s2:.4f}']
+          [f'{sleft}', ' '.join(out1[i]), fmt(s1)],
+          [f'{sright}', ' '.join(out2[i]), fmt(s2)]
         ]
         html += html_table(table, None)
 
@@ -445,8 +437,8 @@ class SentenceExampleReport(Report):
         table = [
           ['', 'Output', f'{self.scorer.idstr()}'],
           ['Ref', ' '.join(ref[i]), ''],
-          [f'{sleft}', ' '.join(out1[i]), f'{s1:.4f}'],
-          [f'{sright}', ' '.join(out2[i]), f'{s2:.4f}']
+          [f'{sleft}', ' '.join(out1[i]), fmt(s1)],
+          [f'{sright}', ' '.join(out2[i]), fmt(s2)]
         ]
         html += html_table(table, None)
 
@@ -473,7 +465,7 @@ def html_table(table, caption=None, bold_rows=1, bold_cols=1):
     cs[bold_cols-1] = 'c||'
   latex_code += "  \\begin{tabular}{"+''.join(cs)+"}\n"
   for i, row in enumerate(table):
-    latex_code += ' & '.join([str(x) for x in row]) + (' \\\\\n' if i != bold_rows-1 else ' \\\\ \\hline \\hline\n')
+    latex_code += ' & '.join([fmt(x) for x in row]) + (' \\\\\n' if i != bold_rows-1 else ' \\\\ \\hline \\hline\n')
   latex_code += "  \\end{tabular}\n  \\caption{Caption}\n  \\label{tab:table"+tab_id+"}\n\\end{table}"
 
   html += (f'<button onclick="showhide(\'{tab_id}_latex\')">Show/Hide LaTeX</button> <br/>' +
