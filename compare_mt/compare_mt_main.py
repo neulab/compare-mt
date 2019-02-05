@@ -14,7 +14,6 @@ from compare_mt import arg_utils
 from compare_mt import print_utils
 
 def generate_score_report(ref, outs,
-                       sys_names,
                        score_type='bleu',
                        bootstrap=0,
                        case_insensitive=False):
@@ -44,14 +43,13 @@ def generate_score_report(ref, outs,
     wins = sys_stats = direcs = None
 
   reporter = reporters.ScoreReport(scorer=scorer, scores=scores, strs=strs, 
-                                   wins=wins, sys_stats=sys_stats, sys_names=sys_names)
+                                   wins=wins, sys_stats=sys_stats)
   reporter.generate_report(output_fig_file=f'score-{score_type}-{bootstrap}',
                            output_fig_format='pdf', 
                            output_directory='outputs')
   return reporter 
 
 def generate_word_accuracy_report(ref, outs,
-                          sys_names,
                           acc_type='fmeas', bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
@@ -89,7 +87,7 @@ def generate_word_accuracy_report(ref, outs,
   out_labels = [corpus_utils.load_tokens(out_labels[i]) if not out_labels is None else None for i in range(len(outs))]
   matches = [bucketer.calc_bucketed_matches(ref, out, ref_labels=ref_labels, out_labels=out_label) for out, out_label in zip(outs, out_labels)]
   
-  reporter = reporters.WordReport(bucketer=bucketer, matches=matches, sys_names=sys_names,
+  reporter = reporters.WordReport(bucketer=bucketer, matches=matches,
                                   acc_type=acc_type, header="Word Accuracy Analysis")
   reporter.generate_report(output_fig_file=f'word-acc',
                            output_fig_format='pdf', 
@@ -98,7 +96,6 @@ def generate_word_accuracy_report(ref, outs,
   
 
 def generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns,
-                          sys_names,
                           acc_type='fmeas', bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
@@ -134,7 +131,7 @@ def generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns,
   src_labels = corpus_utils.load_tokens(src_labels) if type(src_labels) == str else src_labels
   matches = [bucketer.calc_source_bucketed_matches(src, ref, out, ref_align, out_align, src_labels=src_labels) for out, out_align in zip(outs, out_aligns)]
 
-  reporter = reporters.WordReport(bucketer=bucketer, matches=matches, sys_names=sys_names,
+  reporter = reporters.WordReport(bucketer=bucketer, matches=matches,
                                   acc_type=acc_type, header="Source Word Accuracy Analysis")
   reporter.generate_report(output_fig_file=f'src-word-acc',
                            output_fig_format='pdf', 
@@ -142,7 +139,6 @@ def generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns,
   return reporter 
 
 def generate_sentence_bucketed_report(ref, outs,
-                                   sys_names,
                                    bucket_type='score', statistic_type='count',
                                    score_measure='bleu',
                                    case_insensitive=False):
@@ -172,7 +168,7 @@ def generate_sentence_bucketed_report(ref, outs,
   stats = [[aggregator(out,ref) for (out,ref) in bc] for bc in bcs]
 
   reporter = reporters.SentenceReport(bucketer=bucketer,
-                                      sys_stats=stats, sys_names=sys_names,
+                                      sys_stats=stats,
                                       statistic_type=statistic_type, scorer=scorer)
 
   reporter.generate_report(output_fig_file=f'sentence-{statistic_type}-{score_measure}',
@@ -182,7 +178,6 @@ def generate_sentence_bucketed_report(ref, outs,
   
 
 def generate_ngram_report(ref, outs,
-                       sys_names,
                        min_ngram_length=1, max_ngram_length=4,
                        report_length=50, alpha=1.0, compare_type='match',
                        ref_labels=None, out_labels=None,
@@ -244,7 +239,7 @@ def generate_ngram_report(ref, outs,
       raise ValueError(f'Illegal compare_type "{compare_type}"')
   scorelist = [sorted(score.items(), key=operator.itemgetter(1), reverse=True) for score in scores]
 
-  reporter = reporters.NgramReport(scorelist=scorelist, report_length=report_length, sys_names=sys_names,
+  reporter = reporters.NgramReport(scorelist=scorelist, report_length=report_length,
                                    min_ngram_length=min_ngram_length, 
                                    max_ngram_length=max_ngram_length,
                                    matches=matches,
@@ -257,7 +252,6 @@ def generate_ngram_report(ref, outs,
   return reporter 
 
 def generate_sentence_examples(ref, outs,
-                            sys_names,
                             score_type='sentbleu',
                             report_length=10,
                             compare_directions='0-1',
@@ -290,7 +284,7 @@ def generate_sentence_examples(ref, outs,
 
   reporter = reporters.SentenceExampleReport(report_length=report_length, scorediff_lists=scorediff_lists,
                                              scorer=scorer,
-                                             ref=ref, outs=outs, sys_names=sys_names,
+                                             ref=ref, outs=outs,
                                              compare_directions=direcs)
   reporter.generate_report()
   return reporter 
@@ -311,6 +305,8 @@ def main():
                       help='A path to a reference alignment file')
   parser.add_argument('--out_align_files', type=str, nargs='+', default=None,
                       help='Path to system alignment files')
+  parser.add_argument('--fig_size', type=str, default='6x4.5',
+                      help='The size of figures, in "width x height" format.')
   parser.add_argument('--compare_scores', type=str, nargs='*',
                       default=['score_type=bleu', 'score_type=length'],
                       help="""
@@ -362,8 +358,9 @@ def main():
   src = corpus_utils.load_tokens(args.src_file) if args.src_file else None 
   ref_align = corpus_utils.load_tokens(args.ref_align_file) if args.ref_align_file else None
   out_aligns = [corpus_utils.load_tokens(x) for x in args.out_align_files] if args.out_align_files else None
-  sys_names = args.sys_names if args.sys_names else [f'sys{i+1}' for i in range(len(outs))]
-  if len(sys_names) != len(outs):
+  reporters.sys_names = args.sys_names if args.sys_names else [f'sys{i+1}' for i in range(len(outs))]
+  reporters.fig_size = tuple([float(x) for x in args.fig_size.split('x')])
+  if len(reporters.sys_names) != len(outs):
     raise ValueError(f'len(sys_names) != len(outs) -- {len(sys_names)} != {len(outs)}')
 
   reports = []
@@ -380,9 +377,9 @@ def main():
   for arg, func, name, use_src in report_types:
     if arg is not None:
       if use_src:
-        reports.append( (name, [func(src, ref, outs, ref_align, out_aligns, sys_names, **arg_utils.parse_profile(x)) for x in arg]) )
+        reports.append( (name, [func(src, ref, outs, ref_align, out_aligns, **arg_utils.parse_profile(x)) for x in arg]) )
       else:
-        reports.append( (name, [func(ref, outs, sys_names, **arg_utils.parse_profile(x)) for x in arg]) )
+        reports.append( (name, [func(ref, outs, **arg_utils.parse_profile(x)) for x in arg]) )
 
   # Write all reports into a single html file
   if args.output_directory != None:
