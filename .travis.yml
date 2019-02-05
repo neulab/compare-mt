@@ -12,7 +12,8 @@ script:
   # Unit tests
   - pytest
   # Integration tests (all examples in README.md)
-  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
+  - mkdir output
+  - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --output_directory output
   - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_scores score_type=bleu,bootstrap=10
   - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_word_accuracies bucket_type=freq,freq_corpus_file=example/ted.train.eng
   - compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_word_accuracies bucket_type=label,ref_labels=example/ted.ref.eng.tag,out_labels="example/ted.sys1.eng.tag;example/ted.sys2.eng.tag",label_set=CC+DT+IN+JJ+NN+NNP+NNS+PRP+RB+TO+VB+VBP+VBZ --compare_ngrams compare_type=match,ref_labels=example/ted.ref.eng.tag,out_labels="example/ted.sys1.eng.tag;example/ted.sys2.eng.tag"
