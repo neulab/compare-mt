@@ -375,12 +375,13 @@ class SentenceReport(Report):
 
 class SentenceExampleReport(Report):
 
-  def __init__(self, report_length=None, scorediff_lists=None, scorer=None, ref=None, outs=None, compare_directions=[(0, 1)]):
+  def __init__(self, report_length=None, scorediff_lists=None, scorer=None, ref=None, outs=None, src=None, compare_directions=[(0, 1)]):
     self.report_length = report_length 
     self.scorediff_lists = scorediff_lists
     self.scorer = scorer
     self.ref = ref
     self.outs = outs
+    self.src = src
     self.compare_directions = compare_directions
 
   def print(self):
@@ -390,10 +391,16 @@ class SentenceExampleReport(Report):
       sleft, sright = sys_names[left], sys_names[right]
       print(f'--- {report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
-        print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sleft, sright, -bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
+        if self.src:
+          print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nSrc:  {}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sleft, sright, -bdiff, sleft, s1, sright, s2, ' '.join(self.src[i]), ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
+        else:
+          print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sleft, sright, -bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
       print(f'--- {report_length} sentences where {sright}>{sleft} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
-        print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sright, sleft, bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
+        if self.src:
+          print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nSrc:  {}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sright, sleft, bdiff, sleft, s1, sright, s2, ' '.join(self.src[i]), ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
+        else:
+          print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sright, sleft, bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
 
   def plot(self, output_directory, output_fig_file, output_fig_format='pdf'):
     pass 

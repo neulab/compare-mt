@@ -95,7 +95,7 @@ def generate_word_accuracy_report(ref, outs,
   return reporter 
   
 
-def generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns,
+def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_align_files=None,
                           acc_type='fmeas', bucket_type='freq',
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
@@ -105,11 +105,11 @@ def generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns,
   Generate a report for source word analysis in both plain text and graphs.
 
   Args:
-    src: Tokens from the source
     ref: Tokens from the reference
     outs: Tokens from the output file(s)
-    ref_align: Alignment file for the reference
-    out_aligns: Alignment file for the output file
+    src: Tokens from the source
+    ref_align_file: Alignment file for the reference
+    out_align_files: Alignment file for the output file
     acc_type: The type of accuracy to show (prec/rec/fmeas). Can also have multiple separated by '+'.
     bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
     freq_corpus_file: When using "freq" as a bucketer, which corpus to use to calculate frequency.
@@ -120,8 +120,14 @@ def generate_src_word_accuracy_report(src, ref, outs, ref_align, out_aligns,
     src_labels: either a filename of a file full of source labels, or a list of strings corresponding to `ref`.
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
-  if not src or not ref_align or not out_aligns:
+  if not src or not ref_align_file or not out_align_files:
     raise ValueError("Must specify the source and the alignment files when performing source analysis.")
+
+  ref_align = corpus_utils.load_tokens(ref_align_file) 
+  out_aligns = [corpus_utils.load_tokens(x) for x in arg_utils.parse_files(out_align_files)]
+
+  if len(out_aligns) != len(outs):
+    raise ValueError(f'The number of output files should be equal to the number of output alignment files.')
 
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          freq_count_file=freq_count_file,
@@ -251,7 +257,7 @@ def generate_ngram_report(ref, outs,
                            output_directory='outputs')
   return reporter 
 
-def generate_sentence_examples(ref, outs,
+def generate_sentence_examples(ref, outs, src=None,
                             score_type='sentbleu',
                             report_length=10,
                             compare_directions='0-1',
@@ -262,6 +268,7 @@ def generate_sentence_examples(ref, outs,
   Args:
     ref: Tokens from the reference
     outs: Tokens from the output file(s)
+    src: Tokens from the source (optional)
     score_type: The type of scorer to use
     report_length: Number of sentences to print for each system being better or worse
     compare_directions: A string specifying which systems to compare
@@ -284,7 +291,7 @@ def generate_sentence_examples(ref, outs,
 
   reporter = reporters.SentenceExampleReport(report_length=report_length, scorediff_lists=scorediff_lists,
                                              scorer=scorer,
-                                             ref=ref, outs=outs,
+                                             ref=ref, outs=outs, src=src,
                                              compare_directions=direcs)
   reporter.generate_report()
   return reporter 
@@ -301,10 +308,6 @@ def main():
                       help='Names for each system, must be same number as output files')
   parser.add_argument('--src_file', type=str, default=None,
                       help='A path to the source file')
-  parser.add_argument('--ref_align_file', type=str, default=None,
-                      help='A path to a reference alignment file')
-  parser.add_argument('--out_align_files', type=str, nargs='+', default=None,
-                      help='Path to system alignment files')
   parser.add_argument('--fig_size', type=str, default='6x4.5',
                       help='The size of figures, in "width x height" format.')
   parser.add_argument('--compare_scores', type=str, nargs='*',
@@ -356,8 +359,6 @@ def main():
   outs = [corpus_utils.load_tokens(x) for x in args.out_files]
 
   src = corpus_utils.load_tokens(args.src_file) if args.src_file else None 
-  ref_align = corpus_utils.load_tokens(args.ref_align_file) if args.ref_align_file else None
-  out_aligns = [corpus_utils.load_tokens(x) for x in args.out_align_files] if args.out_align_files else None
   reporters.sys_names = args.sys_names if args.sys_names else [f'sys{i+1}' for i in range(len(outs))]
   reporters.fig_size = tuple([float(x) for x in args.fig_size.split('x')])
   if len(reporters.sys_names) != len(outs):
@@ -371,13 +372,13 @@ def main():
     (args.compare_src_word_accuracies, generate_src_word_accuracy_report, 'Source Word Accuracies', True),
     (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', False),
     (args.compare_ngrams, generate_ngram_report, 'Characteristic N-grams', False),
-    (args.compare_sentence_examples, generate_sentence_examples, 'Sentence Examples', False),
+    (args.compare_sentence_examples, generate_sentence_examples, 'Sentence Examples', True),
   ]
 
   for arg, func, name, use_src in report_types:
     if arg is not None:
       if use_src:
-        reports.append( (name, [func(src, ref, outs, ref_align, out_aligns, **arg_utils.parse_profile(x)) for x in arg]) )
+        reports.append( (name, [func(ref, outs, src, **arg_utils.parse_profile(x)) for x in arg]) )
       else:
         reports.append( (name, [func(ref, outs, **arg_utils.parse_profile(x)) for x in arg]) )
 
