@@ -12,6 +12,7 @@ from compare_mt import bucketers
 from compare_mt import reporters
 from compare_mt import arg_utils
 from compare_mt import print_utils
+from compare_mt import formatting
 
 def generate_score_report(ref, outs,
                        sys_names,
@@ -354,7 +355,12 @@ def main():
                       A path to a directory where a graphical report will be saved. Open index.html in the directory
                       to read the report.
                       """)
+  parser.add_argument('--decimals', type=int, default=4,
+                      help="Number of decimals to print for floating point numbers")
   args = parser.parse_args()
+
+  # Set formatting
+  formatting.fmt.set_decimals(args.decimals)
 
   ref = corpus_utils.load_tokens(args.ref_file)
   outs = [corpus_utils.load_tokens(x) for x in args.out_files]
