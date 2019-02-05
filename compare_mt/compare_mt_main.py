@@ -228,15 +228,26 @@ def generate_ngram_report(ref, outs,
                                                              min_length=min_ngram_length, max_length=max_ngram_length) for out, out_label in zip(outs, out_labels)])
   direcs = arg_utils.parse_compare_directions(compare_directions)
   scores = []
-  for (left, right) in direcs:
+  if len(outs) == 1:
+    direcs = []
     if compare_type == 'match':
-      scores.append(stat_utils.extract_salient_features(matches[left], matches[right], alpha=alpha))
+      scores.append(matches[0])
     elif compare_type == 'over':
-      scores.append(stat_utils.extract_salient_features(overs[left], overs[right], alpha=alpha))
+      scores.append(overs[0])
     elif compare_type == 'under':
-      scores.append(stat_utils.extract_salient_features(unders[left], unders[right], alpha=alpha))
+      scores.append(unders[0])
     else:
       raise ValueError(f'Illegal compare_type "{compare_type}"')
+  else:
+    for (left, right) in direcs:
+      if compare_type == 'match':
+        scores.append(stat_utils.extract_salient_features(matches[left], matches[right], alpha=alpha))
+      elif compare_type == 'over':
+        scores.append(stat_utils.extract_salient_features(overs[left], overs[right], alpha=alpha))
+      elif compare_type == 'under':
+        scores.append(stat_utils.extract_salient_features(unders[left], unders[right], alpha=alpha))
+      else:
+        raise ValueError(f'Illegal compare_type "{compare_type}"')
   scorelist = [sorted(score.items(), key=operator.itemgetter(1), reverse=True) for score in scores]
 
   reporter = reporters.NgramReport(scorelist=scorelist, report_length=report_length,
@@ -272,15 +283,25 @@ def generate_sentence_examples(ref, outs,
 
   direcs = arg_utils.parse_compare_directions(compare_directions)
 
-  scorediff_lists=[]
-  for (left, right) in direcs:
+  scorediff_lists = []
+  if len(outs) == 1:
+    # Single system analysis
+    direcs = []
     scorediff_list = []
-    for i, (o1, o2, r) in enumerate(zip(outs[left], outs[right], ref)):
+    for i, (o1, r) in enumerate(zip(outs[0], ref)):
       s1, str1 = scorer.score_sentence(r, o1)
-      s2, str2 = scorer.score_sentence(r, o2)
-      scorediff_list.append((s2-s1, s1, s2, str1, str2, i))
+      scorediff_list.append((s1, str1, i))
     scorediff_list.sort()
     scorediff_lists.append(scorediff_list)
+  else:
+    for (left, right) in direcs:
+      scorediff_list = []
+      for i, (o1, o2, r) in enumerate(zip(outs[left], outs[right], ref)):
+        s1, str1 = scorer.score_sentence(r, o1)
+        s2, str2 = scorer.score_sentence(r, o2)
+        scorediff_list.append((s2-s1, s1, s2, str1, str2, i))
+      scorediff_list.sort()
+      scorediff_lists.append(scorediff_list)
 
   reporter = reporters.SentenceExampleReport(report_length=report_length, scorediff_lists=scorediff_lists,
                                              scorer=scorer,

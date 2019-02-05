@@ -158,6 +158,13 @@ class ScoreReport(Report):
     if self.wins is None:
       # Single table with just scores
       return [[""]+sys_names, [self.scorer.name()]+self.strs], None
+    elif len(self.scores) == 1:
+      # Single table with scores for one system
+      return [
+        [""]+sys_names,
+        [self.scorer.name()]+self.strs,
+        [""]+[f'[{x["lower_bound"]:.4f},{x["upper_bound"]:.4f}]' for x in self.sys_stats]
+      ], None
     elif len(self.scores) == 2:
       # Single table with scores and wins for two systems
       winstr, pval = self.winstr_pval(self.wins[0][1])
@@ -292,14 +299,21 @@ class NgramReport(Report):
     if self.label_files is not None:
       print(self.label_files)
 
-    for i, (left, right) in enumerate(self.compare_directions):
-      print(f'--- {report_length} n-grams that {sys_names[left]} had higher {self.compare_type}')
-      for k, v in self.scorelist[i][:report_length]:
-        print('{}\t{} (sys{}={}, sys{}={})'.format(' '.join(k), v, left+1, self.matches[left][k], right+1, self.matches[right][k]))
-      print(f'\n--- {report_length} n-grams that {sys_names[right]} had higher {self.compare_type}')
-      for k, v in reversed(self.scorelist[i][-report_length:]):
-        print('{}\t{} (sys{}={}, sys{}={})'.format(' '.join(k), v, left+1, self.matches[left][k], right+1, self.matches[right][k]))
+    if len(self.scorelist) == 1:
+      # Single system analysis
+      print(f'--- {report_length} n-grams that {sys_names[0]} had high {self.compare_type}')
+      for k, v in self.scorelist[0][:report_length]:
+        print('{}\t{} (sys{}={})'.format(' '.join(k), v, 1, self.matches[0][k]))
       print()
+    else:
+      for i, (left, right) in enumerate(self.compare_directions):
+        print(f'--- {report_length} n-grams that {sys_names[left]} had higher {self.compare_type}')
+        for k, v in self.scorelist[i][:report_length]:
+          print('{}\t{} (sys{}={}, sys{}={})'.format(' '.join(k), v, left+1, self.matches[left][k], right+1, self.matches[right][k]))
+        print(f'\n--- {report_length} n-grams that {sys_names[right]} had higher {self.compare_type}')
+        for k, v in reversed(self.scorelist[i][-report_length:]):
+          print('{}\t{} (sys{}={}, sys{}={})'.format(' '.join(k), v, left+1, self.matches[left][k], right+1, self.matches[right][k]))
+        print()
 
   def plot(self, output_directory, output_fig_file, output_fig_format='pdf'):
     raise NotImplementedError('Plotting is not implemented for n-gram reports')
@@ -311,16 +325,23 @@ class NgramReport(Report):
     if self.label_files is not None:
       html += tag_str('p', self.label_files)
 
-    for i, (left, right) in enumerate(self.compare_directions):
-      caption = f'{report_length} n-grams that {sys_names[left]} had higher {self.compare_type}'
-      table = [['n-gram', self.compare_type, f'{sys_names[left]}', f'{sys_names[right]}']]
-      table.extend([[' '.join(k), f'{v:.2f}', self.matches[left][k], self.matches[right][k]] for k, v in self.scorelist[i][:report_length]])
+    if len(self.scorelist) == 1:
+      # Single system analysis
+      caption = f'{report_length} n-grams that {sys_names[0]} had high {self.compare_type}'
+      table = [['n-gram', self.compare_type, f'{sys_names[0]}']]
+      table.extend([[' '.join(k), f'{v:.2f}', self.matches[0][k]] for k, v in self.scorelist[0][:report_length]])
       html += html_table(table, caption)
+    else:
+      for i, (left, right) in enumerate(self.compare_directions):
+        caption = f'{report_length} n-grams that {sys_names[left]} had higher {self.compare_type}'
+        table = [['n-gram', self.compare_type, f'{sys_names[left]}', f'{sys_names[right]}']]
+        table.extend([[' '.join(k), f'{v:.2f}', self.matches[left][k], self.matches[right][k]] for k, v in self.scorelist[i][:report_length]])
+        html += html_table(table, caption)
 
-      caption = f'{report_length} n-grams that {sys_names[right]} had higher {self.compare_type}'
-      table = [['n-gram', self.compare_type, f'{sys_names[left]}', f'{sys_names[right]}']]
-      table.extend([[' '.join(k), f'{v:.2f}', self.matches[left][k], self.matches[right][k]] for k, v in reversed(self.scorelist[i][-report_length:])])
-      html += html_table(table, caption)
+        caption = f'{report_length} n-grams that {sys_names[right]} had higher {self.compare_type}'
+        table = [['n-gram', self.compare_type, f'{sys_names[left]}', f'{sys_names[right]}']]
+        table.extend([[' '.join(k), f'{v:.2f}', self.matches[left][k], self.matches[right][k]] for k, v in reversed(self.scorelist[i][-report_length:])])
+        html += html_table(table, caption)
     return html 
 
 class SentenceReport(Report):
@@ -383,15 +404,23 @@ class SentenceExampleReport(Report):
 
   def print(self):
     report_length = self.report_length
-    for cnt, (left, right) in enumerate(self.compare_directions):
-      ref, out1, out2 = self.ref, self.outs[left], self.outs[right]
-      sleft, sright = sys_names[left], sys_names[right]
-      print(f'--- {report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
-      for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
-        print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sleft, sright, -bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
-      print(f'--- {report_length} sentences where {sright}>{sleft} at {self.scorer.name()}')
-      for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
-        print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sright, sleft, bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
+    if len(self.outs) == 1:
+      # Single system analysis
+      ref, out1 = self.ref, self.outs[0]
+      sname = sys_names[0]
+      print(f'--- {report_length} sentences where {sname} had high {self.scorer.name()}')
+      for s1, str1, i in self.scorediff_lists[0][-report_length:]:
+        print ('{}={:.4f}\nRef:  {}\n{}: {}\n'.format(sname, s1, ' '.join(ref[i]), sname, ' '.join(out1[i])))
+    else:
+      for cnt, (left, right) in enumerate(self.compare_directions):
+        ref, out1, out2 = self.ref, self.outs[left], self.outs[right]
+        sleft, sright = sys_names[left], sys_names[right]
+        print(f'--- {report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
+        for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
+          print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sleft, sright, -bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
+        print(f'--- {report_length} sentences where {sright}>{sleft} at {self.scorer.name()}')
+        for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
+          print ('{}-{}={:.4f}, {}={:.4f}, {}={:.4f}\nRef:  {}\n{}: {}\n{}: {}\n'.format(sright, sleft, bdiff, sleft, s1, sright, s2, ' '.join(ref[i]), sleft, ' '.join(out1[i]), sright, ' '.join(out2[i])))
 
   def plot(self, output_directory, output_fig_file, output_fig_format='pdf'):
     pass 
