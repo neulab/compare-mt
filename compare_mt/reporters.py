@@ -193,7 +193,7 @@ class ScoreReport(Report):
     make_bar_chart(sys,
                    output_directory, output_fig_file,
                    output_fig_format=output_fig_format,
-                   errs=sys_errs, title='Score Comparison', ylabel=self.scorer.name(),
+                   errs=sys_errs, ylabel=self.scorer.name(),
                    xticklabels=xticklabels)
 
   def html_content(self, output_directory):
@@ -244,7 +244,7 @@ class WordReport(Report):
       make_bar_chart(sys,
                      output_directory, output_fig_file,
                      output_fig_format=output_fig_format,
-                     title='Word Accuracy Comparison', xlabel=self.bucketer.name(), ylabel=at,
+                     xlabel=self.bucketer.name(), ylabel=at,
                      xticklabels=xticklabels)
     
   def html_content(self, output_directory):
@@ -355,7 +355,7 @@ class SentenceReport(Report):
     make_bar_chart(sys,
                    output_directory, output_fig_file,
                    output_fig_format=output_fig_format,
-                   title='Sentence Bucket Analysis', xlabel=self.bucketer.name(), ylabel=self.yname,
+                   xlabel=self.bucketer.name(), ylabel=self.yname,
                    xticklabels=xticklabels)
 
   def html_content(self, output_directory=None):
