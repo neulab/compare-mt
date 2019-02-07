@@ -288,7 +288,7 @@ def generate_sentence_examples(ref, outs,
 
   direcs = arg_utils.parse_compare_directions(compare_directions)
 
-  scorediff_lists=[]
+  scorediff_lists = []
   for (left, right) in direcs:
     scorediff_list = []
     for i, (o1, o2, r) in enumerate(zip(outs[left], outs[right], ref)):
@@ -386,14 +386,22 @@ def main():
 
   reports = []
 
-  report_types = [
-    (args.compare_scores, generate_score_report, 'Aggregate Scores', False),
-    (args.compare_word_accuracies, generate_word_accuracy_report, 'Word Accuracies', False),
-    (args.compare_src_word_accuracies, generate_src_word_accuracy_report, 'Source Word Accuracies', True),
-    (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', False),
-    (args.compare_ngrams, generate_ngram_report, 'Characteristic N-grams', False),
-    (args.compare_sentence_examples, generate_sentence_examples, 'Sentence Examples', False),
-  ]
+  if len(outs) == 1:
+    report_types = [
+      (args.compare_scores, generate_score_report, 'Aggregate Scores', False),
+      (args.compare_word_accuracies, generate_word_accuracy_report, 'Word Accuracies', False),
+      (args.compare_src_word_accuracies, generate_src_word_accuracy_report, 'Source Word Accuracies', True),
+      (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', False),
+    ]
+  else:
+    report_types = [
+      (args.compare_scores, generate_score_report, 'Aggregate Scores', False),
+      (args.compare_word_accuracies, generate_word_accuracy_report, 'Word Accuracies', False),
+      (args.compare_src_word_accuracies, generate_src_word_accuracy_report, 'Source Word Accuracies', True),
+      (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', False),
+      (args.compare_ngrams, generate_ngram_report, 'Characteristic N-grams', False),
+      (args.compare_sentence_examples, generate_sentence_examples, 'Sentence Examples', False),
+    ]
 
   for arg, func, name, use_src in report_types:
     if arg is not None:

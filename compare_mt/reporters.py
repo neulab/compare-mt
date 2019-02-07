@@ -159,6 +159,13 @@ class ScoreReport(Report):
     if self.wins is None:
       # Single table with just scores
       return [[""]+sys_names, [self.scorer.name()]+self.strs], None
+    elif len(self.scores) == 1:
+      # Single table with scores for one system
+      return [
+        [""]+sys_names,
+        [self.scorer.name()]+self.strs,
+        [""]+[f'[{x["lower_bound"]:.4f},{x["upper_bound"]:.4f}]' for x in self.sys_stats]
+      ], None
     elif len(self.scores) == 2:
       # Single table with scores and wins for two systems
       winstr, pval = self.winstr_pval(self.wins[0][1])
