@@ -173,7 +173,7 @@ class BleuScorer(Scorer):
         denom_prec[n] += denom
 
     if num_prec[1] == 0:
-      return 0
+      return 0, None
 
     prec = 0
     for i, w in enumerate(self.weights, start=1):
