@@ -383,12 +383,13 @@ class SentenceReport(Report):
 
 class SentenceExampleReport(Report):
 
-  def __init__(self, report_length=None, scorediff_lists=None, scorer=None, ref=None, outs=None, compare_directions=[(0, 1)]):
+  def __init__(self, report_length=None, scorediff_lists=None, scorer=None, ref=None, outs=None, src=None, compare_directions=[(0, 1)]):
     self.report_length = report_length 
     self.scorediff_lists = scorediff_lists
     self.scorer = scorer
     self.ref = ref
     self.outs = outs
+    self.src = src
     self.compare_directions = compare_directions
 
   def print(self):
@@ -398,8 +399,10 @@ class SentenceExampleReport(Report):
       sleft, sright = sys_names[left], sys_names[right]
       print(f'--- {report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
-        print (
-          f"{sleft}-{sright}={fmt(-bdiff)}, {sleft}={fmt(s1)}, {sright}={fmt(s2)}\n"
+        print(f"{sleft}-{sright}={fmt(-bdiff)}, {sleft}={fmt(s1)}, {sright}={fmt(s2)}")
+        if self.src:
+          print(f"Src:  {' '.join(self.src[i])}")
+        print ( 
           f"Ref:  {' '.join(ref[i])}\n"
           f"{sleft}: {' '.join(out1[i])}\n"
           f"{sright}: {' '.join(out2[i])}\n"
@@ -407,8 +410,10 @@ class SentenceExampleReport(Report):
 
       print(f'--- {report_length} sentences where {sright}>{sleft} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
-          print (
-          f"{sleft}-{sright}={fmt(-bdiff)}, {sleft}={fmt(s1)}, {sright}={fmt(s2)}\n"
+        print(f"{sleft}-{sright}={fmt(-bdiff)}, {sleft}={fmt(s1)}, {sright}={fmt(s2)}")
+        if self.src:
+          print(f"Src:  {' '.join(self.src[i])}")
+        print (
           f"Ref:  {' '.join(ref[i])}\n"
           f"{sleft}: {' '.join(out1[i])}\n"
           f"{sright}: {' '.join(out2[i])}\n"
@@ -424,22 +429,28 @@ class SentenceExampleReport(Report):
       ref, out1, out2 = self.ref, self.outs[left], self.outs[right]
       html = tag_str('h4', f'{report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][:report_length]:
-        table = [
-          ['', 'Output', f'{self.scorer.idstr()}'],
+        table = [['', 'Output', f'{self.scorer.idstr()}']]
+        if self.src:
+          table.append(['Src', ' '.join(self.src[i]), ''])
+        table += [
           ['Ref', ' '.join(ref[i]), ''],
           [f'{sleft}', ' '.join(out1[i]), fmt(s1)],
           [f'{sright}', ' '.join(out2[i]), fmt(s2)]
         ]
+        
         html += html_table(table, None)
 
       html += tag_str('h4', f'{report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
-        table = [
-          ['', 'Output', f'{self.scorer.idstr()}'],
+        table = [['', 'Output', f'{self.scorer.idstr()}']]
+        if self.src:
+          table.append(['Src', ' '.join(self.src[i]), ''])
+        table += [
           ['Ref', ' '.join(ref[i]), ''],
           [f'{sleft}', ' '.join(out1[i]), fmt(s1)],
           [f'{sright}', ' '.join(out2[i]), fmt(s2)]
         ]
+
         html += html_table(table, None)
 
     return html
