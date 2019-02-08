@@ -209,6 +209,8 @@ class SentBleuScorer(SentenceFactoredScorer):
     Returns:
       A tuple containing a single value for the average sentence BLEU, and None
     """
+    if len(ref) == 0:
+      return 0.0, None
     bleu_sum = 0
     for r, o in zip(ref, out):
       bleu_sum += self.score_sentence(r, o)[0]
