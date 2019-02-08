@@ -1,6 +1,10 @@
+# PyCharm
 .idea
 __pycache__
+# vim
 *.swp
+# Mac
+.DS_Store
 # setup.py build artifacts
 *.egg-info
 dist/
