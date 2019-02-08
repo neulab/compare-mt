@@ -37,7 +37,7 @@ setup(
   "Intended Audience :: Developers",
   "Topic :: Text Processing",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
-  "License :: OSI Approved :: [TODO]",
+  "License :: OSI Approved :: BSD License",
   "Programming Language :: Python :: 3",
   ],
   packages=find_packages(),
