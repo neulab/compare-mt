@@ -100,7 +100,7 @@ It also is possible to create labels that represent numberical values. For examp
 ```bash
 compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng 
     --compare_word_accuracies bucket_type=numlabel,ref_labels=example/ted.ref.eng.rptag,out_labels="example/ted.sys1.eng.rptag;example/ted.sys2.eng.rptag"
-'''
+```
 
 From this particular analysis we can discover that NMT does worse than PBMT at the end of the sentence, and of course other varieties of numerical labels could be used to measure different properties of words.
 
