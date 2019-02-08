@@ -2,6 +2,7 @@ from setuptools import setup, find_packages
 import unittest
 import codecs
 import re
+import os
 
 
 def test_suite():
@@ -11,10 +12,10 @@ def test_suite():
   return test_suite
 
 
-def find_version(*file_paths):
+def find_version():
   """Find version in compare_mt/__init__.py"""
-  os.path.abspath(os.path.dirname(__file__))
-  with codecs.open(os.path.join(here, *parts), 'r') as fp:
+  here = os.path.abspath(os.path.dirname(__file__))
+  with codecs.open(os.path.join(here, "compare_mt", "__init__.py"), 'r') as fp:
     version_file = fp.read()
     version_match = re.search(
       r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
@@ -23,9 +24,17 @@ def find_version(*file_paths):
   raise RuntimeError("Unable to find version string.")
 
 
+def read_requirements():
+  """Read requirements from requirements.txt"""
+  here = os.path.abspath(os.path.dirname(__file__))
+  with codecs.open(os.path.join(here, "requirements.txt"), 'r') as fp:
+    requirements_text = fp.read()
+  requirements = [line.strip() for line in requirements_text.split("\n")]
+  return requirements
+
 setup(
   name="compare_mt",
-  version="0.1",
+  version=find_version(),
   description="Holistic comparison of the output of text generation models",
   long_description=codecs.open("README.md", encoding="utf-8").read(),
   long_description_content_type="text/markdown",
@@ -47,5 +56,6 @@ setup(
       "compare-ll=compare_mt.compare_ll_main:main",
     ],
   },
-  include_package_data=True
+  install_requires=read_requirements(),
+  include_package_data=True,
 )
