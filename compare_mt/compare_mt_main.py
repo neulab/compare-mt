@@ -158,7 +158,8 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
   return reporter 
 
 def generate_sentence_bucketed_report(ref, outs,
-                                   bucket_type='score', statistic_type='count',
+                                   bucket_type='score', bucket_cutoffs=None,
+                                   statistic_type='count',
                                    score_measure='bleu',
                                    case_insensitive=False):
   """
@@ -173,7 +174,8 @@ def generate_sentence_bucketed_report(ref, outs,
   """
   case_insensitive = True if case_insensitive == 'True' else False
 
-  bucketer = bucketers.create_sentence_bucketer_from_profile(bucket_type, score_type=score_measure, case_insensitive=case_insensitive)
+  bucketer = bucketers.create_sentence_bucketer_from_profile(bucket_type, bucket_cutoffs=bucket_cutoffs,
+                                                             score_type=score_measure, case_insensitive=case_insensitive)
   bcs = [bucketer.create_bucketed_corpus(out, ref=ref) for out in outs]
 
   if statistic_type == 'count':
