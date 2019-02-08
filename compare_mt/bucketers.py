@@ -310,6 +310,39 @@ class LabelWordBucketer(WordBucketer):
   def idstr(self):
     return "labels"
 
+class NumericalLabelWordBucketer(WordBucketer):
+
+  def __init__(self,
+               bucket_cutoffs=None):
+    """
+    A bucketer that buckets words by labels that are numerical values.
+
+    Args:
+      bucket_cutoffs: Cutoffs for each bucket.
+                      The first bucket will be range(0,bucket_cutoffs[0]).
+                      Middle buckets will be range(bucket_cutoffs[i],bucket_cutoffs[i-1].
+                      Final bucket will be everything greater than bucket_cutoffs[-1].
+    """
+    if bucket_cutoffs is None:
+      bucket_cutoffs = [0.25, 0.5, 0.75]
+    self.set_bucket_cutoffs(bucket_cutoffs)
+
+  def calc_bucket(self, word, ref_label=None, out_label=None, src_label=None):
+    if ref_label:
+      return self.cutoff_into_bucket(float(ref_label))
+    elif out_label:
+      return self.cutoff_into_bucket(float(out_label))
+    elif src_label:
+      return self.cutoff_into_bucket(float(src_label))
+    else:
+      raise ValueError('When calculating buckets by label, ref_label or out_label must be non-zero')
+
+  def name(self):
+    return "numerical labels"
+
+  def idstr(self):
+    return "numlabels"
+
 class SentenceBucketer(Bucketer):
 
   def calc_bucket(self, val, ref=None):
@@ -417,6 +450,9 @@ def create_word_bucketer_from_profile(bucket_type,
   elif bucket_type == 'label':
     return LabelWordBucketer(
       label_set=label_set)
+  elif bucket_type == 'numlabel':
+    return NumericalLabelWordBucketer(
+      bucket_cutoffs=bucket_cutoffs)
   else:
     raise ValueError(f'Illegal bucket type {bucket_type}')
 
