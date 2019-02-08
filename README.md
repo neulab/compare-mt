@@ -95,6 +95,15 @@ This will calculate word accuracies and n-gram matches by POS bucket, and allows
 that the phrase-based MT system is better at translating content words such as nouns and verbs, while neural MT
 is doing better at translating function words.
 
+It also is possible to create labels that represent numberical values. For example, `scripts/relativepositiontag.py` calculates the relative position of words in the sentence, where 0 is the first word in the sentence, 0.5 is the word in the middle, and 1.0 is the word in the end. These numerical values can then be bucketed. Here is an example:
+
+```bash
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng 
+    --compare_word_accuracies bucket_type=numlabel,ref_labels=example/ted.ref.eng.rptag,out_labels="example/ted.sys1.eng.rptag;example/ted.sys2.eng.rptag"
+'''
+
+From this particular analysis we can discover that NMT does worse than PBMT at the end of the sentence, and of course other varieties of numerical labels could be used to measure different properties of words.
+
 ### Analyzing Source Words
 
 If you have a source corpus that is aligned to the target, you can also analyze accuracies according to features of the
