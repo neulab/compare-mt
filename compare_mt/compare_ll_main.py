@@ -7,7 +7,7 @@ from compare_mt import arg_utils
 from compare_mt import print_utils
 from compare_mt import formatting
 
-def print_word_likelihood_report(ref, lls, bucket_type='freq',
+def print_word_likelihood_report(ref, lls, bucket_type='freq', bucket_cutoffs=None,
                           freq_count_file=None, freq_corpus_file=None,
                           label_corpus=None, label_set=None,
                           case_insensitive=False):
@@ -18,6 +18,7 @@ def print_word_likelihood_report(ref, lls, bucket_type='freq',
   ref: the ref of words over which the likelihoods are computed
   lls: likelihoods corresponding to each word in ref from the systems
   bucket_type: A string specifying the way to bucket words together to calculate average likelihood
+  bucket_cutoffs: The boundaries between buckets, specified as a colon-separated string.
   freq_corpus_file: When using "freq" as a bucketer, which corpus to use to calculate frequency.
   freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
   label_corpus: When using "label" as bucket type, the corpus containing the labels
@@ -28,10 +29,11 @@ def print_word_likelihood_report(ref, lls, bucket_type='freq',
   case_insensitive = True if case_insensitive == 'True' else False
 
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type=bucket_type,
-                                                       freq_count_file=freq_count_file,
-                                                       freq_corpus_file=freq_corpus_file,
-                                                       label_set=label_set,
-                                                       case_insensitive=case_insensitive)
+                                                         bucket_cutoffs=bucket_cutoffs,
+                                                         freq_count_file=freq_count_file,
+                                                         freq_corpus_file=freq_corpus_file,
+                                                         label_set=label_set,
+                                                         case_insensitive=case_insensitive)
 
   if type(label_corpus) == str:
     label_corpus = corpus_utils.load_tokens(label_corpus)

@@ -54,7 +54,7 @@ def generate_score_report(ref, outs,
   return reporter 
 
 def generate_word_accuracy_report(ref, outs,
-                          acc_type='fmeas', bucket_type='freq',
+                          acc_type='fmeas', bucket_type='freq', bucket_cutoffs=None,
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
                           ref_labels=None, out_labels=None,
@@ -67,6 +67,7 @@ def generate_word_accuracy_report(ref, outs,
     outs: Tokens from the output file(s)
     acc_type: The type of accuracy to show (prec/rec/fmeas). Can also have multiple separated by '+'.
     bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
+    bucket_cutoffs: The boundaries between buckets, specified as a colon-separated string.
     freq_corpus_file: When using "freq" as a bucketer, which corpus to use to calculate frequency.
                       By default this uses the frequency in the reference test set, but it's often more informative
                       to use the frequency in the training set, in which case you specify the path of the
@@ -84,6 +85,7 @@ def generate_word_accuracy_report(ref, outs,
       raise ValueError(f'The number of output files should be equal to the number of output labels.')
 
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
+                                                         bucket_cutoffs=bucket_cutoffs,
                                                          freq_count_file=freq_count_file,
                                                          freq_corpus_file=freq_corpus_file,
                                                          freq_data=ref,
@@ -102,7 +104,7 @@ def generate_word_accuracy_report(ref, outs,
   
 
 def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_align_files=None,
-                          acc_type='fmeas', bucket_type='freq',
+                          acc_type='fmeas', bucket_type='freq', bucket_cutoffs=None,
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
                           src_labels=None,
@@ -118,6 +120,7 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
     out_align_files: Alignment file for the output file
     acc_type: The type of accuracy to show (prec/rec/fmeas). Can also have multiple separated by '+'.
     bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
+    bucket_cutoffs: The boundaries between buckets, specified as a colon-separated string.
     freq_corpus_file: When using "freq" as a bucketer, which corpus to use to calculate frequency.
                       By default this uses the frequency in the reference test set, but it's often more informative
                       se the frequency in the training set, in which case you specify the path of the target side
@@ -138,6 +141,7 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
     raise ValueError(f'The number of output files should be equal to the number of output alignment files.')
 
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
+                                                         bucket_cutoffs=bucket_cutoffs,
                                                          freq_count_file=freq_count_file,
                                                          freq_corpus_file=freq_corpus_file,
                                                          freq_data=src,

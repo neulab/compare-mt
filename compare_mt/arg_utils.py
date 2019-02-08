@@ -19,3 +19,8 @@ def parse_files(filenames):
     files.append(f)
   return files
 
+def parse_intfloat(s):
+  try:
+    return int(s)
+  except ValueError:
+    return float(s)

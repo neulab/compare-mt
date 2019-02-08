@@ -3,6 +3,7 @@ from collections import defaultdict
 
 from compare_mt import corpus_utils
 from compare_mt import scorers
+from compare_mt import arg_utils
 
 class Bucketer:
 
@@ -398,12 +399,13 @@ class LengthDiffSentenceBucketer(SentenceBucketer):
   def idstr(self):
     return "lengthdiff"
 
-
 def create_word_bucketer_from_profile(bucket_type,
                                       freq_counts=None, freq_count_file=None, freq_corpus_file=None, freq_data=None,
                                       label_set=None,
                                       bucket_cutoffs=None,
                                       case_insensitive=False):
+  if type(bucket_cutoffs) == str:
+    bucket_cutoffs = [arg_utils.parse_intfloat(x) for x in bucket_cutoffs.split(':')]
   if bucket_type == 'freq':
     return FreqWordBucketer(
       freq_counts=freq_counts,
