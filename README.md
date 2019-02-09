@@ -35,7 +35,11 @@ Here, system 1 and system 2 are the baseline phrase-based and neural Slovak-Engl
 * **N-gram Difference Analysis:** Calculate which n-grams one system is consistently translating better
 * **Sentence Examples:** Find sentences where one system is doing better than the other according to sentence BLEU
 
-Try running it first and taking a look to see what you find. To summarize the results that immediately stick out here:
+You can see an example of running this analysis (as well as the more advanced analysis below) in the following video:
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/K-MNPOGKnDQ/0.jpg)](https://www.youtube.com/watch?v=K-MNPOGKnDQ)
+
+To summarize the results that immediately stick out from the basic analysis:
 
 * From the *aggregate scores* we can see that the BLEU of neural MT is higher, but its sentences are slightly shorter.
 * From the *word accuracy analysis* we can see that phrase-based MT is better at low-frequency words.
