@@ -461,6 +461,8 @@ def create_sentence_bucketer_from_profile(bucket_type,
                                           score_type=None,
                                           bucket_cutoffs=None,
                                           case_insensitive=False):
+  if type(bucket_cutoffs) == str:
+    bucket_cutoffs = [arg_utils.parse_intfloat(x) for x in bucket_cutoffs.split(':')]
   if bucket_type == 'score':
     return ScoreSentenceBucketer(score_type, bucket_cutoffs=bucket_cutoffs, case_insensitive=case_insensitive)
   elif bucket_type == 'length':
