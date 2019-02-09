@@ -385,7 +385,7 @@ class RougeScorer(SentenceFactoredScorer):
   """
   A scorer that calculates ROUGE score.
   """
-  def __init__(self, rouge_type, score_type='fmeasure', use_stemmer=False, case_insensitive=False):
+  def __init__(self, rouge_type, score_type='fmeasure', use_stemmer=True, case_insensitive=False):
     self.rouge_type = rouge_type
     self.score_type = score_type
     self._stemmer = nltk.stem.porter.PorterStemmer() if use_stemmer else None
@@ -397,8 +397,8 @@ class RougeScorer(SentenceFactoredScorer):
       out = corpus_utils.lower(out)
 
     if self._stemmer:
-      ref = [self._stemmer(x) for x in ref]
-      out = [self._stemmer(x) for x in out]
+      ref = [self._stemmer.stem(x) if len(x) > 3 else x for x in ref]
+      out = [self._stemmer.stem(x) if len(x) > 3 else x for x in out]
     
     if self.rouge_type == 'rougeL':
       scores = rouge_scorer._score_lcs(ref, out)
