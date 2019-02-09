@@ -1,10 +1,12 @@
 import nltk
 import nltk.translate.chrf_score  # This is necessary to avoid an AttributeError in NLTK
 import math
+import re
 from collections import Counter
 from compare_mt import corpus_utils
 from compare_mt import align_utils
 from compare_mt import ngram_utils
+from compare_mt.rouge import rouge_scorer
 
 class Scorer(object):
   def score_corpus(self, ref, out):
@@ -29,6 +31,24 @@ class Scorer(object):
     return None
 
 class SentenceFactoredScorer(Scorer):
+  def score_corpus(self, ref, out):
+    """
+    Score a corpus using the average of the score
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+
+    Returns:
+      A tuple containing a single value for the average scoe, and None
+    """
+    if len(ref) == 0:
+      return 0.0, None
+    score_sum = 0
+    for r, o in zip(ref, out):
+      score_sum += self.score_sentence(r, o)[0]
+    return score_sum/len(ref), None
+
   def cache_stats(self, ref, out):
     """
     Cache sufficient statistics for caculating scores
@@ -198,22 +218,6 @@ class SentBleuScorer(SentenceFactoredScorer):
   def __init__(self, case_insensitive=False):
     self.case_insensitive = case_insensitive
 
-  def score_corpus(self, ref, out):
-    """
-    Score a corpus using the average of sentence-level BLEU score
-
-    Args:
-      ref: A reference corpus
-      out: An output corpus
-
-    Returns:
-      A tuple containing a single value for the average sentence BLEU, and None
-    """
-    bleu_sum = 0
-    for r, o in zip(ref, out):
-      bleu_sum += self.score_sentence(r, o)[0]
-    return bleu_sum/len(ref), None
-
   def score_sentence(self, ref, out):
     """
     Score a single sentence with sentence-level smoothed BLEU score
@@ -254,6 +258,8 @@ class LengthScorer(Scorer):
     """
     ref_words = sum([len(x) for x in ref])
     out_words = sum([len(x) for x in out])
+    if ref_words == 0:
+      return 0.0, f'ref={ref_words}, out={out_words}'
     return out_words/ref_words, f'ref={ref_words}, out={out_words}'
 
   def score_sentence(self, ref, out):
@@ -267,6 +273,8 @@ class LengthScorer(Scorer):
     Returns:
       The length, and a string summarizing the length of the reference and output sentence
     """
+    if len(ref) == 0:
+      return 0.0, f"ref={len(ref)}, out={len(out)}"
     return len(out) / len(ref), f"ref={len(ref)}, out={len(out)}"
 
   def name(self):
@@ -284,22 +292,6 @@ class RibesScorer(SentenceFactoredScorer):
     self.alpha = alpha
     self.beta = beta
     self.case_insensitive = case_insensitive
-
-  def score_corpus(self, ref, out):
-    """
-    Score a corpus using the average of RIBES score
-
-    Args:
-      ref: A reference corpus
-      out: An output corpus
-
-    Returns:
-      A tuple containing a single value for the average sentence RIBES, and None
-    """
-    ribes_sum = 0
-    for r, o in zip(ref, out):
-      ribes_sum += self.score_sentence(r, o)[0]
-    return ribes_sum/len(ref), None
 
   def _kendall_tau_distance(self, alignment):
     """
@@ -389,6 +381,51 @@ class ChrFScorer(Scorer):
   def idstr(self):
     return "chrf"
 
+class RougeScorer(SentenceFactoredScorer):
+  """
+  A scorer that calculates ROUGE score.
+  """
+  def __init__(self, rouge_type, score_type='fmeasure', use_stemmer=False, case_insensitive=False):
+    self.rouge_type = rouge_type
+    self.score_type = score_type
+    self._stemmer = nltk.stem.porter.PorterStemmer() if use_stemmer else None
+    self.case_insensitive = case_insensitive
+  
+  def score_sentence(self, ref, out):
+    if self.case_insensitive:
+      ref = corpus_utils.lower(ref)
+      out = corpus_utils.lower(out)
+
+    if self._stemmer:
+      ref = [self._stemmer(x) for x in ref]
+      out = [self._stemmer(x) for x in out]
+    
+    if self.rouge_type == 'rougeL':
+      scores = rouge_scorer._score_lcs(ref, out)
+    elif re.match(r"rouge[0-9]$", self.rouge_type):
+      n = int(self.rouge_type[5:])
+      if n <= 0:
+        raise ValueError(f"rougen requires positive n: {self.rouge_type}")
+      ref_ngrams = rouge_scorer._create_ngrams(ref, n)
+      out_ngrams = rouge_scorer._create_ngrams(out, n)
+      scores = rouge_scorer._score_ngrams(ref_ngrams, out_ngrams)
+    else:
+      raise ValueError(f"Invalid rouge type: {self.rouge_type}")
+
+    if self.score_type == 'fmeasure':
+      return scores.fmeasure, None
+    elif self.score_type == 'precision':
+      return scores.precision, None
+    elif self.score_type == 'recall':
+      return scores.recall, None
+    else:
+      raise ValueError(f"Invalid score type: {self.score_type}")
+
+  def name(self):
+    return self.rouge_type
+
+  def idstr(self):
+    return self.rouge_type.lower()
 
 def create_scorer_from_profile(profile, case_insensitive=False):
   """
@@ -410,5 +447,7 @@ def create_scorer_from_profile(profile, case_insensitive=False):
     return RibesScorer(case_insensitive=case_insensitive)
   elif profile == 'chrf':
     return ChrFScorer(case_insensitive=case_insensitive)
+  elif re.match(r"rouge[0-9L]$", profile):
+    return RougeScorer(rouge_type=profile, case_insensitive=case_insensitive)
   else:
     raise ValueError(f'Invalid profile for scorer {profile}')
