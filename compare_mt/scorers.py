@@ -40,7 +40,7 @@ class SentenceFactoredScorer(Scorer):
       out: An output corpus
 
     Returns:
-      A tuple containing a single value for the average scoe, and None
+      A tuple containing a single value for the average score, and None
     """
     if len(ref) == 0:
       return 0.0, None
