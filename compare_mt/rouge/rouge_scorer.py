@@ -84,8 +84,8 @@ class RougeScorer(scoring.BaseScorer):
       ValueError: If an invalid rouge type is encountered.
     """
 
-    target_tokens = tokenize.tokenize(target, self._stemmer)
-    prediction_tokens = tokenize.tokenize(prediction, self._stemmer)
+    target_tokens = tokenizer.tokenize(target, self._stemmer)
+    prediction_tokens = tokenizer.tokenize(prediction, self._stemmer)
     result = {}
 
     for rouge_type in self.rouge_types:
