@@ -130,6 +130,14 @@ compare-ll --ref example/ll_test.txt --ll-files example/ll_test.sys1.likelihood 
 
 NOTE: You can also use the above to also analyze the word likelihoods produced by two language models.
 
+### Analyzing Other Language Generation Systems
+
+You can also analyze other language generation systems using the script. Here is an example of comparing two text summarization systems. 
+
+```bash
+compare-mt example/sum.ref.eng example/sum.sys1.eng example/sum.sys2.eng --compare_scores 'score_type=rouge1' 'score_type=rouge2' 'score_type=rougeL'
+```
+
 ## Citation/References
 
 There is currently no canonical reference for `compare_mt.py`, but particularly the n-gram difference analysis
