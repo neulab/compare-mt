@@ -495,6 +495,7 @@ def generate_html_report(reports, output_directory):
         os.makedirs(output_directory)
   html_file = os.path.join(output_directory, 'index.html')
   with open(html_file, 'w') as f:
+    content = content.encode("ascii","xmlcharrefreplace").decode()
     message = (f'<html>\n<head>\n<link rel="stylesheet" href="compare_mt.css">\n</head>\n'+
                f'<script>\n{javascript_style}\n</script>\n'+
                f'<body>\n<h1>compare_mt.py Analysis Report</h1>\n {content} \n</body>\n</html>')
