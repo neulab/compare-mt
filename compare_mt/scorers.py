@@ -385,7 +385,7 @@ class RougeScorer(SentenceFactoredScorer):
   """
   A scorer that calculates ROUGE score.
   """
-  def __init__(self, rouge_type, score_type='fmeasure', use_stemmer=True, case_insensitive=False):
+  def __init__(self, rouge_type, score_type='fmeasure', use_stemmer=False, case_insensitive=False):
     self.rouge_type = rouge_type
     self.score_type = score_type
     self._stemmer = nltk.stem.porter.PorterStemmer() if use_stemmer else None
