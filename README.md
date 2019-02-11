@@ -1,5 +1,5 @@
 # compare_mt
-by Graham Neubig (and other contributors!)
+by [NeuLab](http://www.cs.cmu.edu/~neulab/) @ [CMU LTI](https://lti.cs.cmu.edu), and other contributors
 
 [![Build Status](https://travis-ci.org/neulab/compare-mt.svg?branch=master)](https://travis-ci.org/neulab/compare-mt)
 
