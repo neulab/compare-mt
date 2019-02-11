@@ -1,11 +1,11 @@
-# compare_mt
+# compare-mt
 by [NeuLab](http://www.cs.cmu.edu/~neulab/) @ [CMU LTI](https://lti.cs.cmu.edu), and other contributors
 
 [![Build Status](https://travis-ci.org/neulab/compare-mt.svg?branch=master)](https://travis-ci.org/neulab/compare-mt)
 
 This is a script to compare the output of multiple machine translation or language generation systems.
 To use it you to have, in text format, a "correct" reference, and the output of two different systems.
-Based on this, `compare_mt.py` will run a number of analyses that attempt to pick out salient differences between
+Based on this, `compare-mt` will run a number of analyses that attempt to pick out salient differences between
 the systems, which will make it easier for you to figure out what things one system is doing better tha another.
 
 ## Basic Usage
@@ -55,7 +55,7 @@ your modified system with your baseline and seeing what you find!
 
 There are many options that can be used to do different types of analysis.
 If you want to find all the different types of analysis supported, the most comprehensive way to do so is by
-taking a look at `compare_mt.py`, which is documented relatively well and should give examples.
+taking a look at `compare-mt`, which is documented relatively well and should give examples.
 We do highlight a few particularly useful and common types of analysis below:
 
 ### Significance Tests
@@ -144,7 +144,7 @@ compare-mt example/sum.ref.eng example/sum.sys1.eng example/sum.sys2.eng --compa
 
 ## Citation/References
 
-There is currently no canonical reference for `compare_mt.py`, but particularly the n-gram difference analysis
+There is currently no canonical reference for `compare-mt`, but particularly the n-gram difference analysis
 is loosely based on
 
 * Akabe et al. "[Discriminative Language Models as a Tool for Machine Translation Error Analysis](http://www.phontron.com/paper/akabe14coling.pdf)" COLING 2014.
@@ -173,5 +173,5 @@ It also borrows ideas from some of the following papers:
 There is also other good software for automatic comparison or error analysis of MT systems:
 
 * **[MT-ComparEval](https://github.com/choko/MT-ComparEval):** Very nice for visualization of individual examples, but
-  not as focused on aggregate analysis as `compare_mt.py`. Also has more software dependencies and requires using a web
-  browser, while `compare_mt.py` can be used as a command-line tool.
+  not as focused on aggregate analysis as `compare-mt`. Also has more software dependencies and requires using a web
+  browser, while `compare-mt` can be used as a command-line tool.
