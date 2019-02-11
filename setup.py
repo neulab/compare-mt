@@ -24,14 +24,6 @@ def find_version():
   raise RuntimeError("Unable to find version string.")
 
 
-def read_requirements():
-  """Read requirements from requirements.txt"""
-  here = os.path.abspath(os.path.dirname(__file__))
-  with codecs.open(os.path.join(here, "requirements.txt"), 'r') as fp:
-    requirements_text = fp.read()
-  requirements = [line.strip() for line in requirements_text.split("\n")]
-  return requirements
-
 setup(
   name="compare_mt",
   version=find_version(),
@@ -56,6 +48,11 @@ setup(
       "compare-ll=compare_mt.compare_ll_main:main",
     ],
   },
-  install_requires=read_requirements(),
+  install_requires=[
+    "nltk>=3.2",
+    "numpy",
+    "matplotlib",
+    "absl-py",
+  ],
   include_package_data=True,
 )
