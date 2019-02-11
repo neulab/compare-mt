@@ -3,8 +3,8 @@ by [NeuLab](http://www.cs.cmu.edu/~neulab/) @ [CMU LTI](https://lti.cs.cmu.edu),
 
 [![Build Status](https://travis-ci.org/neulab/compare-mt.svg?branch=master)](https://travis-ci.org/neulab/compare-mt)
 
-`compare-mt` is a program to compare the output of multiple systems for language generation, including machine
-translation, summarization, dialog response generation, etc. 
+`compare-mt` (for "compare my text") is a program to compare the output of multiple systems for language generation,
+including machine translation, summarization, dialog response generation, etc. 
 To use it you to have, in text format, a "correct" reference, and the output of two different systems.
 Based on this, `compare-mt` will run a number of analyses that attempt to pick out salient differences between
 the systems, which will make it easier for you to figure out what things one system is doing better than another.
