@@ -11,7 +11,6 @@ from compare_mt import scorers
 from compare_mt import bucketers
 from compare_mt import reporters
 from compare_mt import arg_utils
-from compare_mt import print_utils
 from compare_mt import formatting
 
 def generate_score_report(ref, outs,
@@ -336,19 +335,19 @@ def main():
                       default=['score_type=bleu', 'score_type=length'],
                       help="""
                       Compare scores. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
-                      See documentation for 'print_score_report' to see which arguments are available.
+                      See documentation for 'generate_score_report' to see which arguments are available.
                       """)
   parser.add_argument('--compare_word_accuracies', type=str, nargs='*',
                       default=['bucket_type=freq'],
                       help="""
                       Compare word accuracies by buckets. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
-                      See documentation for 'print_word_accuracy_report' to see which arguments are available.
+                      See documentation for 'generate_word_accuracy_report' to see which arguments are available.
                       """)
   parser.add_argument('--compare_src_word_accuracies', type=str, nargs='*',
                       default=None,
                       help="""
                       Source analysis. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
-                      See documentation for 'print_src_word_accuracy_report' to see which arguments are available.
+                      See documentation for 'generate_src_word_accuracy_report' to see which arguments are available.
                       """)
   parser.add_argument('--compare_sentence_buckets', type=str, nargs='*',
                       default=['bucket_type=length,statistic_type=score,score_measure=bleu',
@@ -356,19 +355,19 @@ def main():
                                'bucket_type=score,score_measure=sentbleu'],
                       help="""
                       Compare sentence counts by buckets. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
-                      See documentation for 'print_sentence_buckets_report' to see which arguments are available.
+                      See documentation for 'generate_sentence_buckets_report' to see which arguments are available.
                       """)
   parser.add_argument('--compare_ngrams', type=str, nargs='*',
                       default=['compare_type=match'],
                       help="""
                       Compare ngrams. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
-                      See documentation for 'print_ngram_report' to see which arguments are available.
+                      See documentation for 'generate_ngram_report' to see which arguments are available.
                       """)
   parser.add_argument('--compare_sentence_examples', type=str, nargs='*',
                       default=['score_type=sentbleu'],
                       help="""
                       Compare sentences. Can specify arguments in 'arg1=val1,arg2=val2,...' format.
-                      See documentation for 'print_sentence_examples' to see which arguments are available.
+                      See documentation for 'generate_sentence_examples' to see which arguments are available.
                       """)
   parser.add_argument('--output_directory', type=str, default=None,
                       help="""
