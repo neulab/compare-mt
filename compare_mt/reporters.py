@@ -440,7 +440,7 @@ class SentenceExampleReport(Report):
         
         html += html_table(table, None)
 
-      html += tag_str('h4', f'{report_length} sentences where {sleft}>{sright} at {self.scorer.name()}')
+      html += tag_str('h4', f'{report_length} sentences where {sright}>{sleft} at {self.scorer.name()}')
       for bdiff, s1, s2, str1, str2, i in self.scorediff_lists[cnt][-report_length:]:
         table = [['', 'Output', f'{self.scorer.idstr()}']]
         if self.src:
