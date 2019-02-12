@@ -1,5 +1,6 @@
 import nltk
 import nltk.translate.chrf_score  # This is necessary to avoid an AttributeError in NLTK
+import numpy as np
 import math
 import re
 from collections import Counter
@@ -81,7 +82,6 @@ class SentenceFactoredScorer(Scorer):
     Returns:
       A tuple containing a single value for the score and a string summarizing auxiliary information
     """
-    import numpy as np
     cached_stats = np.array(cached_stats)
     return np.mean(cached_stats[sent_ids]), None
     
@@ -427,6 +427,59 @@ class RougeScorer(SentenceFactoredScorer):
   def idstr(self):
     return self.rouge_type.lower()
 
+class WERScorer(SentenceFactoredScorer):
+  """
+  A scorer that calculates Word Error Rate (WER).
+  """
+  def __init__(self, sub_pen=1.0, ins_pen=1.0, del_pen=1.0, case_insensitive=False):
+    self.sub_pen = 1.0
+    self.ins_pen = 1.0
+    self.del_pen = 1.0
+    self.case_insensitive = case_insensitive
+
+  def score_sentence(self, ref, out):
+    """
+    Score a single sentence with WER
+
+    Args:
+      ref: A reference sentence
+      out: An output sentence
+
+    Returns:
+      The WER, and None
+    """
+    if self.case_insensitive:
+      ref = corpus_utils.lower(ref)
+      out = corpus_utils.lower(out)
+  
+    sp1 = len(ref)+1
+    tp1 = len(out)+1
+    scores = np.zeros((sp1, tp1))
+    equals = (np.expand_dims(np.array(ref), axis=1) == np.array(out))
+    scores[:,0] = range(sp1)
+    scores[0,:] = range(tp1)
+
+    # Forward edit distance
+    for i in range(0, len(ref)):
+      for j in range(0, len(out)):
+        my_action = 0 if equals[i,j] else 1
+        my_score = scores[i,j] + my_action * self.sub_pen
+        del_score = scores[i,j+1] + self.del_pen 
+        if del_score < my_score:
+          my_score = del_score
+        ins_score = scores[i+1,j] + self.ins_pen 
+        if ins_score < my_score:
+          my_score = ins_score
+        scores[i+1,j+1] = my_score
+
+    return scores[-1,-1], None
+
+  def name(self):
+    return "Word Error Rate"
+
+  def idstr(self):
+    return "wer"
+
 def create_scorer_from_profile(profile, case_insensitive=False):
   """
   Create a scorer from a profile string
@@ -449,5 +502,7 @@ def create_scorer_from_profile(profile, case_insensitive=False):
     return ChrFScorer(case_insensitive=case_insensitive)
   elif re.match(r"rouge[0-9L]$", profile):
     return RougeScorer(rouge_type=profile, case_insensitive=case_insensitive)
+  elif profile == 'wer':
+    return WERScorer(case_insensitive=case_insensitive)
   else:
     raise ValueError(f'Invalid profile for scorer {profile}')
