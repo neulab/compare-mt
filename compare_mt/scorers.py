@@ -84,7 +84,6 @@ class SentenceFactoredScorer(Scorer):
     """
     cached_stats = np.array(cached_stats)
     return np.mean(cached_stats[sent_ids]), None
-    
 
 class BleuScorer(Scorer):
   """
@@ -146,25 +145,21 @@ class BleuScorer(Scorer):
       out: An output corpus
 
     Returns:
-      A tuple of cached statistics
+      A list of cached statistics
     """
     if self.case_insensitive:
       ref = corpus_utils.lower(ref)
       out = corpus_utils.lower(out)
 
-    cached_ref_len = []
-    cached_out_len = []
-    cached_prec = []
+    cached_stats = []
 
     for r, o in zip(ref, out):
-      cached_ref_len.append(len(r))
-      cached_out_len.append(len(o))
       prec = []
       for n in range(1, len(self.weights) + 1):
         prec.append(self._precision(r, o, n))
-      cached_prec.append(prec)
+      cached_stats.append( (len(r), len(o), prec) )
 
-    return (cached_ref_len, cached_out_len, cached_prec)
+    return cached_stats
 
   def score_cached_corpus(self, sent_ids, cached_stats):
     """
@@ -172,12 +167,15 @@ class BleuScorer(Scorer):
 
     Args:
       sent_ids: The sentence ids for reference and output corpora
-      cached_stats: A tuple of cached statistics
+      cached_stats: A list of cached statistics
 
     Returns:
       A tuple containing a single value for the BLEU score and a string summarizing auxiliary information
     """
-    cached_ref_len, cached_out_len, cached_prec = cached_stats
+    if len(cached_stats) == 0:
+      return 0.0, None
+
+    cached_ref_len, cached_out_len, cached_prec = zip(*cached_stats)
 
     num_prec = Counter()
     denom_prec = Counter()
@@ -427,7 +425,7 @@ class RougeScorer(SentenceFactoredScorer):
   def idstr(self):
     return self.rouge_type.lower()
 
-class WERScorer(SentenceFactoredScorer):
+class WERScorer(Scorer):
   """
   A scorer that calculates Word Error Rate (WER).
   """
@@ -437,17 +435,62 @@ class WERScorer(SentenceFactoredScorer):
     self.del_pen = 1.0
     self.case_insensitive = case_insensitive
 
-  def score_sentence(self, ref, out):
+  def score_corpus(self, ref, out):
     """
-    Score a single sentence with WER
+    Score a corpus using WER
 
     Args:
-      ref: A reference sentence
-      out: An output sentence
+      ref: A reference corpus
+      out: An output corpus
 
     Returns:
-      The WER, and None
+      A tuple containing a single value for the WER and None
     """
+    cached_stats = self.cache_stats(ref, out)
+    return self.score_cached_corpus(np.arange(len(ref)), cached_stats)
+
+  def score_sentence(self, ref, out):
+    return self.score_corpus([ref], [out])
+
+  def cache_stats(self, ref, out):
+    """
+    Cache sufficient statistics for caculating WER
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+
+    Returns:
+      A list of cached statistics
+    """
+    cached_stats = []
+
+    for r, o in zip(ref, out):
+      cached_stats.append( (len(r), self._edit_distance(r, o)) )
+
+    return cached_stats
+
+  def score_cached_corpus(self, sent_ids, cached_stats):
+    """
+    Score a corpus with cache
+
+    Args:
+      sent_ids: The sentence ids for reference and output corpora
+      cached_stats: A list of cached statistics
+
+    Returns:
+      A tuple containing a single value for the score and a string summarizing auxiliary information
+    """
+    if len(cached_stats) == 0:
+      return 0.0, None
+
+    cached_ref_len, cached_edit_distance = zip(*cached_stats)
+    cached_ref_len, cached_edit_distance = np.array(cached_ref_len), np.array(cached_edit_distance)
+    denom = np.sum(cached_ref_len[sent_ids])
+    wer = np.sum(cached_edit_distance[sent_ids])/denom if denom != 0 else 0
+    return wer, None
+
+  def _edit_distance(self, ref, out):
     if self.case_insensitive:
       ref = corpus_utils.lower(ref)
       out = corpus_utils.lower(out)
@@ -472,7 +515,7 @@ class WERScorer(SentenceFactoredScorer):
           my_score = ins_score
         scores[i+1,j+1] = my_score
 
-    return scores[-1,-1], None
+    return scores[-1,-1]
 
   def name(self):
     return "Word Error Rate"

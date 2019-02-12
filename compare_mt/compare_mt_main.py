@@ -388,7 +388,7 @@ def main():
   reporters.sys_names = args.sys_names if args.sys_names else [f'sys{i+1}' for i in range(len(outs))]
   reporters.fig_size = tuple([float(x) for x in args.fig_size.split('x')])
   if len(reporters.sys_names) != len(outs):
-    raise ValueError(f'len(sys_names) != len(outs) -- {len(sys_names)} != {len(outs)}')
+    raise ValueError(f'len(reporters.sys_names) != len(outs) -- {len(reporters.sys_names)} != {len(outs)}')
 
   reports = []
 
