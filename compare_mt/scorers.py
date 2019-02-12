@@ -145,25 +145,21 @@ class BleuScorer(Scorer):
       out: An output corpus
 
     Returns:
-      A tuple of cached statistics
+      A list of cached statistics
     """
     if self.case_insensitive:
       ref = corpus_utils.lower(ref)
       out = corpus_utils.lower(out)
 
-    cached_ref_len = []
-    cached_out_len = []
-    cached_prec = []
+    cached_stats = []
 
     for r, o in zip(ref, out):
-      cached_ref_len.append(len(r))
-      cached_out_len.append(len(o))
       prec = []
       for n in range(1, len(self.weights) + 1):
         prec.append(self._precision(r, o, n))
-      cached_prec.append(prec)
+      cached_stats.append( (len(r), len(o), prec) )
 
-    return (cached_ref_len, cached_out_len, cached_prec)
+    return cached_stats
 
   def score_cached_corpus(self, sent_ids, cached_stats):
     """
@@ -171,12 +167,12 @@ class BleuScorer(Scorer):
 
     Args:
       sent_ids: The sentence ids for reference and output corpora
-      cached_stats: A tuple of cached statistics
+      cached_stats: A list of cached statistics
 
     Returns:
       A tuple containing a single value for the BLEU score and a string summarizing auxiliary information
     """
-    cached_ref_len, cached_out_len, cached_prec = cached_stats
+    cached_ref_len, cached_out_len, cached_prec = zip(*cached_stats)
 
     num_prec = Counter()
     denom_prec = Counter()
@@ -462,16 +458,14 @@ class WERScorer(Scorer):
       out: An output corpus
 
     Returns:
-      A tuple of cached statistics
+      A list of cached statistics
     """
-    cached_ref_len = []
-    cached_edit_distance = []
+    cached_stats = []
 
     for r, o in zip(ref, out):
-      cached_ref_len.append(len(r))
-      cached_edit_distance.append(self._edit_distance(r, o))
+      cached_stats.append( (len(r), self._edit_distance(r, o)) )
 
-    return (np.array(cached_ref_len), np.array(cached_edit_distance))
+    return cached_stats
 
   def score_cached_corpus(self, sent_ids, cached_stats):
     """
@@ -479,12 +473,13 @@ class WERScorer(Scorer):
 
     Args:
       sent_ids: The sentence ids for reference and output corpora
-      cached_stats: A tuple of cached statistics
+      cached_stats: A list of cached statistics
 
     Returns:
       A tuple containing a single value for the score and a string summarizing auxiliary information
     """
-    cached_ref_len, cached_edit_distance = cached_stats
+    cached_ref_len, cached_edit_distance = zip(*cached_stats)
+    cached_ref_len, cached_edit_distance = np.array(cached_ref_len), np.array(cached_edit_distance)
     denom = np.sum(cached_ref_len[sent_ids])
     wer = np.sum(cached_edit_distance[sent_ids])/denom if denom != 0 else 0
     return wer, None
