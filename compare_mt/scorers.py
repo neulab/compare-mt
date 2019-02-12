@@ -84,7 +84,6 @@ class SentenceFactoredScorer(Scorer):
     """
     cached_stats = np.array(cached_stats)
     return np.mean(cached_stats[sent_ids]), None
-    
 
 class BleuScorer(Scorer):
   """
@@ -427,7 +426,7 @@ class RougeScorer(SentenceFactoredScorer):
   def idstr(self):
     return self.rouge_type.lower()
 
-class WERScorer(SentenceFactoredScorer):
+class WERScorer(Scorer):
   """
   A scorer that calculates Word Error Rate (WER).
   """
@@ -437,17 +436,60 @@ class WERScorer(SentenceFactoredScorer):
     self.del_pen = 1.0
     self.case_insensitive = case_insensitive
 
-  def score_sentence(self, ref, out):
+  def score_corpus(self, ref, out):
     """
-    Score a single sentence with WER
+    Score a corpus using WER
 
     Args:
-      ref: A reference sentence
-      out: An output sentence
+      ref: A reference corpus
+      out: An output corpus
 
     Returns:
-      The WER, and None
+      A tuple containing a single value for the WER and None
     """
+    cached_stats = self.cache_stats(ref, out)
+    return self.score_cached_corpus(np.arange(len(ref)), cached_stats)
+
+  def score_sentence(self, ref, out):
+    return self.score_corpus([ref], [out])
+
+  def cache_stats(self, ref, out):
+    """
+    Cache sufficient statistics for caculating WER
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+
+    Returns:
+      A tuple of cached statistics
+    """
+    cached_ref_len = []
+    cached_edit_distance = []
+
+    for r, o in zip(ref, out):
+      cached_ref_len.append(len(r))
+      cached_edit_distance.append(self._edit_distance(r, o))
+
+    return (np.array(cached_ref_len), np.array(cached_edit_distance))
+
+  def score_cached_corpus(self, sent_ids, cached_stats):
+    """
+    Score a corpus with cache
+
+    Args:
+      sent_ids: The sentence ids for reference and output corpora
+      cached_stats: A tuple of cached statistics
+
+    Returns:
+      A tuple containing a single value for the score and a string summarizing auxiliary information
+    """
+    cached_ref_len, cached_edit_distance = cached_stats
+    denom = np.sum(cached_ref_len[sent_ids])
+    wer = np.sum(cached_edit_distance[sent_ids])/denom if denom != 0 else 0
+    return wer, None
+
+  def _edit_distance(self, ref, out):
     if self.case_insensitive:
       ref = corpus_utils.lower(ref)
       out = corpus_utils.lower(out)
@@ -472,7 +514,7 @@ class WERScorer(SentenceFactoredScorer):
           my_score = ins_score
         scores[i+1,j+1] = my_score
 
-    return scores[-1,-1], None
+    return scores[-1,-1]
 
   def name(self):
     return "Word Error Rate"
