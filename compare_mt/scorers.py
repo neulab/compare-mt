@@ -172,6 +172,9 @@ class BleuScorer(Scorer):
     Returns:
       A tuple containing a single value for the BLEU score and a string summarizing auxiliary information
     """
+    if len(cached_stats) == 0:
+      return 0.0, None
+
     cached_ref_len, cached_out_len, cached_prec = zip(*cached_stats)
 
     num_prec = Counter()
@@ -478,6 +481,9 @@ class WERScorer(Scorer):
     Returns:
       A tuple containing a single value for the score and a string summarizing auxiliary information
     """
+    if len(cached_stats) == 0:
+      return 0.0, None
+
     cached_ref_len, cached_edit_distance = zip(*cached_stats)
     cached_ref_len, cached_edit_distance = np.array(cached_ref_len), np.array(cached_edit_distance)
     denom = np.sum(cached_ref_len[sent_ids])
