@@ -237,9 +237,9 @@ class FreqWordBucketer(WordBucketer):
           for line in f:
             word, freq = line.strip().split('\t')
             if self.case_insensitive:
-              freq_counts[corpus_utils.lower(word)] += freq
+              freq_counts[corpus_utils.lower(word)] = int(freq)
             else:
-              freq_counts[word] = freq
+              freq_counts[word] = int(freq)
       elif freq_corpus_file:
         print(f'Reading frequency from "{freq_corpus_file}"')
         for words in corpus_utils.iterate_tokens(freq_corpus_file):
