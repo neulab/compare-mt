@@ -84,6 +84,20 @@ compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
         --compare_word_accuracies bucket_type=freq,freq_corpus_file=example/ted.train.eng
 ```
 
+In addition, because training sets may be very big, you can also calculate the counts on the file beforehand,
+
+```bash
+python scripts/count.py < example/ted.train.eng > example/ted.train.counts
+```
+
+and then use these counts directly to improve efficiency.
+
+```bash
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
+        --compare_word_accuracies bucket_type=freq,freq_count_file=example/ted.train.counts
+```
+
+
 ### Incorporating Word Labels
 
 If you're interested in performing aggregate analysis over labels for each word instead of the words themselves, it
