@@ -303,10 +303,10 @@ class NgramReport(Report):
       print(self.label_files)
 
     for i, (left, right) in enumerate(self.compare_directions):
-      print(f'--- {report_length} n-grams that {sys_names[left]} had higher {self.compare_type}')
+      print(f'--- {report_length} n-grams that {sys_names[left]}>{sys_names[right]} in {self.compare_type}')
       for k, v in self.scorelist[i][:report_length]:
         print(f"{' '.join(k)}\t{fmt(v)} (sys{left+1}={self.matches[left][k]}, sys{right+1}={self.matches[right][k]})")
-      print(f'\n--- {report_length} n-grams that {sys_names[right]} had higher {self.compare_type}')
+      print(f'--- {report_length} n-grams that {sys_names[right]}>{sys_names[left]} in {self.compare_type}')
       for k, v in reversed(self.scorelist[i][-report_length:]):
         print(f"{' '.join(k)}\t{fmt(v)} (sys{left+1}={self.matches[left][k]}, sys{right+1}={self.matches[right][k]})")
       print()
@@ -322,12 +322,12 @@ class NgramReport(Report):
       html += tag_str('p', self.label_files)
 
     for i, (left, right) in enumerate(self.compare_directions):
-      caption = f'{report_length} n-grams that {sys_names[left]} had higher {self.compare_type}'
+      caption = f'{report_length} n-grams that {sys_names[left]}>{sys_names[right]} in {self.compare_type}'
       table = [['n-gram', self.compare_type, f'{sys_names[left]}', f'{sys_names[right]}']]
       table.extend([[' '.join(k), fmt(v), self.matches[left][k], self.matches[right][k]] for k, v in self.scorelist[i][:report_length]])
       html += html_table(table, caption)
 
-      caption = f'{report_length} n-grams that {sys_names[right]} had higher {self.compare_type}'
+      caption = f'{report_length} n-grams that {sys_names[right]}>{sys_names[left]} in {self.compare_type}'
       table = [['n-gram', self.compare_type, f'{sys_names[left]}', f'{sys_names[right]}']]
       table.extend([[' '.join(k), fmt(v), self.matches[left][k], self.matches[right][k]] for k, v in reversed(self.scorelist[i][-report_length:])])
       html += html_table(table, caption)
