@@ -136,14 +136,14 @@ class Report:
 
 class ScoreReport(Report):
   def __init__(self, scorer, scores, strs,
-               wins=None, sys_stats=None):
+               wins=None, sys_stats=None, prob_thresh=0.05):
     self.scorer = scorer 
     self.scores = scores
     self.strs = [f'{fmt(x)} ({y})' if y else fmt(x) for (x,y) in zip(scores,strs)]
     self.wins = wins
     self.sys_stats = sys_stats
     self.output_fig_file = f'{next_fig_id()}-score-{scorer.idstr()}'
-    self.prob_thresh = 0.05
+    self.prob_thresh = prob_thresh
 
   def winstr_pval(self, my_wins):
     if 1-my_wins[0] < self.prob_thresh:
