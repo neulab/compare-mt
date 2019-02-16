@@ -3,6 +3,8 @@ import nltk.translate.chrf_score  # This is necessary to avoid an AttributeError
 import numpy as np
 import math
 import re
+import subprocess
+import tempfile
 from collections import Counter
 from compare_mt import corpus_utils
 from compare_mt import align_utils
@@ -523,7 +525,104 @@ class WERScorer(Scorer):
   def idstr(self):
     return "wer"
 
-def create_scorer_from_profile(profile, case_insensitive=False):
+class METEORScorer(Scorer):
+  """
+  A scorer that calculates METEOR score.
+  """
+  def __init__(self, meteor_directory, options=None):
+    self.meteor_directory = meteor_directory
+    self.options = options
+
+  def score_corpus(self, ref, out):
+    """
+    Score a corpus using METEOR score
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+
+    Returns:
+      A tuple containing a single value for the METEOR score and a string summarizing auxiliary information
+    """
+    cached_stats = self.cache_stats(ref, out)
+    return self.score_cached_corpus(np.arange(len(ref)), cached_stats)
+
+  def score_sentence(self, ref, out):
+    return self.score_corpus([ref], [out])
+
+  def cache_stats(self, ref, out):
+    """
+    Cache sufficient statistics for caculating METEOR score
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+
+    Returns:
+      A list of cached statistics
+    """
+    with tempfile.TemporaryDirectory() as directory:
+      ref_name = directory + '/ref'
+      out_name = directory + '/out'
+
+      with open(ref_name, 'w') as f:
+        corpus_utils.write_tokens(f, ref)
+      with open(out_name, 'w') as f:
+        corpus_utils.write_tokens(f, out)
+      
+
+      cached_stats = []
+
+      command = f'java -Xmx2G -jar {self.meteor_directory}/meteor-*.jar {out_name} {ref_name} '
+      if self.options:
+        command += self.options
+      command += ' -ssOut'
+
+      p = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+      stats = p.communicate()[0].decode("utf-8").split('\n')[:-1]
+
+      for stat_str in stats:
+        stat = tuple(float(x) for x in stat_str.split())
+        cached_stats.append(stat)
+
+    return cached_stats
+
+  def score_cached_corpus(self, sent_ids, cached_stats):
+    """
+    Score a corpus using METEOR score with cache
+
+    Args:
+      sent_ids: The sentence ids for reference and output corpora
+      cached_stats: A list of cached statistics
+
+    Returns:
+      A tuple containing a single value for the METEOR score and a string summarizing auxiliary information
+    """
+    if len(cached_stats) == 0:
+      return 0.0, None
+
+    cached_stats = np.array(cached_stats)
+    cal_stats = cached_stats[sent_ids]
+    cal_stats = np.sum(cal_stats, 0)
+    str_stats = corpus_utils.list2str(cal_stats)
+
+    command = f'echo "EVAL ||| {str_stats}" | java -Xmx2G -jar {self.meteor_directory}/meteor-*.jar - - '
+    if self.options:
+      command += self.options
+    command += ' -stdio'
+
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+    score = float(p.communicate()[0].decode("utf-8"))
+
+    return score, None
+
+  def name(self):
+    return "METEOR"
+
+  def idstr(self):
+    return "meteor"
+
+def create_scorer_from_profile(profile, case_insensitive=False, meteor_directory=None, options=None):
   """
   Create a scorer from a profile string
   Args:
@@ -547,5 +646,9 @@ def create_scorer_from_profile(profile, case_insensitive=False):
     return RougeScorer(rouge_type=profile, case_insensitive=case_insensitive)
   elif profile == 'wer':
     return WERScorer(case_insensitive=case_insensitive)
+  elif profile == 'meteor':
+    if meteor_directory == None:
+      raise ValueError("Must specify the directory of the METEOR source code.")
+    return METEORScorer(meteor_directory=meteor_directory, options=options)
   else:
     raise ValueError(f'Invalid profile for scorer {profile}')
