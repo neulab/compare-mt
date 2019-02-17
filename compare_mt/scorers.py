@@ -532,6 +532,7 @@ class METEORScorer(Scorer):
   def __init__(self, meteor_directory, options=None):
     self.meteor_directory = meteor_directory
     self.options = options
+    self.weights, self.parameters = self._get_weights_and_parameters(options)
 
   def score_corpus(self, ref, out):
     """
@@ -565,11 +566,8 @@ class METEORScorer(Scorer):
       ref_name = directory + '/ref'
       out_name = directory + '/out'
 
-      with open(ref_name, 'w') as f:
-        corpus_utils.write_tokens(f, ref)
-      with open(out_name, 'w') as f:
-        corpus_utils.write_tokens(f, out)
-      
+      corpus_utils.write_tokens(ref_name, ref)
+      corpus_utils.write_tokens(out_name, out)
 
       cached_stats = []
 
@@ -602,19 +600,82 @@ class METEORScorer(Scorer):
       return 0.0, None
 
     cached_stats = np.array(cached_stats)
-    cal_stats = cached_stats[sent_ids]
-    cal_stats = np.sum(cal_stats, 0)
-    str_stats = corpus_utils.list2str(cal_stats)
 
-    command = f'echo "EVAL ||| {str_stats}" | java -Xmx2G -jar {self.meteor_directory}/meteor-*.jar - - '
-    if self.options:
-      command += self.options
-    command += ' -stdio'
+    # compute sufficient statistics
+    sent_stats = cached_stats[sent_ids]
 
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-    score = float(p.communicate()[0].decode("utf-8"))
+    # num_total_chunks = sum(num_sent_chunks) - minus_chunk
+    minus_chunk = 0
+    for stat in sent_stats:
+      out_len = stat[0]
+      ref_len = stat[1]
+      out_total_match = stat[4] + stat[6] + stat[8] + stat[10] + stat[12] + stat[14] + stat[16] + stat[18]
+      ref_total_match = stat[5] + stat[7] + stat[9] + stat[11] + stat[13] + stat[15] + stat[17] + stat[19]
+      if out_len == out_total_match and ref_len == ref_total_match and stat[-3] == 1:
+        minus_chunk += 1
+
+    cal_stats = np.sum(sent_stats, 0)
+    cal_stats[20] -= minus_chunk
+
+    # rename
+    alpha, beta, gamma, delta = self.parameters
+    out_len, ref_len = cal_stats[0], cal_stats[1]
+    out_func_words, ref_func_words = cal_stats[2], cal_stats[3]
+    out_content_match_stage = np.array([cal_stats[4], cal_stats[8], cal_stats[12], cal_stats[16]])
+    ref_content_match_stage = np.array([cal_stats[5], cal_stats[9], cal_stats[13], cal_stats[17]])
+    out_func_match_stage = np.array([cal_stats[6], cal_stats[10], cal_stats[14], cal_stats[18]])
+    ref_func_match_stage = np.array([cal_stats[7], cal_stats[11], cal_stats[15], cal_stats[19]])
+    chunks = cal_stats[20]
+    out_word_match, ref_word_match = cal_stats[21], cal_stats[22]
+
+    # compute the METEOR score
+    out_weighted_len = delta * (out_len-out_func_words) + (1.0-delta) * out_func_words
+    ref_weighted_len = delta * (ref_len-ref_func_words) + (1.0-delta) * ref_func_words
+
+    out_weighted_match = np.sum(self.weights * (out_content_match_stage*delta + out_func_match_stage*(1-delta)))
+    ref_weighted_match = np.sum(self.weights * (ref_content_match_stage*delta + ref_func_match_stage*(1-delta)))
+
+    prec = out_weighted_match / out_weighted_len if out_weighted_len != 0 else 0
+    recall = ref_weighted_match / ref_weighted_len if ref_weighted_len != 0 else 0
+    fmean = 1.0 / ( (1.0-alpha)/prec + alpha/recall ) if prec != 0 and recall != 0 else 0
+
+    out_total_match = np.sum(out_content_match_stage) + np.sum(out_func_match_stage)
+    ref_total_match = np.sum(ref_content_match_stage) + np.sum(ref_func_match_stage)
+
+    frag = float(chunks) / (float(out_word_match+ref_word_match)/2) 
+    frag = 0 if out_total_match == out_len and ref_total_match == ref_len and chunks == 1 else frag
+  
+    frag_penalty = gamma * math.pow(frag, beta)
+
+    score = fmean * (1.0-frag_penalty)
 
     return score, None
+
+  def _get_weights_and_parameters(self, options):
+    if self.options is None:
+      return (np.array([1.0, 0.6, 0.8, 0.6]), np.array([0.85, 0.2, 0.6, 0.75]))
+
+    weights, parameters = np.zeros(4), np.zeros(4)
+    # a simple and (maybe) slow way to obtain weights and parameters
+    with tempfile.TemporaryDirectory() as directory:
+      ref_name = directory + '/ref'
+      out_name = directory + '/out'
+
+      corpus_utils.write_tokens(ref_name, [["test"]])
+      corpus_utils.write_tokens(out_name, [["test"]])
+
+      command = f'java -Xmx2G -jar {self.meteor_directory}/meteor-*.jar {out_name} {ref_name} {options}'
+
+      p = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+      stats = p.communicate()[0].decode("utf-8").split()
+
+      weights_index = stats.index('Weights:') + 1
+      params_index = stats.index('Parameters:') + 1
+      for i in range(4):
+        weights[i] = float(stats[weights_index+i])
+        parameters[i] = float(stats[params_index+i])
+
+    return weights, parameters
 
   def name(self):
     return "METEOR"

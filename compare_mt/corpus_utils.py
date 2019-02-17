@@ -24,9 +24,10 @@ def list2str(l):
     string = string + ' ' + str(s) if i != 0 else string + str(s)
   return string
   
-def write_tokens(f, ls):
-  for i, l in enumerate(ls):
-    string = list2str(l)
-    string = '\n' + string if i != 0 else string
-    f.write(string)
+def write_tokens(filename, ls):
+  with open(filename, 'w') as f:
+    for i, l in enumerate(ls):
+      string = list2str(l)
+      string = '\n' + string if i != 0 else string
+      f.write(string)
   return string
