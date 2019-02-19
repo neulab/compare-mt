@@ -67,7 +67,7 @@ the number of samplings manually. Here is an example using the example data:
 
 
 ```bash
-compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_scores score_type=bleu,bootstrap=1000
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_scores score_type=bleu,bootstrap=1000,prob_thresh=0.05
 ```
 
 ### Using Training Set Frequency
