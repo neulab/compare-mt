@@ -15,7 +15,8 @@ from compare_mt import formatting
 
 def generate_score_report(ref, outs,
                        score_type='bleu',
-                       bootstrap=0, prob_thresh=0.05, 
+                       bootstrap=0, prob_thresh=0.05,
+                       meteor_directory=None, options=None,
                        case_insensitive=False):
   """
   Generate a report comparing overall scores of system(s) in both plain text and graphs.
@@ -32,7 +33,7 @@ def generate_score_report(ref, outs,
   prob_thresh = float(prob_thresh)
   case_insensitive = True if case_insensitive == 'True' else False
 
-  scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive)
+  scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive, meteor_directory=meteor_directory, options=options)
 
   scores, strs = zip(*[scorer.score_corpus(ref, out) for out in outs])
 
