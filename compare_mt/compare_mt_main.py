@@ -15,7 +15,7 @@ from compare_mt import formatting
 
 def generate_score_report(ref, outs,
                        score_type='bleu',
-                       bootstrap=0,
+                       bootstrap=0, prob_thresh=0.05,
                        meteor_directory=None, options=None,
                        case_insensitive=False):
   """
@@ -30,6 +30,7 @@ def generate_score_report(ref, outs,
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
   bootstrap = int(bootstrap)
+  prob_thresh = float(prob_thresh)
   case_insensitive = True if case_insensitive == 'True' else False
 
   scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive, meteor_directory=meteor_directory, options=options)
@@ -47,7 +48,7 @@ def generate_score_report(ref, outs,
     wins = sys_stats = direcs = None
 
   reporter = reporters.ScoreReport(scorer=scorer, scores=scores, strs=strs, 
-                                   wins=wins, sys_stats=sys_stats)
+                                   wins=wins, sys_stats=sys_stats, prob_thresh=prob_thresh)
   reporter.generate_report(output_fig_file=f'score-{score_type}-{bootstrap}',
                            output_fig_format='pdf', 
                            output_directory='outputs')
