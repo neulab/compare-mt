@@ -304,7 +304,11 @@ def generate_sentence_examples(ref, outs, src=None,
   scorediff_lists = []
   for (left, right) in direcs:
     scorediff_list = []
+    deduplicate_set = set()
     for i, (o1, o2, r) in enumerate(zip(outs[left], outs[right], ref)):
+      if (tuple(o1), tuple(o2), tuple(r)) in deduplicate_set:
+        continue
+      deduplicate_set.add( (tuple(o1), tuple(o2), tuple(r)) )
       s1, str1 = scorer.score_sentence(r, o1)
       s2, str2 = scorer.score_sentence(r, o2)
       scorediff_list.append((s2-s1, s1, s2, str1, str2, i))
