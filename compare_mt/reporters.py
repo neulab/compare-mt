@@ -314,6 +314,7 @@ class NgramReport(Report):
       print(f'--- {report_length} n-grams where {sys_names[left]}>{sys_names[right]} in {self.compare_type}')
       for k, v in self.scorelist[i][:report_length]:
         print(f"{' '.join(k)}\t{fmt(v)} (sys{left+1}={self.matches[left][k]}, sys{right+1}={self.matches[right][k]})")
+      print()
       print(f'--- {report_length} n-grams where {sys_names[right]}>{sys_names[left]} in {self.compare_type}')
       for k, v in reversed(self.scorelist[i][-report_length:]):
         print(f"{' '.join(k)}\t{fmt(v)} (sys{left+1}={self.matches[left][k]}, sys{right+1}={self.matches[right][k]})")
@@ -407,6 +408,7 @@ class SentenceExampleReport(Report):
     self.caption = caption
 
   def print(self):
+    self.print_header('Sentence Examples Analysis')
     report_length = self.report_length
     for cnt, (left, right) in enumerate(self.compare_directions):
       ref, out1, out2 = self.ref, self.outs[left], self.outs[right]
