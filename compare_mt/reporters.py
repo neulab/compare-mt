@@ -226,7 +226,7 @@ class WordReport(Report):
     self.header = header
     self.acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
     self.output_fig_file = f'{next_fig_id()}-wordacc-{bucketer.name()}'
-    self.caption = caption
+    self.caption = caption if caption else f'word {acc_type} by {bucketer.name()} bucket'
 
   def print(self):
     acc_type_map = self.acc_type_map
@@ -237,10 +237,7 @@ class WordReport(Report):
       if at not in acc_type_map:
         raise ValueError(f'Unknown accuracy type {at}')
       aid = acc_type_map[at]
-      if self.caption:
-        print(self.caption)
-      else:
-        print(f'--- word {acc_type} by {bucketer.name()} bucket')
+      print(f'--- {self.caption}')
       for i, bucket_str in enumerate(bucketer.bucket_strs):
         print(f'{bucket_str}', end='')
         for match in matches:
@@ -305,7 +302,7 @@ class NgramReport(Report):
     report_length = self.report_length
     self.print_header('N-gram Difference Analysis')
     if self.caption:
-      print(self.caption)
+      print(f'--- {self.caption}')
     else:
       print(f'--- min_ngram_length={self.min_ngram_length}, max_ngram_length={self.max_ngram_length}')
       print(f'    report_length={report_length}, alpha={self.alpha}, compare_type={self.compare_type}')
