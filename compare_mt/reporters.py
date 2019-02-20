@@ -136,7 +136,8 @@ class Report:
 
 class ScoreReport(Report):
   def __init__(self, scorer, scores, strs,
-               wins=None, sys_stats=None, prob_thresh=0.05):
+               wins=None, sys_stats=None, prob_thresh=0.05,
+               caption=None):
     self.scorer = scorer 
     self.scores = scores
     self.strs = [f'{fmt(x)} ({y})' if y else fmt(x) for (x,y) in zip(scores,strs)]
@@ -144,6 +145,7 @@ class ScoreReport(Report):
     self.sys_stats = sys_stats
     self.output_fig_file = f'{next_fig_id()}-score-{scorer.idstr()}'
     self.prob_thresh = prob_thresh
+    self.caption = scorer.name() if not caption else caption
 
   def winstr_pval(self, my_wins):
     if 1-my_wins[0] < self.prob_thresh:
@@ -187,7 +189,7 @@ class ScoreReport(Report):
   def print(self):
     aggregate_table, win_table = self.scores_to_tables()
     self.print_header('Aggregate Scores')
-    print(f'{self.scorer.name()}:')
+    print(f'{self.caption}:')
     self.print_tabbed_table(aggregate_table)
     if win_table:
       self.print_tabbed_table(win_table)
@@ -208,7 +210,7 @@ class ScoreReport(Report):
 
   def html_content(self, output_directory):
     aggregate_table, win_table = self.scores_to_tables()
-    html = html_table(aggregate_table, caption=self.scorer.name())
+    html = html_table(aggregate_table, caption=self.caption)
     if win_table:
       html += html_table(win_table, caption=f'{self.scorer.name()} Wins')
     for ext in ('png', 'pdf'):
@@ -217,13 +219,14 @@ class ScoreReport(Report):
     return html
     
 class WordReport(Report):
-  def __init__(self, bucketer, matches, acc_type, header):
+  def __init__(self, bucketer, matches, acc_type, header, caption=None):
     self.bucketer = bucketer
     self.matches = [[m for m in match] for match in matches]
     self.acc_type = acc_type
     self.header = header
     self.acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
     self.output_fig_file = f'{next_fig_id()}-wordacc-{bucketer.name()}'
+    self.caption = caption
 
   def print(self):
     acc_type_map = self.acc_type_map
@@ -234,7 +237,10 @@ class WordReport(Report):
       if at not in acc_type_map:
         raise ValueError(f'Unknown accuracy type {at}')
       aid = acc_type_map[at]
-      print(f'--- word {acc_type} by {bucketer.name()} bucket')
+      if self.caption:
+        print(self.caption)
+      else:
+        print(f'--- word {acc_type} by {bucketer.name()} bucket')
       for i, bucket_str in enumerate(bucketer.bucket_strs):
         print(f'{bucket_str}', end='')
         for match in matches:
@@ -267,7 +273,7 @@ class WordReport(Report):
       if at not in acc_type_map:
         raise ValueError(f'Unknown accuracy type {at}')
       aid = acc_type_map[at]
-      caption = f'Word {acc_type} by {bucketer.name()} bucket'
+      caption = f'Word {acc_type} by {bucketer.name()} bucket' if not self.caption else self.caption
       table = [[bucketer.name()] + sys_names]
       for i, bs in enumerate(bucketer.bucket_strs):
         line = [bs]
@@ -283,7 +289,7 @@ class WordReport(Report):
 
 class NgramReport(Report):
   def __init__(self, scorelist, report_length, min_ngram_length, max_ngram_length,
-               matches, compare_type, alpha, compare_directions=[(0, 1)], label_files=None):
+               matches, compare_type, alpha, compare_directions=[(0, 1)], label_files=None, caption=None):
     self.scorelist = scorelist
     self.report_length = report_length 
     self.min_ngram_length = min_ngram_length
@@ -293,12 +299,17 @@ class NgramReport(Report):
     self.label_files = label_files
     self.alpha = alpha
     self.compare_directions = compare_directions
+    self.caption = caption
 
   def print(self):
     report_length = self.report_length
     self.print_header('N-gram Difference Analysis')
-    print(f'--- min_ngram_length={self.min_ngram_length}, max_ngram_length={self.max_ngram_length}')
-    print(f'    report_length={report_length}, alpha={self.alpha}, compare_type={self.compare_type}')
+    if self.caption:
+      print(self.caption)
+    else:
+      print(f'--- min_ngram_length={self.min_ngram_length}, max_ngram_length={self.max_ngram_length}')
+      print(f'    report_length={report_length}, alpha={self.alpha}, compare_type={self.compare_type}')
+
     if self.label_files is not None:
       print(self.label_files)
 
@@ -316,10 +327,13 @@ class NgramReport(Report):
 
   def html_content(self, output_directory=None):
     report_length = self.report_length
-    html = tag_str('p', f'min_ngram_length={self.min_ngram_length}, max_ngram_length={self.max_ngram_length}')
-    html += tag_str('p', f'report_length={report_length}, alpha={self.alpha}, compare_type={self.compare_type}')
-    if self.label_files is not None:
-      html += tag_str('p', self.label_files)
+    if self.caption:
+      html = tag_str('p', self.caption)
+    else:
+      html = tag_str('p', f'min_ngram_length={self.min_ngram_length}, max_ngram_length={self.max_ngram_length}')
+      html += tag_str('p', f'report_length={report_length}, alpha={self.alpha}, compare_type={self.compare_type}')
+      if self.label_files is not None:
+        html += tag_str('p', self.label_files)
 
     for i, (left, right) in enumerate(self.compare_directions):
       caption = f'{report_length} n-grams where {sys_names[left]}>{sys_names[right]} in {self.compare_type}'
@@ -335,7 +349,7 @@ class NgramReport(Report):
 
 class SentenceReport(Report):
 
-  def __init__(self, bucketer=None, sys_stats=None, statistic_type=None, scorer=None):
+  def __init__(self, bucketer=None, sys_stats=None, statistic_type=None, scorer=None, caption=None):
     self.bucketer = bucketer
     self.sys_stats = [[s for s in stat] for stat in sys_stats]
     self.statistic_type = statistic_type
@@ -343,14 +357,16 @@ class SentenceReport(Report):
     self.yname = scorer.name() if statistic_type == 'score' else statistic_type
     self.yidstr = scorer.idstr() if statistic_type == 'score' else statistic_type
     self.output_fig_file = f'{next_fig_id()}-sent-{bucketer.idstr()}-{self.yidstr}'
-    if scorer:
-      self.description = f'bucket type: {bucketer.name()}, statistic type: {scorer.name()}'
+    if caption:
+      self.caption = caption
+    elif scorer:
+      self.caption = f'bucket type: {bucketer.name()}, statistic type: {scorer.name()}'
     else:
-      self.description = f'bucket type: {bucketer.name()}, statistic type: {statistic_type}'
+      self.caption = f'bucket type: {bucketer.name()}, statistic type: {statistic_type}'
 
   def print(self):
     self.print_header('Sentence Bucket Analysis')
-    print(f'--- {self.description}')
+    print(f'--- {self.caption}')
     for i, bs in enumerate(self.bucketer.bucket_strs):
       print(f'{bs}', end='')
       for stat in self.sys_stats:
@@ -375,7 +391,7 @@ class SentenceReport(Report):
       for stat in self.sys_stats:
         line.append(fmt(stat[i]))
       table.extend([line])
-    html = html_table(table, self.description)
+    html = html_table(table, self.caption)
     for ext in ('png', 'pdf'):
       self.plot(output_directory, self.output_fig_file, ext)
     html += html_img_reference(self.output_fig_file, 'Sentence Bucket Analysis')
@@ -383,7 +399,7 @@ class SentenceReport(Report):
 
 class SentenceExampleReport(Report):
 
-  def __init__(self, report_length=None, scorediff_lists=None, scorer=None, ref=None, outs=None, src=None, compare_directions=[(0, 1)]):
+  def __init__(self, report_length=None, scorediff_lists=None, scorer=None, ref=None, outs=None, src=None, compare_directions=[(0, 1)], caption=None):
     self.report_length = report_length 
     self.scorediff_lists = scorediff_lists
     self.scorer = scorer
@@ -391,6 +407,7 @@ class SentenceExampleReport(Report):
     self.outs = outs
     self.src = src
     self.compare_directions = compare_directions
+    self.caption = caption
 
   def print(self):
     report_length = self.report_length
@@ -483,7 +500,7 @@ def html_table(table, caption=None, bold_rows=1, bold_cols=1):
            f'<pre id="{tab_id}_latex" style="display:none">{latex_code}</pre>')
   return html
 
-def generate_html_report(reports, output_directory):
+def generate_html_report(reports, output_directory, report_title):
   content = []
   for name, rep in reports:
     content.append(f'<h2>{name}</h2>')
@@ -498,7 +515,7 @@ def generate_html_report(reports, output_directory):
     content = content.encode("ascii","xmlcharrefreplace").decode()
     message = (f'<html>\n<head>\n<link rel="stylesheet" href="compare_mt.css">\n</head>\n'+
                f'<script>\n{javascript_style}\n</script>\n'+
-               f'<body>\n<h1>compare_mt.py Analysis Report</h1>\n {content} \n</body>\n</html>')
+               f'<body>\n<h1>{report_title}</h1>\n {content} \n</body>\n</html>')
     f.write(message)
   css_file = os.path.join(output_directory, 'compare_mt.css')
   with open(css_file, 'w') as f:
