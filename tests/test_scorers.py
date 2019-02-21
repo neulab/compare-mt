@@ -32,7 +32,7 @@ class TestBleuScorer(unittest.TestCase):
   def test_score_corpus(self):
     bleu, _ = self.scorer.score_corpus(self.ref, self.out1)
     # Compare to moses multi-bleu.pl
-    self.assertAlmostEqual(bleu, 0.2244, places=3)
+    self.assertAlmostEqual(bleu, 22.44, places=1)
   
   def test_score_sentence(self):
     
@@ -72,7 +72,7 @@ class TestSentBleuScorer(unittest.TestCase):
   def test_score_sentence(self):
     bleu, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
     # compare to nltk
-    self.assertAlmostEqual(bleu, 0.32607099228782377)
+    self.assertAlmostEqual(bleu, 32.607099228782377)
   
   def test_score_corpus(self):
     sent_bleu_corpus, _ = self.scorer.score_corpus(self.ref, self.out)

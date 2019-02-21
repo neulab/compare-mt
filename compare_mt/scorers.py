@@ -203,7 +203,7 @@ class BleuScorer(Scorer):
     
     bp = min(1, math.exp(1 - ref_len/out_len)) if out_len != 0 else 0
 
-    return bp * math.exp(prec), None
+    return 100 * bp * math.exp(prec), None
 
   def name(self):
     return "BLEU"
@@ -231,9 +231,10 @@ class SentBleuScorer(SentenceFactoredScorer):
     """
     chencherry = nltk.translate.bleu_score.SmoothingFunction()
     if self.case_insensitive:
-      return nltk.translate.bleu_score.sentence_bleu([corpus_utils.lower(ref)], corpus_utils.lower(out), smoothing_function=chencherry.method2), None
+      bleu_score = nltk.translate.bleu_score.sentence_bleu([corpus_utils.lower(ref)], corpus_utils.lower(out), smoothing_function=chencherry.method2)
     else:  
-      return nltk.translate.bleu_score.sentence_bleu([ref], out, smoothing_function=chencherry.method2), None
+      bleu_score = nltk.translate.bleu_score.sentence_bleu([ref], out, smoothing_function=chencherry.method2)
+    return 100 * bleu_score, None
 
   def name(self):
     return "sentence-level BLEU"
