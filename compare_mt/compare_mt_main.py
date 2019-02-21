@@ -17,7 +17,7 @@ def generate_score_report(ref, outs,
                        score_type='bleu',
                        bootstrap=0, prob_thresh=0.05,
                        meteor_directory=None, options=None,
-                       caption=None, 
+                       title=None, 
                        case_insensitive=False):
   """
   Generate a report comparing overall scores of system(s) in both plain text and graphs.
@@ -31,7 +31,7 @@ def generate_score_report(ref, outs,
     meteor_directory: Path to the directory of the METEOR code
     options: Options when using external program
     compare_directions: A string specifying which systems to compare 
-    caption: A string specifying the caption of the printed table
+    title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
   bootstrap = int(bootstrap)
@@ -54,7 +54,7 @@ def generate_score_report(ref, outs,
 
   reporter = reporters.ScoreReport(scorer=scorer, scores=scores, strs=strs, 
                                    wins=wins, sys_stats=sys_stats, prob_thresh=prob_thresh, 
-                                   caption=caption)
+                                   title=title)
   reporter.generate_report(output_fig_file=f'score-{score_type}-{bootstrap}',
                            output_fig_format='pdf', 
                            output_directory='outputs')
@@ -65,7 +65,7 @@ def generate_word_accuracy_report(ref, outs,
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
                           ref_labels=None, out_labels=None,
-                          caption=None,
+                          title=None,
                           case_insensitive=False):
   """
   Generate a report comparing the word accuracy in both plain text and graphs.
@@ -83,7 +83,7 @@ def generate_word_accuracy_report(ref, outs,
     freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
     ref_labels: either a filename of a file full of reference labels, or a list of strings corresponding to `ref`.
     out_labels: output labels. must be specified if ref_labels is specified.
-    caption: A string specifying the caption of the printed table
+    title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
   case_insensitive = True if case_insensitive == 'True' else False
@@ -106,7 +106,7 @@ def generate_word_accuracy_report(ref, outs,
   
   reporter = reporters.WordReport(bucketer=bucketer, matches=matches,
                                   acc_type=acc_type, header="Word Accuracy Analysis", 
-                                  caption=caption)
+                                  title=title)
   reporter.generate_report(output_fig_file=f'word-acc',
                            output_fig_format='pdf', 
                            output_directory='outputs')
@@ -118,7 +118,7 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
                           src_labels=None,
-                          caption=None,
+                          title=None,
                           case_insensitive=False):
   """
   Generate a report for source word analysis in both plain text and graphs.
@@ -138,7 +138,7 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
                       he training corpus.
     freq_count_file: An alternative to freq_corpus that uses a count file in "word\tfreq" format.
     src_labels: either a filename of a file full of source labels, or a list of strings corresponding to `ref`.
-    caption: A string specifying the caption of the printed table
+    title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
   case_insensitive = True if case_insensitive == 'True' else False
@@ -164,7 +164,7 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
 
   reporter = reporters.WordReport(bucketer=bucketer, matches=matches,
                                   acc_type=acc_type, header="Source Word Accuracy Analysis", 
-                                  caption=caption)
+                                  title=title)
   reporter.generate_report(output_fig_file=f'src-word-acc',
                            output_fig_format='pdf', 
                            output_directory='outputs')
@@ -174,7 +174,7 @@ def generate_sentence_bucketed_report(ref, outs,
                                    bucket_type='score', bucket_cutoffs=None,
                                    statistic_type='count',
                                    score_measure='bleu',
-                                   caption=None,
+                                   title=None,
                                    case_insensitive=False):
   """
   Generate a report of sentences by bucket in both plain text and graphs
@@ -184,7 +184,7 @@ def generate_sentence_bucketed_report(ref, outs,
     outs: Tokens from the output file(s)
     bucket_type: The type of bucketing method to use
     score_measure: If using 'score' as either bucket_type or statistic_type, which scorer to use
-    caption: A string specifying the caption of the printed table
+    title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
   case_insensitive = True if case_insensitive == 'True' else False
@@ -207,7 +207,7 @@ def generate_sentence_bucketed_report(ref, outs,
   reporter = reporters.SentenceReport(bucketer=bucketer,
                                       sys_stats=stats,
                                       statistic_type=statistic_type, scorer=scorer, 
-                                      caption=caption)
+                                      title=title)
 
   reporter.generate_report(output_fig_file=f'sentence-{statistic_type}-{score_measure}',
                            output_fig_format='pdf', 
@@ -220,7 +220,7 @@ def generate_ngram_report(ref, outs,
                        report_length=50, alpha=1.0, compare_type='match',
                        ref_labels=None, out_labels=None,
                        compare_directions='0-1',
-                       caption=None,
+                       title=None,
                        case_insensitive=False):
   """
   Generate a report comparing aggregate n-gram statistics in both plain text and graphs
@@ -239,7 +239,7 @@ def generate_ngram_report(ref, outs,
                 If specified, will aggregate statistics over labels instead of n-grams.
     out_labels: output labels. must be specified if ref_labels is specified.
     compare_directions: A string specifying which systems to compare
-    caption: A string specifying the caption of the printed table
+    title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
   min_ngram_length, max_ngram_length, report_length = int(min_ngram_length), int(max_ngram_length), int(report_length)
@@ -290,7 +290,7 @@ def generate_ngram_report(ref, outs,
                                    compare_type=compare_type, alpha=alpha,
                                    compare_directions=direcs,
                                    label_files=label_files,
-                                   caption=caption)                                   
+                                   title=title)                                   
   reporter.generate_report(output_fig_file=f'ngram-min{min_ngram_length}-max{max_ngram_length}-{compare_type}',
                            output_fig_format='pdf', 
                            output_directory='outputs')
@@ -300,7 +300,7 @@ def generate_sentence_examples(ref, outs, src=None,
                             score_type='sentbleu',
                             report_length=10,
                             compare_directions='0-1',
-                            caption=None,
+                            title=None,
                             case_insensitive=False):
   """
   Generate examples of sentences that satisfy some criterion, usually score of one system better
@@ -312,7 +312,7 @@ def generate_sentence_examples(ref, outs, src=None,
     score_type: The type of scorer to use
     report_length: Number of sentences to print for each system being better or worse
     compare_directions: A string specifying which systems to compare
-    caption: A string specifying the caption of the printed table
+    title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
   report_length = int(report_length)
@@ -340,7 +340,7 @@ def generate_sentence_examples(ref, outs, src=None,
                                              scorer=scorer,
                                              ref=ref, outs=outs, src=src,
                                              compare_directions=direcs,
-                                             caption=caption)
+                                             title=title)
   reporter.generate_report()
   return reporter 
 
