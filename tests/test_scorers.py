@@ -128,12 +128,12 @@ class TestChrFScorer(unittest.TestCase):
   def test_chrf_sentence(self):
     chrf, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
     # compare to sacrebleu --force --metrics=chrf
-    self.assertAlmostEqual(chrf, 0.59, places=2)
+    self.assertAlmostEqual(chrf, 59, places=0)
   
   def test_chrf_corpus(self):
     chrf, _ = self.scorer.score_corpus(self.ref, self.out)
     # compare to sacrebleu --force --metrics=chrf
-    self.assertAlmostEqual(chrf, 0.48, places=2)
+    self.assertAlmostEqual(chrf, 48, places=0)
 
 
 if __name__ == "__main__":
