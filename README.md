@@ -98,9 +98,9 @@ compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
 ```
 
 
-### Incorporating Word Labels
+### Incorporating Word/Sentence Labels
 
-If you're interested in performing aggregate analysis over labels for each word instead of the words themselves, it
+If you're interested in performing aggregate analysis over labels for each word/sentence instead of the words/sentences themselves, it
 is possible to do so. As an example, we've included POS tags for each of the example outputs. You can use these in
 aggregate analysis, or n-gram-based analysis. The following gives an example:
 
@@ -123,6 +123,14 @@ compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
 ```
 
 From this particular analysis we can discover that NMT does worse than PBMT at the end of the sentence, and of course other varieties of numerical labels could be used to measure different properties of words.
+
+You can also perform analysis over labels for sentences. Here is an example:
+
+```bash
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng 
+    --compare_sentence_buckets 'bucket_type=label,out_labels=example/ted.sys1.eng.senttag;example/ted.sys2.eng.senttag,label_set=0+10+20+30+40+50+60+70+80+90+100,statistic_type=score,score_measure=bleu'
+```
+
 
 ### Analyzing Source Words
 
