@@ -111,11 +111,11 @@ class TestRibesScorer(unittest.TestCase):
 
   def test_score_sentence(self):
     ribes, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
-    self.assertAlmostEqual(ribes, 0.849014, 6)
+    self.assertAlmostEqual(ribes, 84.9014, 4)
   
   def test_score_corpus(self):
     ribes_corpus, _ = self.scorer.score_corpus(self.ref, self.out)
-    self.assertAlmostEqual(ribes_corpus, 0.800020, 6)
+    self.assertAlmostEqual(ribes_corpus, 80.0020, 4)
 
 
 class TestChrFScorer(unittest.TestCase):

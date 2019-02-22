@@ -311,6 +311,10 @@ class RibesScorer(SentenceFactoredScorer):
     self.beta = beta
     self.case_insensitive = case_insensitive
 
+  @property
+  def scale(self):
+    return global_scorer_scale
+
   def _kendall_tau_distance(self, alignment):
     """
     Caculate the Kendall's tau distance for RIBES
@@ -412,6 +416,10 @@ class RougeScorer(SentenceFactoredScorer):
     self.score_type = score_type
     self._stemmer = nltk.stem.porter.PorterStemmer() if use_stemmer else None
     self.case_insensitive = case_insensitive
+
+  @property
+  def scale(self):
+    return global_scorer_scale
   
   def score_sentence(self, ref, out):
     if self.case_insensitive:
@@ -444,7 +452,7 @@ class RougeScorer(SentenceFactoredScorer):
     else:
       raise ValueError(f"Invalid score type: {self.score_type}")
 
-    return self.scale * score_vale, None
+    return self.scale * score_value, None
 
   def name(self):
     return self.rouge_type
