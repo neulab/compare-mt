@@ -345,25 +345,31 @@ class NumericalLabelWordBucketer(WordBucketer):
 
 class SentenceBucketer(Bucketer):
 
-  def calc_bucket(self, val, ref=None):
+  def calc_bucket(self, val, ref=None, out_label=None, ref_label=None):
     """
     Calculate the bucket for a particular sentence
 
     Args:
       val: The sentence to calculate the bucket for
       ref: The reference sentence, if it exists
+      ref_labels: The label of the reference sentence, if it exists
+      out_labels: The label of the output sentence, if it exists
 
     Returns:
       An integer ID of the bucket
     """
     raise NotImplementedError('calc_bucket must be implemented in subclasses of SentenceBucketer')
 
-  def create_bucketed_corpus(self, out, ref=None):
+  def create_bucketed_corpus(self, out, ref=None, ref_labels=None, out_labels=None):
     bucketed_corpus = [([],[] if ref else None) for _ in self.bucket_strs]
     if ref is None:
       ref = out
-    for out_words, ref_words in zip(out, ref):
-      bucket = self.calc_bucket(out_words, ref=(ref_words if ref else None))
+
+    if ref_labels is None:
+      ref_labels = out_labels
+    
+    for i, (out_words, ref_words) in enumerate(zip(out, ref)):
+      bucket = self.calc_bucket(out_words, ref=(ref_words if ref else None), label=(ref_labels[i][0] if ref_labels else None))
       bucketed_corpus[bucket][0].append(out_words)
       if ref != None:
         bucketed_corpus[bucket][1].append(ref_words)
@@ -382,7 +388,7 @@ class ScoreSentenceBucketer(SentenceBucketer):
     self.set_bucket_cutoffs(bucket_cutoffs, num_type='float')
     self.case_insensitive = case_insensitive
 
-  def calc_bucket(self, val, ref=None):
+  def calc_bucket(self, val, ref=None, label=None):
     if self.case_insensitive:
       return self.cutoff_into_bucket(self.scorer.score_sentence(corpus_utils.lower(ref), corpus_utils.lower(val))[0])
     else:
@@ -404,7 +410,7 @@ class LengthSentenceBucketer(SentenceBucketer):
       bucket_cutoffs = [10, 20, 30, 40, 50, 60]
     self.set_bucket_cutoffs(bucket_cutoffs, num_type='int')
 
-  def calc_bucket(self, val, ref=None):
+  def calc_bucket(self, val, ref=None, label=None):
     return self.cutoff_into_bucket(len(val))
 
   def name(self):
@@ -423,7 +429,7 @@ class LengthDiffSentenceBucketer(SentenceBucketer):
       bucket_cutoffs = [-20, -10, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 11, 21]
     self.set_bucket_cutoffs(bucket_cutoffs, num_type='int')
 
-  def calc_bucket(self, val, ref=None):
+  def calc_bucket(self, val, ref=None, label=None):
     return self.cutoff_into_bucket(len(ref) - len(val))
 
   def name(self):
@@ -431,6 +437,57 @@ class LengthDiffSentenceBucketer(SentenceBucketer):
 
   def idstr(self):
     return "lengthdiff"
+
+class LabelSentenceBucketer(SentenceBucketer):
+
+  def __init__(self, label_set=None):
+    """
+    A bucketer that buckets sentences by their labels.
+
+    Args:
+      label_set: The set of labels to use as buckets. This can be a list, or a string separated by '+'s.
+    """
+    if type(label_set) == str:
+      label_set = label_set.split('+')
+    self.bucket_strs = label_set + ['other']
+    label_set_len = len(label_set)
+    self.bucket_map = defaultdict(lambda: label_set_len)
+    for i, l in enumerate(label_set):
+      self.bucket_map[l] = i
+
+  def calc_bucket(self, val, ref=None, label=None):
+    return self.bucket_map[label]
+
+  def name(self):
+    return "labels"
+
+  def idstr(self):
+    return "labels"
+
+class NumericalLabelSentenceBucketer(SentenceBucketer):
+
+  def __init__(self, bucket_cutoffs=None):
+    """
+    A bucketer that buckets sentences by labels that are numerical values.
+
+    Args:
+      bucket_cutoffs: Cutoffs for each bucket.
+                      The first bucket will be range(0,bucket_cutoffs[0]).
+                      Middle buckets will be range(bucket_cutoffs[i],bucket_cutoffs[i-1].
+                      Final bucket will be everything greater than bucket_cutoffs[-1].
+    """
+    if bucket_cutoffs is None:
+      bucket_cutoffs = [0.25, 0.5, 0.75]
+    self.set_bucket_cutoffs(bucket_cutoffs)
+
+  def calc_bucket(self, val, ref=None, label=None):
+    return self.cutoff_into_bucket(float(label))
+
+  def name(self):
+    return "numerical labels"
+
+  def idstr(self):
+    return "numlabels"
 
 def create_word_bucketer_from_profile(bucket_type,
                                       freq_counts=None, freq_count_file=None, freq_corpus_file=None, freq_data=None,
@@ -456,10 +513,10 @@ def create_word_bucketer_from_profile(bucket_type,
   else:
     raise ValueError(f'Illegal bucket type {bucket_type}')
 
-
 def create_sentence_bucketer_from_profile(bucket_type,
                                           score_type=None,
                                           bucket_cutoffs=None,
+                                          label_set=None,
                                           case_insensitive=False):
   if type(bucket_cutoffs) == str:
     bucket_cutoffs = [arg_utils.parse_intfloat(x) for x in bucket_cutoffs.split(':')]
@@ -469,5 +526,9 @@ def create_sentence_bucketer_from_profile(bucket_type,
     return LengthSentenceBucketer(bucket_cutoffs=bucket_cutoffs)
   elif bucket_type == 'lengthdiff':
     return LengthDiffSentenceBucketer(bucket_cutoffs=bucket_cutoffs)
+  elif bucket_type == 'label':
+    return LabelSentenceBucketer(label_set=label_set)
+  elif bucket_type == 'numlabel':
+    return NumericalLabelSentenceBucketer(bucket_cutoffs=bucket_cutoffs)
   else:
     raise NotImplementedError(f'Illegal bucket type {bucket_type}')
