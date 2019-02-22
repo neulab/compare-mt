@@ -174,6 +174,8 @@ def generate_sentence_bucketed_report(ref, outs,
                                    bucket_type='score', bucket_cutoffs=None,
                                    statistic_type='count',
                                    score_measure='bleu',
+                                   label_set=None,
+                                   ref_labels=None, out_labels=None,
                                    title=None,
                                    case_insensitive=False):
   """
@@ -184,14 +186,32 @@ def generate_sentence_bucketed_report(ref, outs,
     outs: Tokens from the output file(s)
     bucket_type: The type of bucketing method to use
     score_measure: If using 'score' as either bucket_type or statistic_type, which scorer to use
+    ref_labels: either a filename of a file full of reference labels, or a list of strings corresponding to `ref`. Would overwrite out_labels if specified.
+    out_labels: output labels. 
     title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
   """
   case_insensitive = True if case_insensitive == 'True' else False
 
+  if ref_labels is not None:
+    ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
+    if len(ref_labels) != len(ref):
+      raise ValueError(f'The number of labels should be equal to the number of sentences.')
+
+  elif out_labels is not None:
+    out_labels = arg_utils.parse_files(out_labels)
+    if len(out_labels) != len(outs):
+      raise ValueError(f'The number of output files should be equal to the number of output labels.')
+
+    out_labels = [corpus_utils.load_tokens(out_label) if type(out_label) == str else out_label for out_label in out_labels]
+    for out, out_label in zip(outs, out_labels):
+      if len(out_label) != len(out):
+        raise ValueError(f'The number of labels should be equal to the number of sentences.')
+    
+
   bucketer = bucketers.create_sentence_bucketer_from_profile(bucket_type, bucket_cutoffs=bucket_cutoffs,
-                                                             score_type=score_measure, case_insensitive=case_insensitive)
-  bcs = [bucketer.create_bucketed_corpus(out, ref=ref) for out in outs]
+                                                             score_type=score_measure, label_set=label_set, case_insensitive=case_insensitive)
+  bcs = [bucketer.create_bucketed_corpus(out, ref=ref, ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
 
   if statistic_type == 'count':
     scorer = None
