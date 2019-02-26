@@ -32,7 +32,7 @@ class TestBleuScorer(unittest.TestCase):
   def test_score_corpus(self):
     bleu, _ = self.scorer.score_corpus(self.ref, self.out1)
     # Compare to moses multi-bleu.pl
-    self.assertAlmostEqual(bleu, 0.2244, places=3)
+    self.assertAlmostEqual(bleu, 22.44, places=1)
   
   def test_score_sentence(self):
     
@@ -72,7 +72,7 @@ class TestSentBleuScorer(unittest.TestCase):
   def test_score_sentence(self):
     bleu, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
     # compare to nltk
-    self.assertAlmostEqual(bleu, 0.32607099228782377)
+    self.assertAlmostEqual(bleu, 32.607099228782377)
   
   def test_score_corpus(self):
     sent_bleu_corpus, _ = self.scorer.score_corpus(self.ref, self.out)
@@ -111,11 +111,11 @@ class TestRibesScorer(unittest.TestCase):
 
   def test_score_sentence(self):
     ribes, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
-    self.assertAlmostEqual(ribes, 0.849014, 6)
+    self.assertAlmostEqual(ribes, 84.9014, 4)
   
   def test_score_corpus(self):
     ribes_corpus, _ = self.scorer.score_corpus(self.ref, self.out)
-    self.assertAlmostEqual(ribes_corpus, 0.800020, 6)
+    self.assertAlmostEqual(ribes_corpus, 80.0020, 4)
 
 
 class TestChrFScorer(unittest.TestCase):
@@ -128,12 +128,12 @@ class TestChrFScorer(unittest.TestCase):
   def test_chrf_sentence(self):
     chrf, _ = self.scorer.score_sentence(self.ref[0], self.out[0])
     # compare to sacrebleu --force --metrics=chrf
-    self.assertAlmostEqual(chrf, 0.59, places=2)
+    self.assertAlmostEqual(chrf, 59, places=0)
   
   def test_chrf_corpus(self):
     chrf, _ = self.scorer.score_corpus(self.ref, self.out)
     # compare to sacrebleu --force --metrics=chrf
-    self.assertAlmostEqual(chrf, 0.48, places=2)
+    self.assertAlmostEqual(chrf, 48, places=0)
 
 
 if __name__ == "__main__":

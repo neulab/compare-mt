@@ -427,10 +427,15 @@ def main():
                       """)
   parser.add_argument('--decimals', type=int, default=4,
                       help="Number of decimals to print for floating point numbers")
+  parser.add_argument('--scorer_scale', type=float, default=100, choices=[1, 100],
+                      help="Set the scale of BLEU, METEOR, WER and chrF to 0-1 or 0-100 (default 0-100)")
   args = parser.parse_args()
 
   # Set formatting
   formatting.fmt.set_decimals(args.decimals)
+
+  # Set scale
+  scorers.global_scorer_scale = args.scorer_scale
 
   ref = corpus_utils.load_tokens(args.ref_file)
   outs = [corpus_utils.load_tokens(x) for x in args.out_files]

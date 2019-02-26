@@ -11,7 +11,16 @@ from compare_mt import align_utils
 from compare_mt import ngram_utils
 from compare_mt.rouge import rouge_scorer
 
+# Global variable controlling scorer scale
+global_scorer_scale = 100.0
+
+
 class Scorer(object):
+
+  @property
+  def scale(self):
+    return 1.0
+
   def score_corpus(self, ref, out):
     pass
   
@@ -94,6 +103,10 @@ class BleuScorer(Scorer):
   def __init__(self, weights=(0.25, 0.25, 0.25, 0.25), case_insensitive=False):
     self.weights = weights
     self.case_insensitive = case_insensitive
+
+  @property
+  def scale(self):
+    return global_scorer_scale
 
   def score_corpus(self, ref, out):
     """
@@ -203,7 +216,7 @@ class BleuScorer(Scorer):
     
     bp = min(1, math.exp(1 - ref_len/out_len)) if out_len != 0 else 0
 
-    return bp * math.exp(prec), None
+    return self.scale * bp * math.exp(prec), None
 
   def name(self):
     return "BLEU"
@@ -218,6 +231,10 @@ class SentBleuScorer(SentenceFactoredScorer):
   def __init__(self, case_insensitive=False):
     self.case_insensitive = case_insensitive
 
+  @property
+  def scale(self):
+    return global_scorer_scale
+
   def score_sentence(self, ref, out):
     """
     Score a single sentence with sentence-level smoothed BLEU score
@@ -231,9 +248,10 @@ class SentBleuScorer(SentenceFactoredScorer):
     """
     chencherry = nltk.translate.bleu_score.SmoothingFunction()
     if self.case_insensitive:
-      return nltk.translate.bleu_score.sentence_bleu([corpus_utils.lower(ref)], corpus_utils.lower(out), smoothing_function=chencherry.method2), None
+      bleu_score = nltk.translate.bleu_score.sentence_bleu([corpus_utils.lower(ref)], corpus_utils.lower(out), smoothing_function=chencherry.method2)
     else:  
-      return nltk.translate.bleu_score.sentence_bleu([ref], out, smoothing_function=chencherry.method2), None
+      bleu_score = nltk.translate.bleu_score.sentence_bleu([ref], out, smoothing_function=chencherry.method2)
+    return self.scale * bleu_score, None
 
   def name(self):
     return "sentence-level BLEU"
@@ -260,7 +278,7 @@ class LengthScorer(Scorer):
     out_words = sum([len(x) for x in out])
     if ref_words == 0:
       return 0.0, f'ref={ref_words}, out={out_words}'
-    return out_words/ref_words, f'ref={ref_words}, out={out_words}'
+    return self.scale * out_words / ref_words, f'ref={ref_words}, out={out_words}'
 
   def score_sentence(self, ref, out):
     """
@@ -292,6 +310,10 @@ class RibesScorer(SentenceFactoredScorer):
     self.alpha = alpha
     self.beta = beta
     self.case_insensitive = case_insensitive
+
+  @property
+  def scale(self):
+    return global_scorer_scale
 
   def _kendall_tau_distance(self, alignment):
     """
@@ -328,7 +350,7 @@ class RibesScorer(SentenceFactoredScorer):
     kt_dis = self._kendall_tau_distance(alignment) 
     prec = len(alignment)/ len(out) if len(out) != 0 else 0
     bp = min(1, math.exp(1-len(ref)/len(out))) if len(out) != 0 else 0
-    return kt_dis * (prec**self.alpha) * (bp**self.beta), None
+    return self.scale * kt_dis * (prec**self.alpha) * (bp**self.beta), None
 
   def name(self):
     return "RIBES"
@@ -346,8 +368,12 @@ class ChrFScorer(Scorer):
   def __init__(self, case_insensitive=False):
     self.case_insensitive = case_insensitive
 
+  @property
+  def scale(self):
+    return global_scorer_scale
+
   def chrf_score(self, refs, out):
-    return nltk.translate.chrf_score.corpus_chrf(
+    return self.scale * nltk.translate.chrf_score.corpus_chrf(
       [[" ".join(x) for x in ref] for ref in refs],
       [" ".join(x) for x in out],
       max_len=6,  # Order 6 n-grams
@@ -390,6 +416,10 @@ class RougeScorer(SentenceFactoredScorer):
     self.score_type = score_type
     self._stemmer = nltk.stem.porter.PorterStemmer() if use_stemmer else None
     self.case_insensitive = case_insensitive
+
+  @property
+  def scale(self):
+    return global_scorer_scale
   
   def score_sentence(self, ref, out):
     if self.case_insensitive:
@@ -412,14 +442,17 @@ class RougeScorer(SentenceFactoredScorer):
     else:
       raise ValueError(f"Invalid rouge type: {self.rouge_type}")
 
+
     if self.score_type == 'fmeasure':
-      return scores.fmeasure, None
+      score_value = scores.fmeasure
     elif self.score_type == 'precision':
-      return scores.precision, None
+      score_value = scores.precision
     elif self.score_type == 'recall':
-      return scores.recall, None
+      score_value = scores.recall
     else:
       raise ValueError(f"Invalid score type: {self.score_type}")
+
+    return self.scale * score_value, None
 
   def name(self):
     return self.rouge_type
@@ -436,6 +469,10 @@ class WERScorer(Scorer):
     self.ins_pen = 1.0
     self.del_pen = 1.0
     self.case_insensitive = case_insensitive
+
+  @property
+  def scale(self):
+    return global_scorer_scale
 
   def score_corpus(self, ref, out):
     """
@@ -490,7 +527,7 @@ class WERScorer(Scorer):
     cached_ref_len, cached_edit_distance = np.array(cached_ref_len), np.array(cached_edit_distance)
     denom = np.sum(cached_ref_len[sent_ids])
     wer = np.sum(cached_edit_distance[sent_ids])/denom if denom != 0 else 0
-    return wer, None
+    return self.scale * wer, None
 
   def _edit_distance(self, ref, out):
     if self.case_insensitive:
@@ -533,6 +570,10 @@ class METEORScorer(Scorer):
     self.meteor_directory = meteor_directory
     self.options = options
     self.weights, self.parameters = self._get_weights_and_parameters(options)
+
+  @property
+  def scale(self):
+    return global_scorer_scale
 
   def score_corpus(self, ref, out):
     """
@@ -649,7 +690,7 @@ class METEORScorer(Scorer):
 
     score = fmean * (1.0-frag_penalty)
 
-    return score, None
+    return self.scale * score, None
 
   def _get_weights_and_parameters(self, options):
     if self.options is None:

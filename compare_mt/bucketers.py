@@ -384,7 +384,7 @@ class ScoreSentenceBucketer(SentenceBucketer):
     self.score_type = score_type
     self.scorer = scorers.create_scorer_from_profile(score_type)
     if bucket_cutoffs is None:
-      bucket_cutoffs = [x/10.0 for x in range(1,10)]
+      bucket_cutoffs = [x * self.scorer.scale / 10.0 for x in range(1,10)]
     self.set_bucket_cutoffs(bucket_cutoffs, num_type='float')
     self.case_insensitive = case_insensitive
 
