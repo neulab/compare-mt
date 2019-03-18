@@ -430,10 +430,10 @@ class LengthDiffSentenceBucketer(SentenceBucketer):
     self.set_bucket_cutoffs(bucket_cutoffs, num_type='int')
 
   def calc_bucket(self, val, ref=None, label=None):
-    return self.cutoff_into_bucket(len(ref) - len(val))
+    return self.cutoff_into_bucket(len(val) - len(ref))
 
   def name(self):
-    return "reference-output length difference"
+    return "len(output)-len(reference)"
 
   def idstr(self):
     return "lengthdiff"
