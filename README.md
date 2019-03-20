@@ -168,31 +168,26 @@ compare-mt example/sum.ref.eng example/sum.sys1.eng example/sum.sys2.eng --compa
 
 ## Citation/References
 
-There is currently no canonical reference for `compare-mt`, but particularly the n-gram difference analysis
-is loosely based on
+If you use compare-mt, we'd appreciate if you cite the [paper](http://arxiv.org/abs/1903.07926) about it!
 
-* Akabe et al. "[Discriminative Language Models as a Tool for Machine Translation Error Analysis](http://www.phontron.com/paper/akabe14coling.pdf)" COLING 2014.
-
-If you're interested in adding a citation, we'd appreciate the following one:
-
-
-    @inproceedings{akabe14coling,
-        title = {Discriminative Language Models as a Tool for Machine Translation Error Analysis},
-        author = {Koichi Akabe and Graham Neubig and Sakriani Sakti and Tomoki Toda and Satoshi Nakamura},
-        booktitle = {The 25th International Conference on Computational Linguistics (COLING)},
-        address = {Dublin, Ireland},
-        month = {August},
-        pages = {1124--1132},
-        url = {http://www.phontron.com/paper/akabe14coling.pdf},
-        year = {2014}
+    @inproceedings{neubig19naacl,
+        title = {compare-mt: A Tool for Holistic Comparison of Language Generation Systems},
+        author = {Graham Neubig and Zi-Yi Dou and Junjie Hu and Paul Michel and Danish Pruthi and Xinyi Wang},
+        booktitle = {Meeting of the North American Chapter of the Association for Computational Linguistics (NAACL) Demo Track},
+        address = {Minneapolis, USA},
+        month = {June},
+        url = {http://arxiv.org/abs/1903.07926},
+        year = {2019}
     }
 
-It also borrows ideas from some of the following papers:
+There is an extensive literature review included in the paper above, but some key papers that it borrows ideas from are below:
 
 * **Automatic Error Analysis:**
   Popovic and Ney "[Towards Automatic Error Analysis of Machine Translation Output](https://www.mitpressjournals.org/doi/pdf/10.1162/COLI_a_00072)" Computational Linguistics 2011.
 * **POS-based Analysis:**
   Chiang et al. "[The Hiero Machine Translation System](http://aclweb.org/anthology/H05-1098)" EMNLP 2005.
+* **n-gram Difference Analysis**
+  Akabe et al. "[Discriminative Language Models as a Tool for Machine Translation Error Analysis](http://www.phontron.com/paper/akabe14coling.pdf)" COLING 2014.
 
 There is also other good software for automatic comparison or error analysis of MT systems:
 
