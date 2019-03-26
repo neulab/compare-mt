@@ -1,11 +1,11 @@
 
 def iterate_tokens(filename):
-  with open(filename, "r") as f:
+  with open(filename, "r", encoding="utf-8") as f:
     for line in f:
       yield line.strip().split()
 
 def iterate_nums(filename):
-  with open(filename, "r") as f:
+  with open(filename, "r", encoding="utf-8") as f:
     for line in f:
       yield [float(i) for i in line.strip().split()]
 
