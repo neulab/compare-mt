@@ -101,12 +101,12 @@ def make_bar_chart(datas,
 
 def html_img_reference(fig_file, title):
   latex_code = (
-    "\\begin{figure}[h]\n"+
-    "  \centering\n"+
-    "  \includegraphics{"+fig_file+".pdf}\n"+
-    "  \caption{"+title+"}\n"+
-    "  \label{fig:"+fig_file+"}\n"+
-    "\end{figure}"
+    r"\\begin{figure}[h]\n"+
+    r"  \centering\n"+
+    r"  \includegraphics{"+fig_file+".pdf}\n"+
+    r"  \caption{"+title+"}\n"+
+    r"  \label{fig:"+fig_file+"}\n"+
+    r"\end{figure}"
   )
   return (f'<img src="{fig_file}.png" alt="{title}"> <br/>' +
           f'<button onclick="showhide(\'{fig_file}_latex\')">Show/Hide LaTeX</button> <br/>' +

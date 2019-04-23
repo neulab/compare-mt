@@ -1,20 +1,27 @@
 import os.path
 import unittest
-
+import numpy as np
 import sys
+
 compare_mt_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 sys.path.append(compare_mt_root)
+
 from compare_mt import scorers
-import numpy as np
 from compare_mt.corpus_utils import load_tokens
 
-import nltk.translate.ribes_score
 
 def _get_example_data():
   example_path = os.path.join(compare_mt_root, "example")
   ref_file = os.path.join(example_path, "ted.ref.eng")
   out1_file = os.path.join(example_path, "ted.sys1.eng")
   out2_file = os.path.join(example_path, "ted.sys2.eng")
+  return [load_tokens(x) for x in (ref_file, out1_file, out2_file)]
+
+def _get_example_data_detokenized():
+  example_path = os.path.join(compare_mt_root, "example")
+  ref_file = os.path.join(example_path, "ted.ref.detok.eng")
+  out1_file = os.path.join(example_path, "ted.sys1.detok.eng")
+  out2_file = os.path.join(example_path, "ted.sys2.detok.eng")
   return [load_tokens(x) for x in (ref_file, out1_file, out2_file)]
 
 
@@ -134,6 +141,19 @@ class TestChrFScorer(unittest.TestCase):
     chrf, _ = self.scorer.score_corpus(self.ref, self.out)
     # compare to sacrebleu --force --metrics=chrf
     self.assertAlmostEqual(chrf, 48, places=0)
+
+
+class TestDetokBleuScorer(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(self):
+    self.ref, self.out, _ = _get_example_data_detokenized()
+    self.scorer = scorers.create_scorer_from_profile("detokbleu")
+
+  def test_detok_bleu_corpus(self):
+    detok_bleu, _ = self.scorer.score_corpus(self.ref, self.out)
+    # compare to sacrebleu
+    self.assertAlmostEqual(detok_bleu, 21.7, places=0)
 
 
 if __name__ == "__main__":
