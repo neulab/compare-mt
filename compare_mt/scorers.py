@@ -1,11 +1,13 @@
 import nltk
 import nltk.translate.chrf_score  # This is necessary to avoid an AttributeError in NLTK
+import sacrebleu
 import numpy as np
 import math
 import re
 import subprocess
 import tempfile
 from collections import Counter
+
 from compare_mt import corpus_utils
 from compare_mt import align_utils
 from compare_mt import ngram_utils
@@ -357,6 +359,40 @@ class RibesScorer(SentenceFactoredScorer):
 
   def idstr(self):
     return "ribes"
+
+
+class DetokBleuScorer(Scorer):
+  """
+  A scorer that computes BLEU on detokenized text.
+
+  """
+  def __init__(self, case_insensitive=False):
+    self.case_insensitive = case_insensitive
+
+  @property
+  def scale(self):
+    return global_scorer_scale
+
+  def score_sentence(self, ref, out):
+    raise NotImplementedError("Sentence-level calculation is not implemented in DetokBleuScorer as it is usually 0."
+                              "Consider using SentenceBleuScorer (string sentbleu) instead.")
+
+  def score_corpus(self, ref, out):
+
+    if self.case_insensitive:
+      ref = corpus_utils.lower(ref)
+      out = corpus_utils.lower(out)
+
+    bleu_object = sacrebleu.corpus_bleu([" ".join(x) for x in out],
+                                        [[" ".join(x) for x in ref]])
+
+    return bleu_object.score, None
+
+  def name(self):
+    return "DetokBLEU"
+
+  def idstr(self):
+    return "detokbleu"
 
 
 class ChrFScorer(Scorer):
@@ -736,6 +772,8 @@ def create_scorer_from_profile(profile, case_insensitive=False, meteor_directory
   """
   if profile == 'bleu':
     return BleuScorer(case_insensitive=case_insensitive)
+  if profile == 'detokbleu':
+    return DetokBleuScorer(case_insensitive=case_insensitive)
   elif profile == 'sentbleu':
     return SentBleuScorer(case_insensitive=case_insensitive)
   elif profile == 'length':
@@ -753,4 +791,4 @@ def create_scorer_from_profile(profile, case_insensitive=False, meteor_directory
       raise ValueError("Must specify the directory of the METEOR source code.")
     return METEORScorer(meteor_directory=meteor_directory, options=options)
   else:
-    raise ValueError(f'Invalid profile for scorer {profile}')
+    raise ValueError(f'Invalid profile for scorer {profile}'.format(profile=profile))
