@@ -100,14 +100,13 @@ def make_bar_chart(datas,
   plt.savefig(out_file, format=output_fig_format, bbox_inches='tight')
 
 def html_img_reference(fig_file, title):
-  latex_code = (
-    r"\\begin{figure}[h]\n"+
-    r"  \centering\n"+
-    r"  \includegraphics{"+fig_file+".pdf}\n"+
-    r"  \caption{"+title+"}\n"+
-    r"  \label{fig:"+fig_file+"}\n"+
-    r"\end{figure}"
-  )
+  latex_code_pieces = [r"\begin{figure}[h]",
+                       r"  \centering",
+                       r"  \includegraphics{" + fig_file + ".pdf}",
+                       r"  \caption{" + title + "}",
+                       r"  \label{fig:" + fig_file + "}",
+                       r"\end{figure}"]
+  latex_code = "\n".join(latex_code_pieces)
   return (f'<img src="{fig_file}.png" alt="{title}"> <br/>' +
           f'<button onclick="showhide(\'{fig_file}_latex\')">Show/Hide LaTeX</button> <br/>' +
           f'<pre id="{fig_file}_latex" style="display:none">{latex_code}</pre>')
