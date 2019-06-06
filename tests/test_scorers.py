@@ -143,12 +143,12 @@ class TestChrFScorer(unittest.TestCase):
     self.assertAlmostEqual(chrf, 48, places=0)
 
 
-class TestDetokBleuScorer(unittest.TestCase):
+class TestSacreBleuScorer(unittest.TestCase):
 
   @classmethod
   def setUpClass(self):
     self.ref, self.out, _ = _get_example_data_detokenized()
-    self.scorer = scorers.create_scorer_from_profile("detokbleu")
+    self.scorer = scorers.create_scorer_from_profile("sacrebleu")
 
   def test_detok_bleu_corpus(self):
     detok_bleu, _ = self.scorer.score_corpus(self.ref, self.out)

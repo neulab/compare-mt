@@ -361,7 +361,7 @@ class RibesScorer(SentenceFactoredScorer):
     return "ribes"
 
 
-class DetokBleuScorer(Scorer):
+class SacreBleuScorer(Scorer):
   """
   A scorer that computes BLEU on detokenized text.
 
@@ -374,7 +374,7 @@ class DetokBleuScorer(Scorer):
     return global_scorer_scale
 
   def score_sentence(self, ref, out):
-    raise NotImplementedError("Sentence-level calculation is not implemented in DetokBleuScorer as it is usually 0."
+    raise NotImplementedError("Sentence-level calculation is not implemented in SacreBleuScorer as it is usually 0."
                               "Consider using SentenceBleuScorer (string sentbleu) instead.")
 
   def score_corpus(self, ref, out):
@@ -389,10 +389,10 @@ class DetokBleuScorer(Scorer):
     return bleu_object.score, None
 
   def name(self):
-    return "DetokBLEU"
+    return "SacreBleuScorer"
 
   def idstr(self):
-    return "detokbleu"
+    return "sacrebleu"
 
 
 class ChrFScorer(Scorer):
@@ -772,8 +772,8 @@ def create_scorer_from_profile(profile, case_insensitive=False, meteor_directory
   """
   if profile == 'bleu':
     return BleuScorer(case_insensitive=case_insensitive)
-  if profile == 'detokbleu':
-    return DetokBleuScorer(case_insensitive=case_insensitive)
+  if profile == 'sacrebleu':
+    return SacreBleuScorer(case_insensitive=case_insensitive)
   elif profile == 'sentbleu':
     return SentBleuScorer(case_insensitive=case_insensitive)
   elif profile == 'length':
