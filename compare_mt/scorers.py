@@ -366,7 +366,10 @@ class SacreBleuScorer(Scorer):
   A scorer that computes BLEU on detokenized text.
 
   """
-  def __init__(self, case_insensitive=False):
+  def __init__(self, smooth_method='exp', smooth_value=0, use_effective_order=False, case_insensitive=False):
+    self.smooth_method = smooth_method
+    self.smooth_value = smooth_value
+    self.use_effective_order = use_effective_order
     self.case_insensitive = case_insensitive
 
   @property
@@ -378,15 +381,49 @@ class SacreBleuScorer(Scorer):
                               "Consider using SentenceBleuScorer (string sentbleu) instead.")
 
   def score_corpus(self, ref, out):
+    cached_stats = self.cache_stats(ref, out)
+    return self.score_cached_corpus(range(len(ref)), cached_stats)
 
+  def cache_stats(self, ref, out):
+    """
+    Cache sufficient statistics for caculating SacreBLEU score
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+
+    Returns:
+      A list of cached statistics
+    """
     if self.case_insensitive:
       ref = corpus_utils.lower(ref)
       out = corpus_utils.lower(out)
 
-    bleu_object = sacrebleu.corpus_bleu([" ".join(x) for x in out],
-                                        [[" ".join(x) for x in ref]])
+    cached_stats = []
+    for r, o in zip(ref, out):
+      re = sacrebleu.corpus_bleu(" ".join(o), " ".join(r))
+      cached_stats.append( (re.counts, re.totals, re.sys_len, re.ref_len) )
 
-    return bleu_object.score, None
+    return cached_stats
+
+  def score_cached_corpus(self, sent_ids, cached_stats):
+    """
+    Score a corpus using SacreBLEU score with cache
+
+    Args:
+      sent_ids: The sentence ids for reference and output corpora
+      cached_stats: A list of cached statistics
+
+    Returns:
+      A tuple containing a single value for the SacreBLEU score and a string summarizing auxiliary information
+    """
+    if len(cached_stats) == 0:
+      return 0.0, None
+
+    counts, totals, sys_len, ref_len = zip(*cached_stats)
+    counts, totals, sys_len, ref_len = [np.sum(np.array(x)[sent_ids], 0) for x in [counts, totals, sys_len, ref_len]]
+
+    return sacrebleu.compute_bleu(counts, totals, sys_len, ref_len, smooth_method=self.smooth_method, smooth_value=self.smooth_value, use_effective_order=self.use_effective_order).score, None
 
   def name(self):
     return "SacreBleuScorer"
