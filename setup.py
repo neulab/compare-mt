@@ -53,6 +53,7 @@ setup(
     "numpy",
     "matplotlib",
     "absl-py",
+    "sacrebleu"
   ],
   include_package_data=True,
 )
