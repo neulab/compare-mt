@@ -235,7 +235,10 @@ class FreqWordBucketer(WordBucketer):
         print(f'Reading frequency from "{freq_count_file}"')
         with open(freq_count_file, "r") as f:
           for line in f:
-            word, freq = line.strip().split('\t')
+            cols = line.strip().split('\t')
+            if len(cols) != 2:
+              print(f'Bad line in counts file {freq_count_file}, ignoring:\n{line}')
+            word, freq = cols
             if self.case_insensitive:
               freq_counts[corpus_utils.lower(word)] = int(freq)
             else:
