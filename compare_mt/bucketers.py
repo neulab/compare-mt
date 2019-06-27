@@ -137,10 +137,7 @@ class WordBucketer(Bucketer):
         if self.case_insensitive:
           word = corpus_utils.lower(word)
         ref_cnt[word] += 1
-      for i, align in enumerate(out_align):
-        src_index, trg_index = align.split('-')
-        src_index = int(src_index)
-        trg_index = int(trg_index)
+      for i, (src_index, trg_index) in enumerate(out_align):
         src_word = src_sent[src_index]
         word = out_sent[trg_index]
         if self.case_insensitive:
@@ -151,10 +148,7 @@ class WordBucketer(Bucketer):
           ref_cnt[word] -= 1
           matches[bucket][0] += 1
         matches[bucket][2] += 1
-      for i, align in enumerate(ref_align):
-        src_index, trg_index = align.split('-')
-        src_index = int(src_index)
-        trg_index = int(trg_index)
+      for i, (src_index, trg_index) in enumerate(ref_align):
         src_word = src_sent[src_index]
         bucket = self.calc_bucket(src_word,
                                   src_label=src_lab[src_index] if src_lab else None)
