@@ -128,7 +128,7 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
     outs: Tokens from the output file(s)
     src: Tokens from the source
     ref_align_file: Alignment file for the reference
-    out_align_files: Alignment file for the output file
+    out_align_files: Alignment files for the output, separated by a semi-colon
     acc_type: The type of accuracy to show (prec/rec/fmeas). Can also have multiple separated by '+'.
     bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
     bucket_cutoffs: The boundaries between buckets, specified as a colon-separated string.
@@ -146,8 +146,8 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
   if not src or not ref_align_file or not out_align_files:
     raise ValueError("Must specify the source and the alignment files when performing source analysis.")
 
-  ref_align = corpus_utils.load_tokens(ref_align_file) 
-  out_aligns = [corpus_utils.load_tokens(x) for x in arg_utils.parse_files(out_align_files)]
+  ref_align = corpus_utils.load_alignments(ref_align_file) 
+  out_aligns = [corpus_utils.load_alignments(x) for x in arg_utils.parse_files(out_align_files)]
 
   if len(out_aligns) != len(outs):
     raise ValueError(f'The number of output files should be equal to the number of output alignment files.')
