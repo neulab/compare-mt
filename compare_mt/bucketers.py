@@ -280,6 +280,31 @@ class FreqWordBucketer(WordBucketer):
   def idstr(self):
     return "freq"
 
+class CaseWordBucketer(WordBucketer):
+
+  def __init__(self):
+    """
+    A bucketer that buckets words by whether they're all all lower-case (lower), all upper-case (upper),
+    title case (title), or other.
+    """
+    self.bucket_strs = ['lower', 'upper', 'title', 'other']
+
+  def calc_bucket(self, word, ref_label=None, out_label=None, src_label=None):
+    if word.islower():
+      return 0
+    elif word.isupper():
+      return 1
+    elif word.istitle():
+      return 2
+    else:
+      return 3
+
+  def name(self):
+    return "case"
+
+  def idstr(self):
+    return "case"
+
 class LabelWordBucketer(WordBucketer):
 
   def __init__(self,
@@ -508,6 +533,8 @@ def create_word_bucketer_from_profile(bucket_type,
       freq_data=freq_data,
       bucket_cutoffs=bucket_cutoffs,
       case_insensitive=case_insensitive)
+  if bucket_type == 'case':
+    return CaseWordBucketer()
   elif bucket_type == 'label':
     return LabelWordBucketer(
       label_set=label_set)
