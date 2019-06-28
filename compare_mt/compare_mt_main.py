@@ -102,9 +102,10 @@ def generate_word_accuracy_report(ref, outs,
                                                          case_insensitive=case_insensitive)
   ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
   out_labels = [corpus_utils.load_tokens(out_labels[i]) if not out_labels is None else None for i in range(len(outs))]
-  matches = [bucketer.calc_bucketed_matches(ref, out, ref_labels=ref_labels, out_labels=out_label) for out, out_label in zip(outs, out_labels)]
-  
-  reporter = reporters.WordReport(bucketer=bucketer, matches=matches,
+  statistics, example_ids = bucketer.calc_statistics_and_examples(ref, outs, ref_labels=ref_labels, out_labels=out_labels)
+
+  reporter = reporters.WordReport(bucketer=bucketer,
+                                  matches=statistics,
                                   acc_type=acc_type, header="Word Accuracy Analysis", 
                                   title=title)
   reporter.generate_report(output_fig_file=f'word-acc',
