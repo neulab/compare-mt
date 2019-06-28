@@ -96,8 +96,8 @@ class WordBucketer(Bucketer):
       my_out_totals = np.zeros( (num_outs, num_buckets) ,dtype=int)
       my_out_matches = np.zeros( (num_outs, num_buckets) ,dtype=int)
       for oai, (out_all_sent, out_all_label) in enumerate(itertools.zip_longest(outs, out_labels if out_labels else [])):
-        out_sent = out_all_sent[ri]
-        out_label = out_all_label[ri] if out_all_label else []
+        out_sent = out_all_sent[rsi]
+        out_label = out_all_label[rsi] if out_all_label else []
         out_word_cnts = {}
         for oi, (out_word, out_lab) in enumerate(itertools.zip_longest(out_sent, out_label)):
           if self.case_insensitive:
