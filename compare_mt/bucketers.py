@@ -257,7 +257,7 @@ class WordBucketer(Bucketer):
       for word, ll in zip(sent, list_of_likelihoods):
         if self.case_insensitive:
           word = corpus_utils.lower(word)
-        bucket = self.calc_bucket(word, ref_label=word)
+        bucket = self.calc_bucket(word, label=word)
         bucketed_likelihoods[bucket][0] += ll
         bucketed_likelihoods[bucket][1] += 1
 
@@ -416,7 +416,7 @@ class NumericalLabelWordBucketer(WordBucketer):
     if label:
       return self.cutoff_into_bucket(float(label))
     else:
-      raise ValueError('When calculating buckets by label, ref_label or out_label must be non-zero')
+      raise ValueError('When calculating buckets by label must be non-zero')
 
   def name(self):
     return "numerical labels"
