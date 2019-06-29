@@ -166,9 +166,10 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
                                                          label_set=label_set,
                                                          case_insensitive=case_insensitive)
   src_labels = corpus_utils.load_tokens(src_labels) if type(src_labels) == str else src_labels
-  matches = [bucketer.calc_source_bucketed_matches(src, ref, out, ref_align, out_align, src_labels=src_labels) for out, out_align in zip(outs, out_aligns)]
+  statistics = [bucketer.calc_source_bucketed_matches(src, ref, out, ref_align, out_align, src_labels=src_labels) for out, out_align in zip(outs, out_aligns)]
 
-  reporter = reporters.WordReport(bucketer=bucketer, matches=matches,
+  reporter = reporters.WordReport(bucketer=bucketer,
+                                  statistics=statistics,
                                   acc_type=acc_type, header="Source Word Accuracy Analysis", 
                                   title=title)
   reporter.generate_report(output_fig_file=f'src-word-acc',

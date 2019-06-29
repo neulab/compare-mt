@@ -222,10 +222,12 @@ class ScoreReport(Report):
     return html
     
 class WordReport(Report):
-  def __init__(self, bucketer, statistics, examples,
-               ref_sents, ref_labels,
-               out_sents, out_labels,
-               acc_type, header, title=None):
+  def __init__(self, bucketer, statistics,
+               acc_type, header,
+               examples=None,
+               ref_sents=None, ref_labels=None,
+               out_sents=None, out_labels=None,
+               title=None):
     self.bucketer = bucketer
     self.statistics = [[s for s in stat] for stat in statistics]
     self.examples = examples
@@ -313,7 +315,8 @@ class WordReport(Report):
 
     title = f'Word {acc_type} by {bucketer.name()} bucket' if not self.title else self.title
 
-    self.write_examples(title, output_directory)
+    if self.examples:
+      self.write_examples(title, output_directory)
 
     # Create main HTML content
     html = ''
@@ -321,12 +324,15 @@ class WordReport(Report):
       if at not in acc_type_map:
         raise ValueError(f'Unknown accuracy type {at}')
       aid = acc_type_map[at]
-      table = [[bucketer.name()] + sys_names + ['Examples']]
+      table = [[bucketer.name()] + sys_names]
+      if self.examples:
+        table[0].append('Examples')
       for i, bs in enumerate(bucketer.bucket_strs):
         line = [bs]
         for match in matches:
           line.append(f'{fmt(match[i][aid])}')
-        line.append(f'<a href="{self.output_fig_file}.html#bucket{i}">Examples</a>')
+        if self.examples:
+          line.append(f'<a href="{self.output_fig_file}.html#bucket{i}">Examples</a>')
         table += [line] 
       html += html_table(table, title)
       img_name = f'{self.output_fig_file}-{at}'
