@@ -42,38 +42,40 @@ class WordBucketer(Bucketer):
     """
     raise NotImplementedError('calc_bucket must be implemented in subclasses of WordBucketer')
 
-  def _calc_sent_buckets_and_matches(self, ref_sent, ref_label, out_sents, out_labels):
-    num_buckets = len(self.bucket_strs)
-    num_outs = len(out_sents)
-    # Process the reference, getting the bucket
+  def _calc_trg_matches(self, ref_sent, out_sents):
     ref_pos = defaultdict(lambda: [])
-    ref_buckets = [0 for _ in ref_sent]
-    for ri, (ref_word, ref_lab) in enumerate(itertools.zip_longest(ref_sent, ref_label if ref_label else [])):
-      if self.case_insensitive:
-        ref_word = corpus_utils.lower(ref_word)
-      ref_pos[ref_word].append(ri)
-      ref_bucket = self.calc_bucket(ref_word, label=ref_lab)
-      ref_buckets[ri] = ref_bucket
-    # Process each of the outputs, finding matches
     matches = [[-1 for _ in s] for s in out_sents]
-    out_buckets = [[-1 for _ in s] for s in out_sents]
-    for oai, (out_sent, out_label) in enumerate(itertools.zip_longest(out_sents, out_labels if out_labels else [])):
+    for ri, ref_word in enumerate(ref_sent):
+      ref_pos[ref_word].append(ri)
+    for oai, out_sent in enumerate(out_sents):
       out_word_cnts = {}
-      for oi, (out_word, out_lab) in enumerate(itertools.zip_longest(out_sent, out_label if out_label else [])):
-        if self.case_insensitive:
-          out_word = corpus_utils.lower(out_word)
-        # If non-existent, or matched too many buckets then skip
-        bucket = None
+      for oi, out_word in enumerate(out_sent):
         ref_poss = ref_pos.get(out_word, None)
         if ref_poss:
           out_word_cnt = out_word_cnts.get(out_word, 0)
           if out_word_cnt < len(ref_poss):
-            bucket = ref_buckets[ref_poss[out_word_cnt]]
             matches[oai][oi] = ref_poss[out_word_cnt]
           out_word_cnts[out_word] = out_word_cnt + 1
-        if not bucket:
-          bucket = self.calc_bucket(out_word, label=out_lab)
-        out_buckets[oai][oi] = bucket
+    return matches
+
+  def _calc_sent_buckets_and_matches(self, ref_sent, ref_label, out_sents, out_labels):
+    # Initial setup for special cases
+    if self.case_insensitive:
+      ref_sent = [corpus_utils.lower(w) for w in ref_sent]
+      out_sents = [[corpus_utils.lower(w) for w in out_sent] for out_sent in out_sents]
+    if not ref_label:
+      ref_label = []
+      out_labels = [[] for _ in out_sents]
+    # Get matches
+    matches = self._calc_trg_matches(ref_sent, out_sents)
+    # Process the reference, getting the bucket
+    ref_buckets = [self.calc_bucket(w, label=l) for (w,l) in itertools.zip_longest(ref_sent, ref_label)]
+    # Process each of the outputs, finding matches
+    out_buckets = [[] for _ in out_sents]
+    for oai, (out_sent, out_label, match, out_buck) in \
+            enumerate(itertools.zip_longest(out_sents, out_labels, matches, out_buckets)):
+      for oi, (w, l, m) in enumerate(itertools.zip_longest(out_sent, out_label, match)):
+        out_buck.append(self.calc_bucket(w, label=l) if m < 0 else ref_buckets[m])
     return ref_buckets, out_buckets, matches
 
 
@@ -302,25 +304,22 @@ class FreqWordBucketer(WordBucketer):
             else:
               word, freq = cols
               if self.case_insensitive:
-                freq_counts[corpus_utils.lower(word)] = int(freq)
-              else:
-                freq_counts[word] = int(freq)
+                word = corpus_utils.lower(word)
+              freq_counts[word] = int(freq)
       elif freq_corpus_file:
         print(f'Reading frequency from "{freq_corpus_file}"')
         for words in corpus_utils.iterate_tokens(freq_corpus_file):
           for word in words:
             if self.case_insensitive:
-              freq_counts[corpus_utils.lower(word)] += 1
-            else:
-              freq_counts[word] += 1
+              word = corpus_utils.lower(word)
+            freq_counts[word] += 1
       elif freq_data:
         print('Reading frequency from the reference')
         for words in freq_data:
           for word in words:
             if self.case_insensitive:
-              freq_counts[corpus_utils.lower(word)] += 1
-            else:
-              freq_counts[word] += 1
+              word = corpus_utils.lower(word)
+            freq_counts[word] += 1
       else:
         raise ValueError('Must have at least one source of frequency counts for FreqWordBucketer')
     self.freq_counts = freq_counts
@@ -331,9 +330,8 @@ class FreqWordBucketer(WordBucketer):
 
   def calc_bucket(self, word, label=None):
     if self.case_insensitive:
-      return self.cutoff_into_bucket(self.freq_counts.get(corpus_utils.lower(word), 0))
-    else:
-      return self.cutoff_into_bucket(self.freq_counts.get(word, 0))
+      word = corpus_utils.lower(word)
+    return self.cutoff_into_bucket(self.freq_counts.get(word, 0))
 
   def name(self):
     return "frequency"
