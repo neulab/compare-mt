@@ -33,6 +33,10 @@ th {
   color: white;
 }
 
+em {
+  font-weight: bold;
+}
+
 caption {
   font-size: 14pt;
   font-weight: bold;
@@ -267,10 +271,14 @@ class WordReport(Report):
                      xlabel=self.bucketer.name(), ylabel=at,
                      xticklabels=xticklabels)
 
+  def highlight_buckets(self, sent, buck, bid):
+    return ' '.join([w if b != bid else f'<em>{w}</em>' for (w,b) in zip(sent, buck)])
+
   def write_examples(self, title, output_directory):
     # Create separate examples HTML file
     html = ''
     for bi, bucket_examples in enumerate(self.examples):
+      html += f'<a name="bucket{bi}"/>'
       html += tag_str('h3', f'Examples for Bucket {self.bucketer.bucket_strs[bi]}')
       for tag, examp_ids in bucket_examples:
         #  Skip ones with no examples
@@ -279,12 +287,19 @@ class WordReport(Report):
         html += tag_str('h4', tag)
         for eid in examp_ids:
           table = [['', 'Output']]
+          # Find buckets for the examples
+          ref_buckets, out_buckets, matches = \
+            self.bucketer._calc_sent_buckets_and_matches(self.ref_sents[eid],
+                                                         self.ref_labels[eid] if self.ref_labels else None,
+                                                         [x[eid] for x in self.out_sents],
+                                                         [x[eid] for x in self.out_labels] if self.out_labels else None)
+
           # TODO: restore source?
           # if self.src:
           #   table.append(['Src', ' '.join(self.src[eid])])
-          table.append(['Ref', ' '.join(self.ref_sents[eid])])
-          for sn, oss in zip(sys_names, self.out_sents):
-            table.append([sn, ' '.join(oss[eid])])
+          table.append(['Ref', self.highlight_buckets(self.ref_sents[eid], ref_buckets, bi)])
+          for sn, oss, obs in zip(sys_names, self.out_sents, out_buckets):
+            table.append([sn, self.highlight_buckets(oss[eid], obs, bi)])
           html += html_table(table, None)
     with open(f'{output_directory}/{self.output_fig_file}.html', 'w') as example_stream:
       example_stream.write(styled_html_message(title, html))
@@ -309,6 +324,7 @@ class WordReport(Report):
         line = [bs]
         for match in matches:
           line.append(f'{fmt(match[i][aid])}')
+        line.append(f'<a href="{self.output_fig_file}.html#bucket{i}">Examples</a>')
         table += [line] 
       html += html_table(table, title)
       img_name = f'{self.output_fig_file}-{at}'
