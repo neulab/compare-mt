@@ -101,7 +101,7 @@ def generate_word_accuracy_report(ref, outs,
                                                          label_set=label_set,
                                                          case_insensitive=case_insensitive)
   ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
-  out_labels = [corpus_utils.load_tokens(out_labels[i]) if not out_labels is None else None for i in range(len(outs))]
+  out_labels = [corpus_utils.load_tokens(out_labels[i])] if (not out_labels is None) else None
   statistics, example_ids = bucketer.calc_statistics_and_examples(ref, outs, ref_labels=ref_labels, out_labels=out_labels)
 
   reporter = reporters.WordReport(bucketer=bucketer,

@@ -1,3 +1,4 @@
+import sys
 import itertools
 import numpy as np
 from collections import defaultdict
@@ -41,7 +42,42 @@ class WordBucketer(Bucketer):
     """
     raise NotImplementedError('calc_bucket must be implemented in subclasses of WordBucketer')
 
-  def calc_statistics_and_examples(self, ref, outs, ref_labels=None, out_labels=None):
+  def _calc_sent_buckets_and_matches(self, ref_sent, ref_label, out_sents, out_labels):
+    num_buckets = len(self.bucket_strs)
+    num_outs = len(out_sents)
+    # Process the reference, getting the bucket
+    ref_pos = defaultdict(lambda: [])
+    ref_buckets = [0 for _ in ref_sent]
+    for ri, (ref_word, ref_lab) in enumerate(itertools.zip_longest(ref_sent, ref_label if ref_label else [])):
+      if self.case_insensitive:
+        ref_word = corpus_utils.lower(ref_word)
+      ref_pos[ref_word].append(ri)
+      ref_bucket = self.calc_bucket(ref_word, label=ref_lab)
+      ref_buckets[ri] = ref_bucket
+    # Process each of the outputs, finding matches
+    matches = [[-1 for _ in s] for s in out_sents]
+    out_buckets = [[-1 for _ in s] for s in out_sents]
+    for oai, (out_sent, out_label) in enumerate(itertools.zip_longest(out_sents, out_labels if out_labels else [])):
+      out_word_cnts = {}
+      for oi, (out_word, out_lab) in enumerate(itertools.zip_longest(out_sent, out_label if out_label else [])):
+        if self.case_insensitive:
+          out_word = corpus_utils.lower(out_word)
+        # If non-existent, or matched too many buckets then skip
+        bucket = None
+        ref_poss = ref_pos.get(out_word, None)
+        if ref_poss:
+          out_word_cnt = out_word_cnts.get(out_word, 0)
+          if out_word_cnt < len(ref_poss):
+            bucket = ref_buckets[ref_poss[out_word_cnt]]
+            matches[oai][oi] = ref_poss[out_word_cnt]
+          out_word_cnts[out_word] = out_word_cnt + 1
+        if not bucket:
+          bucket = self.calc_bucket(out_word, label=out_lab)
+        out_buckets[oai][oi] = bucket
+    return ref_buckets, out_buckets, matches
+
+
+  def calc_statistics_and_examples(self, ref, outs, ref_labels=None, out_labels=None, num_examples=5):
     """
     Calculate match statistics, bucketed by the type of word we have, and IDs of example sentences to show.
     This must be used with a subclass that has self.bucket_strs defined, and self.calc_bucket(word) implemented.
@@ -71,59 +107,46 @@ class WordBucketer(Bucketer):
     num_buckets = len(self.bucket_strs)
     num_outs = len(outs)
     num_sents = len(ref)
+    num_examp_feats = 3
 
     # Initialize the sufficient statistics for prec/rec/fmeas
     ref_total = np.zeros(num_buckets, dtype=int)
     out_totals = np.zeros( (num_outs, num_buckets) ,dtype=int)
     out_matches = np.zeros( ( num_outs, num_buckets) ,dtype=int)
-    # example_scores = np.zeros(num_sents, num_buckets, 3)
+    example_scores = np.zeros( (num_sents, num_examp_feats, num_buckets) )
 
     # Step through the sentences
     for rsi, (ref_sent, ref_label) in enumerate(itertools.zip_longest(ref, ref_labels if ref_labels else [])):
-      # Process the reference, getting the bucket
-      ref_pos = defaultdict(lambda: [])
-      ref_buckets = np.zeros(len(ref_sent), dtype=int)
+      ref_buckets, out_buckets, matches = \
+         self._calc_sent_buckets_and_matches(ref_sent,
+                                             ref_label,
+                                             [x[rsi] for x in outs],
+                                             [x[rsi] for x in out_labels] if out_labels else None)
       my_ref_total = np.zeros(num_buckets ,dtype=int)
-      for ri, (ref_word, ref_lab) in enumerate(itertools.zip_longest(ref_sent, ref_label if ref_label else [])):
-        if self.case_insensitive:
-          ref_word = corpus_utils.lower(ref_word)
-        ref_pos[ref_word].append(ri)
-        ref_bucket = self.calc_bucket(ref_word, label=ref_lab)
-        ref_buckets[ri] = ref_bucket
-        my_ref_total[ref_bucket] += 1
-      ref_total += my_ref_total
-      # Process each of the outputs, finding matches
       my_out_totals = np.zeros( (num_outs, num_buckets) ,dtype=int)
       my_out_matches = np.zeros( (num_outs, num_buckets) ,dtype=int)
-      for oai, (out_all_sent, out_all_label) in enumerate(itertools.zip_longest(outs, out_labels if out_labels else [])):
-        out_sent = out_all_sent[rsi]
-        out_label = out_all_label[rsi] if out_all_label else []
-        out_word_cnts = {}
-        for oi, (out_word, out_lab) in enumerate(itertools.zip_longest(out_sent, out_label)):
-          if self.case_insensitive:
-            out_word = corpus_utils.lower(out_word)
-          # If non-existent, or matched too many buckets then skip
-          bucket = None
-          ref_poss = ref_pos.get(out_word, None)
-          if ref_poss:
-            out_word_cnt = out_word_cnts.get(out_word, 0)
-            if out_word_cnt < len(ref_poss):
-              bucket = ref_buckets[ref_poss[out_word_cnt]]
-              my_out_matches[oai,bucket] += 1
-            out_word_cnts[out_word] = out_word_cnt + 1
-          if not bucket:
-            bucket = self.calc_bucket(out_word, label=out_lab)
-          my_out_totals[oai,bucket] += 1
+      for b in ref_buckets:
+        my_ref_total[b] += 1
+      for oi, (obs, ms) in enumerate(zip(out_buckets, matches)):
+        for b, m in zip(obs, ms):
+          my_out_totals[oi,b] += 1
+          if m >= 0:
+            my_out_matches[oi,b] += 1
+      ref_total += my_ref_total
       out_totals += my_out_totals
       out_matches += my_out_matches
 
-      # TODO: Scoring of example IDs across different dimensions:
+      # Scoring of examples across different dimensions:
       #  0: overall percentage of matches
+      example_scores[rsi,0] = my_out_matches.sum(axis=0) / (my_ref_total*num_outs+1e-10)
       #  1: overall percentage of misses
+      example_scores[rsi,1] = (my_ref_total*num_outs-my_out_matches.sum(axis=0)) / (my_ref_total*num_outs+1e-10)
       #  2: overall variance of matches
+      example_scores[rsi,2] = (my_out_matches / (my_ref_total+1e-10).reshape( (1, num_buckets) )).std(axis=0)
 
-    ret = [[] for _ in range(num_outs)]
-    for oi, oret in enumerate(ret):
+    # Calculate statistics
+    statistics = [[] for _ in range(num_outs)]
+    for oi, ostatistics in enumerate(statistics):
       for bi in range(num_buckets):
         mcnt, ocnt, rcnt = out_matches[oi,bi], out_totals[oi,bi], ref_total[bi]
         if mcnt == 0:
@@ -132,8 +155,19 @@ class WordBucketer(Bucketer):
           rec = mcnt / float(rcnt)
           prec = mcnt / float(ocnt)
           fmeas = 2 * prec * rec / (prec + rec)
-        oret.append( (mcnt, rcnt, ocnt, rec, prec, fmeas) )
-    return ret, None
+        ostatistics.append( (mcnt, rcnt, ocnt, rec, prec, fmeas) )
+
+    # Find top-5 examples of each class
+    examples = [[('Good Examples', []), ('Bad Examples', []), ('Divergent Examples', [])] for _ in range(num_buckets)]
+    # NOTE: This could be made faster with argpartition, but the complexity is probably not worth it
+    topn = np.argsort(-example_scores, axis=0)
+    for bi, bexamples in enumerate(examples):
+      for fi, (_, fexamples) in enumerate(bexamples):
+        for si in topn[:num_examples,fi,bi]:
+          if example_scores[si,fi,bi] > 0:
+            fexamples.append(si)
+
+    return statistics, examples
 
   def calc_source_bucketed_matches(self, src, ref, out, ref_aligns, out_aligns, src_labels=None):
     """
