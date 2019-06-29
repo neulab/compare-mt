@@ -88,8 +88,10 @@ def generate_word_accuracy_report(ref, outs,
   """
   case_insensitive = True if case_insensitive == 'True' else False
 
+  if type(ref_labels) == str:
+    ref_labels = corpus_utils.load_tokens(ref_labels)
   if out_labels is not None:
-    out_labels = arg_utils.parse_files(out_labels)
+    out_labels = [corpus_utils.load_tokens(x) for x in arg_utils.parse_files(out_labels)]
     if len(out_labels) != len(outs):
       raise ValueError(f'The number of output files should be equal to the number of output labels.')
 
@@ -100,13 +102,16 @@ def generate_word_accuracy_report(ref, outs,
                                                          freq_data=ref,
                                                          label_set=label_set,
                                                          case_insensitive=case_insensitive)
-  ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
-  out_labels = [corpus_utils.load_tokens(out_labels[i])] if (not out_labels is None) else None
-  statistics, example_ids = bucketer.calc_statistics_and_examples(ref, outs, ref_labels=ref_labels, out_labels=out_labels)
+  statistics, examples = bucketer.calc_statistics_and_examples(ref, outs, ref_labels=ref_labels, out_labels=out_labels)
 
   reporter = reporters.WordReport(bucketer=bucketer,
-                                  matches=statistics,
-                                  acc_type=acc_type, header="Word Accuracy Analysis", 
+                                  statistics=statistics,
+                                  examples=examples,
+                                  ref_sents=ref,
+                                  ref_labels=ref_labels,
+                                  out_sents=outs,
+                                  out_labels=out_labels,
+                                  acc_type=acc_type, header="Word Accuracy Analysis",
                                   title=title)
   reporter.generate_report(output_fig_file=f'word-acc',
                            output_fig_format='pdf', 
