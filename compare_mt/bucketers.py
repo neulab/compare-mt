@@ -137,12 +137,12 @@ class WordBucketer(Bucketer):
       out_matches += my_out_matches
 
       # Scoring of examples across different dimensions:
-      #  0: overall percentage of matches
-      example_scores[rsi,0] = my_out_matches.sum(axis=0) / (my_ref_total*num_outs+1e-10)
-      #  1: overall percentage of misses
-      example_scores[rsi,1] = (my_ref_total*num_outs-my_out_matches.sum(axis=0)) / (my_ref_total*num_outs+1e-10)
-      #  2: overall variance of matches
-      example_scores[rsi,2] = (my_out_matches / (my_ref_total+1e-10).reshape( (1, num_buckets) )).std(axis=0)
+      #  0: overall variance of matches
+      example_scores[rsi,0] = (my_out_matches / (my_ref_total+1e-10).reshape( (1, num_buckets) )).std(axis=0)
+      #  1: overall percentage of matches
+      example_scores[rsi,1] = my_out_matches.sum(axis=0) / (my_ref_total*num_outs+1e-10)
+      #  2: overall percentage of misses
+      example_scores[rsi,2] = (my_ref_total*num_outs-my_out_matches.sum(axis=0)) / (my_ref_total*num_outs+1e-10)
 
     # Calculate statistics
     statistics = [[] for _ in range(num_outs)]
@@ -158,7 +158,9 @@ class WordBucketer(Bucketer):
         ostatistics.append( (mcnt, rcnt, ocnt, rec, prec, fmeas) )
 
     # Find top-5 examples of each class
-    examples = [[('Good Examples', []), ('Bad Examples', []), ('Divergent Examples', [])] for _ in range(num_buckets)]
+    examples = [[('Examples where some systems were good, some were bad', []),
+                 ('Examples where all systems were good', []),
+                 ('Examples where all systems were bad', [])] for _ in range(num_buckets)]
     # NOTE: This could be made faster with argpartition, but the complexity is probably not worth it
     topn = np.argsort(-example_scores, axis=0)
     for bi, bexamples in enumerate(examples):

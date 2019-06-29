@@ -271,8 +271,10 @@ class WordReport(Report):
                      xlabel=self.bucketer.name(), ylabel=at,
                      xticklabels=xticklabels)
 
-  def highlight_buckets(self, sent, buck, bid):
-    return ' '.join([w if b != bid else f'<em>{w}</em>' for (w,b) in zip(sent, buck)])
+  def highlight_buckets(self, sent, buck, bid, matches=None):
+    if not matches:
+      matches = [1 for _ in buck]
+    return ' '.join([w if (b != bid or m < 0) else f'<em>{w}</em>' for (w,b,m) in zip(sent, buck, matches)])
 
   def write_examples(self, title, output_directory):
     # Create separate examples HTML file
@@ -298,8 +300,8 @@ class WordReport(Report):
           # if self.src:
           #   table.append(['Src', ' '.join(self.src[eid])])
           table.append(['Ref', self.highlight_buckets(self.ref_sents[eid], ref_buckets, bi)])
-          for sn, oss, obs in zip(sys_names, self.out_sents, out_buckets):
-            table.append([sn, self.highlight_buckets(oss[eid], obs, bi)])
+          for sn, oss, obs, ms in zip(sys_names, self.out_sents, out_buckets, matches):
+            table.append([sn, self.highlight_buckets(oss[eid], obs, bi, matches=ms)])
           html += html_table(table, None)
     with open(f'{output_directory}/{self.output_fig_file}.html', 'w') as example_stream:
       example_stream.write(styled_html_message(title, html))
