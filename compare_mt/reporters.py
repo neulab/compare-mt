@@ -33,6 +33,10 @@ th {
   color: white;
 }
 
+em {
+  font-weight: bold;
+}
+
 caption {
   font-size: 14pt;
   font-weight: bold;
@@ -218,9 +222,19 @@ class ScoreReport(Report):
     return html
     
 class WordReport(Report):
-  def __init__(self, bucketer, matches, acc_type, header, title=None):
+  def __init__(self, bucketer, statistics,
+               acc_type, header,
+               examples=None,
+               ref_sents=None, ref_labels=None,
+               out_sents=None, out_labels=None,
+               title=None):
     self.bucketer = bucketer
-    self.matches = [[m for m in match] for match in matches]
+    self.statistics = [[s for s in stat] for stat in statistics]
+    self.examples = examples
+    self.ref_sents = ref_sents
+    self.ref_labels = ref_labels
+    self.out_sents = out_sents
+    self.out_labels = out_labels
     self.acc_type = acc_type
     self.header = header
     self.acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
@@ -229,7 +243,7 @@ class WordReport(Report):
 
   def print(self):
     acc_type_map = self.acc_type_map
-    bucketer, matches, acc_type, header = self.bucketer, self.matches, self.acc_type, self.header
+    bucketer, statistics, acc_type, header = self.bucketer, self.statistics, self.acc_type, self.header
     self.print_header(header)
     acc_types = acc_type.split('+')
     for at in acc_types:
@@ -239,7 +253,7 @@ class WordReport(Report):
       print(f'--- {self.title}')
       for i, bucket_str in enumerate(bucketer.bucket_strs):
         print(f'{bucket_str}', end='')
-        for match in matches:
+        for match in statistics:
           print(f'\t{fmt(match[i][aid])}', end='')
         print()
       print()
@@ -250,7 +264,7 @@ class WordReport(Report):
       if at not in self.acc_type_map:
         raise ValueError(f'Unknown accuracy type {at}')
       aid = self.acc_type_map[at]
-      sys = [[m[aid] for m in match] for match in self.matches]
+      sys = [[m[aid] for m in match] for match in self.statistics]
       xticklabels = [s for s in self.bucketer.bucket_strs] 
 
       make_bar_chart(sys,
@@ -258,23 +272,67 @@ class WordReport(Report):
                      output_fig_format=output_fig_format,
                      xlabel=self.bucketer.name(), ylabel=at,
                      xticklabels=xticklabels)
-    
+
+  def highlight_buckets(self, sent, buck, bid, matches=None):
+    if not matches:
+      matches = [1 for _ in buck]
+    return ' '.join([w if (b != bid or m < 0) else f'<em>{w}</em>' for (w,b,m) in zip(sent, buck, matches)])
+
+  def write_examples(self, title, output_directory):
+    # Create separate examples HTML file
+    html = ''
+    for bi, bucket_examples in enumerate(self.examples):
+      html += f'<a name="bucket{bi}"/>'
+      html += tag_str('h3', f'Examples for Bucket {self.bucketer.bucket_strs[bi]}')
+      for tag, examp_ids in bucket_examples:
+        #  Skip ones with no examples
+        if len(examp_ids) == 0:
+          continue
+        html += tag_str('h4', tag)
+        for eid in examp_ids:
+          table = [['', 'Output']]
+          # Find buckets for the examples
+          ref_buckets, out_buckets, matches = \
+            self.bucketer._calc_sent_buckets_and_matches(self.ref_sents[eid],
+                                                         self.ref_labels[eid] if self.ref_labels else None,
+                                                         [x[eid] for x in self.out_sents],
+                                                         [x[eid] for x in self.out_labels] if self.out_labels else None)
+
+          # TODO: restore source?
+          # if self.src:
+          #   table.append(['Src', ' '.join(self.src[eid])])
+          table.append(['Ref', self.highlight_buckets(self.ref_sents[eid], ref_buckets, bi)])
+          for sn, oss, obs, ms in zip(sys_names, self.out_sents, out_buckets, matches):
+            table.append([sn, self.highlight_buckets(oss[eid], obs, bi, matches=ms)])
+          html += html_table(table, None)
+    with open(f'{output_directory}/{self.output_fig_file}.html', 'w') as example_stream:
+      example_stream.write(styled_html_message(title, html))
+
   def html_content(self, output_directory):
     acc_type_map = self.acc_type_map
-    bucketer, matches, acc_type, header = self.bucketer, self.matches, self.acc_type, self.header
-    acc_types = acc_type.split('+') 
+    bucketer, matches, acc_type, header = self.bucketer, self.statistics, self.acc_type, self.header
+    acc_types = acc_type.split('+')
 
+    title = f'Word {acc_type} by {bucketer.name()} bucket' if not self.title else self.title
+
+    if self.examples:
+      self.write_examples(title, output_directory)
+
+    # Create main HTML content
     html = ''
     for at in acc_types:
       if at not in acc_type_map:
         raise ValueError(f'Unknown accuracy type {at}')
       aid = acc_type_map[at]
-      title = f'Word {acc_type} by {bucketer.name()} bucket' if not self.title else self.title
       table = [[bucketer.name()] + sys_names]
+      if self.examples:
+        table[0].append('Examples')
       for i, bs in enumerate(bucketer.bucket_strs):
         line = [bs]
         for match in matches:
           line.append(f'{fmt(match[i][aid])}')
+        if self.examples:
+          line.append(f'<a href="{self.output_fig_file}.html#bucket{i}">Examples</a>')
         table += [line] 
       html += html_table(table, title)
       img_name = f'{self.output_fig_file}-{at}'
@@ -498,6 +556,12 @@ def html_table(table, title=None, bold_rows=1, bold_cols=1):
            f'<pre id="{tab_id}_latex" style="display:none">{latex_code}</pre>')
   return html
 
+def styled_html_message(report_title, content):
+  content = content.encode("ascii","xmlcharrefreplace").decode()
+  return (f'<html>\n<head>\n<link rel="stylesheet" href="compare_mt.css">\n</head>\n'+
+          f'<script>\n{javascript_style}\n</script>\n'+
+          f'<body>\n<h1>{report_title}</h1>\n {content} \n</body>\n</html>')
+
 def generate_html_report(reports, output_directory, report_title):
   content = []
   for name, rep in reports:
@@ -510,11 +574,7 @@ def generate_html_report(reports, output_directory, report_title):
         os.makedirs(output_directory)
   html_file = os.path.join(output_directory, 'index.html')
   with open(html_file, 'w') as f:
-    content = content.encode("ascii","xmlcharrefreplace").decode()
-    message = (f'<html>\n<head>\n<link rel="stylesheet" href="compare_mt.css">\n</head>\n'+
-               f'<script>\n{javascript_style}\n</script>\n'+
-               f'<body>\n<h1>{report_title}</h1>\n {content} \n</body>\n</html>')
-    f.write(message)
+    f.write(styled_html_message(report_title, content))
   css_file = os.path.join(output_directory, 'compare_mt.css')
   with open(css_file, 'w') as f:
     f.write(css_style)
