@@ -319,7 +319,7 @@ class WordReport(Report):
       if at not in acc_type_map:
         raise ValueError(f'Unknown accuracy type {at}')
       aid = acc_type_map[at]
-      table = [[bucketer.name()] + sys_names]
+      table = [[bucketer.name()] + sys_names + ['Examples']]
       for i, bs in enumerate(bucketer.bucket_strs):
         line = [bs]
         for match in matches:
