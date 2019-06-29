@@ -412,13 +412,9 @@ class NumericalLabelWordBucketer(WordBucketer):
       bucket_cutoffs = [0.25, 0.5, 0.75]
     self.set_bucket_cutoffs(bucket_cutoffs)
 
-  def calc_bucket(self, word, ref_label=None, out_label=None, src_label=None):
-    if ref_label:
-      return self.cutoff_into_bucket(float(ref_label))
-    elif out_label:
-      return self.cutoff_into_bucket(float(out_label))
-    elif src_label:
-      return self.cutoff_into_bucket(float(src_label))
+  def calc_bucket(self, word, label=None):
+    if label:
+      return self.cutoff_into_bucket(float(label))
     else:
       raise ValueError('When calculating buckets by label, ref_label or out_label must be non-zero')
 
