@@ -3,6 +3,8 @@
 __pycache__
 # vim
 *.swp
+# VS code
+.vscode/
 # Mac
 .DS_Store
 # setup.py build artifacts
@@ -12,5 +14,6 @@ build/
 # Virtualenv for developing
 env/
 # Outputs
+output/
 outputs/
 .pytest_cache
