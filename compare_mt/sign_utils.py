@@ -11,8 +11,7 @@
 ########################################################################################
 
 import numpy as np
-from compare_mt import scorers
-import nltk
+
 
 def eval_with_paired_bootstrap(ref, outs,
                                scorer,
@@ -22,7 +21,7 @@ def eval_with_paired_bootstrap(ref, outs,
   Evaluate with paired boostrap.
   This compares several systems, performing a signifiance tests with
   paired bootstrap resampling to compare the accuracy of the specified systems.
-  
+
   Args:
     ref: The correct labels
     outs: The output of systems
@@ -34,18 +33,16 @@ def eval_with_paired_bootstrap(ref, outs,
   Returns:
     A tuple containing the win ratios, statistics for systems
   """
-  
   sys_scores = [[] for _ in outs] 
   wins = [[0, 0, 0] for _ in compare_directions]
   n = len(ref)
   ids = list(range(n))
 
   cache_stats = [scorer.cache_stats(ref, out) for out in outs] 
-
+  sample_size = int(len(ids)*sample_ratio)
   for _ in range(num_samples):
-    # Subsample the gold and system outputs
-    np.random.shuffle(ids)
-    reduced_ids = ids[:int(len(ids)*sample_ratio)]
+    # Subsample the gold and system outputs (with replacement)
+    reduced_ids = np.random.choice(ids, size=sample_size, replace=True)
     # Calculate accuracy on the reduced sample and save stats
     if cache_stats[0]:
       sys_score, _ = zip(*[scorer.score_cached_corpus(reduced_ids, cache_stat) for cache_stat in cache_stats])
@@ -73,7 +70,11 @@ def eval_with_paired_bootstrap(ref, outs,
   sys_stats = []
   for i in range(len(outs)): 
     sys_scores[i].sort()
-    sys_stats.append({'mean':np.mean(sys_scores[i]), 'median':np.median(sys_scores[i]), 'lower_bound':sys_scores[i][int(num_samples * 0.025)], 'upper_bound':sys_scores[i][int(num_samples * 0.975)]})
+    sys_stats.append({
+      'mean':np.mean(sys_scores[i]),
+      'median':np.median(sys_scores[i]),
+      'lower_bound':sys_scores[i][int(num_samples * 0.025)],
+      'upper_bound':sys_scores[i][int(num_samples * 0.975)]
+    })
  
   return wins, sys_stats
-
