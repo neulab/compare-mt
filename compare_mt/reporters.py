@@ -301,6 +301,12 @@ class WordReport(Report):
           table = [['', 'Output']]
           # Find buckets for the examples if it's on the source side (will have alignments in this case)
           if self.ref_aligns:
+            _, _, _, src_buckets, ref_aligns, ref_matches = \
+              self.bucketer._calc_src_buckets_and_matches(self.src_sents[eid],
+                                                          self.src_labels[eid] if self.src_labels else None,
+                                                          self.ref_sents[eid],
+                                                          self.ref_aligns[eid],
+                                                          [x[eid] for x in self.out_sents])
             ref_buckets = None
             out_buckets = []
             out_matches = []
@@ -313,7 +319,7 @@ class WordReport(Report):
                                                           [x[eid] for x in self.out_labels] if self.out_labels else None)
 
           if self.src_sents:
-            table.append(['Src', ' '.join(self.src_sents[eid])])
+            table.append(['Src', self.highlight_buckets(self.src_sents[eid], src_buckets, bi)])
           table.append(['Ref', self.highlight_buckets(self.ref_sents[eid], ref_buckets, bi)])
           for sn, oss, obs, ms in itertools.zip_longest(sys_names, self.out_sents, out_buckets, out_matches):
             table.append([sn, self.highlight_buckets(oss[eid], obs, bi, matches=ms)])
