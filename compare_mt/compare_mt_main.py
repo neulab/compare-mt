@@ -61,6 +61,7 @@ def generate_score_report(ref, outs,
   return reporter 
 
 def generate_word_accuracy_report(ref, outs,
+                          src=None,
                           acc_type='fmeas', bucket_type='freq', bucket_cutoffs=None,
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
@@ -73,6 +74,7 @@ def generate_word_accuracy_report(ref, outs,
   Args:
     ref: Tokens from the reference
     outs: Tokens from the output file(s)
+    src: Tokens from the source
     acc_type: The type of accuracy to show (prec/rec/fmeas). Can also have multiple separated by '+'.
     bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
     bucket_cutoffs: The boundaries between buckets, specified as a colon-separated string.
@@ -107,6 +109,7 @@ def generate_word_accuracy_report(ref, outs,
   reporter = reporters.WordReport(bucketer=bucketer,
                                   statistics=statistics,
                                   examples=examples,
+                                  src_sents=src,
                                   ref_sents=ref,
                                   ref_labels=ref_labels,
                                   out_sents=outs,
@@ -119,8 +122,8 @@ def generate_word_accuracy_report(ref, outs,
   return reporter 
   
 
-def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_align_files=None,
-                          acc_type='fmeas', bucket_type='freq', bucket_cutoffs=None,
+def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
+                          acc_type='rec', bucket_type='freq', bucket_cutoffs=None,
                           freq_count_file=None, freq_corpus_file=None,
                           label_set=None,
                           src_labels=None,
@@ -134,7 +137,6 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
     outs: Tokens from the output file(s)
     src: Tokens from the source
     ref_align_file: Alignment file for the reference
-    out_align_files: Alignment files for the output, separated by a semi-colon
     acc_type: The type of accuracy to show (prec/rec/fmeas). Can also have multiple separated by '+'.
     bucket_type: A string specifying the way to bucket words together to calculate F-measure (freq/tag)
     bucket_cutoffs: The boundaries between buckets, specified as a colon-separated string.
@@ -149,14 +151,12 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
   """
   case_insensitive = True if case_insensitive == 'True' else False
 
-  if not src or not ref_align_file or not out_align_files:
-    raise ValueError("Must specify the source and the alignment files when performing source analysis.")
+  if acc_type != 'rec':
+    raise ValueError("Source word analysis can only use recall as an accuracy type")
+  if not src or not ref_align_file:
+    raise ValueError("Must specify the source and the alignment file when performing source analysis.")
 
   ref_align = corpus_utils.load_alignments(ref_align_file) 
-  out_aligns = [corpus_utils.load_alignments(x) for x in arg_utils.parse_files(out_align_files)]
-
-  if len(out_aligns) != len(outs):
-    raise ValueError(f'The number of output files should be equal to the number of output alignment files.')
 
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          bucket_cutoffs=bucket_cutoffs,
@@ -165,13 +165,19 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None, out_a
                                                          freq_data=src,
                                                          label_set=label_set,
                                                          case_insensitive=case_insensitive)
-  src_labels = corpus_utils.load_tokens(src_labels) if type(src_labels) == str else src_labels
-  statistics = [bucketer.calc_source_bucketed_matches(src, ref, out, ref_align, out_align, src_labels=src_labels) for out, out_align in zip(outs, out_aligns)]
+  statistics, examples = bucketer.calc_statistics_and_examples(ref, outs, src=src, src_labels=src_labels, ref_aligns=ref_align)
 
   reporter = reporters.WordReport(bucketer=bucketer,
                                   statistics=statistics,
-                                  acc_type=acc_type, header="Source Word Accuracy Analysis", 
+                                  examples=examples,
+                                  src_sents=src,
+                                  ref_sents=ref,
+                                  ref_aligns=ref_align,
+                                  out_sents=outs,
+                                  src_labels=src_labels,
+                                  acc_type=acc_type, header="Source Word Accuracy Analysis",
                                   title=title)
+
   reporter.generate_report(output_fig_file=f'src-word-acc',
                            output_fig_format='pdf', 
                            output_directory='outputs')

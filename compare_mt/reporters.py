@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 plt.rcParams['font.family'] = 'sans-serif'
 import numpy as np
 import os
+import itertools
 from compare_mt.formatting import fmt
 
 # Global variables used by all reporters. These are set by compare_mt_main.py
@@ -225,16 +226,21 @@ class WordReport(Report):
   def __init__(self, bucketer, statistics,
                acc_type, header,
                examples=None,
+               src_sents=None,
                ref_sents=None, ref_labels=None,
                out_sents=None, out_labels=None,
+               src_labels=None, ref_aligns=None,
                title=None):
     self.bucketer = bucketer
     self.statistics = [[s for s in stat] for stat in statistics]
     self.examples = examples
+    self.src_sents = src_sents
     self.ref_sents = ref_sents
     self.ref_labels = ref_labels
     self.out_sents = out_sents
     self.out_labels = out_labels
+    self.src_labels = src_labels
+    self.ref_aligns = ref_aligns
     self.acc_type = acc_type
     self.header = header
     self.acc_type_map = {'prec': 3, 'rec': 4, 'fmeas': 5}
@@ -274,6 +280,8 @@ class WordReport(Report):
                      xticklabels=xticklabels)
 
   def highlight_buckets(self, sent, buck, bid, matches=None):
+    if not buck:
+      return ' '.join(sent)
     if not matches:
       matches = [1 for _ in buck]
     return ' '.join([w if (b != bid or m < 0) else f'<em>{w}</em>' for (w,b,m) in zip(sent, buck, matches)])
@@ -291,18 +299,23 @@ class WordReport(Report):
         html += tag_str('h4', tag)
         for eid in examp_ids:
           table = [['', 'Output']]
-          # Find buckets for the examples
-          ref_buckets, out_buckets, matches = \
-            self.bucketer._calc_sent_buckets_and_matches(self.ref_sents[eid],
-                                                         self.ref_labels[eid] if self.ref_labels else None,
-                                                         [x[eid] for x in self.out_sents],
-                                                         [x[eid] for x in self.out_labels] if self.out_labels else None)
+          # Find buckets for the examples if it's on the source side (will have alignments in this case)
+          if self.ref_aligns:
+            ref_buckets = None
+            out_buckets = []
+            out_matches = []
+          # Find buckets for the examples if it's on the target side
+          else:
+            _, _, _, ref_buckets, out_buckets, out_matches = \
+              self.bucketer._calc_trg_buckets_and_matches(self.ref_sents[eid],
+                                                          self.ref_labels[eid] if self.ref_labels else None,
+                                                          [x[eid] for x in self.out_sents],
+                                                          [x[eid] for x in self.out_labels] if self.out_labels else None)
 
-          # TODO: restore source?
-          # if self.src:
-          #   table.append(['Src', ' '.join(self.src[eid])])
+          if self.src_sents:
+            table.append(['Src', ' '.join(self.src_sents[eid])])
           table.append(['Ref', self.highlight_buckets(self.ref_sents[eid], ref_buckets, bi)])
-          for sn, oss, obs, ms in zip(sys_names, self.out_sents, out_buckets, matches):
+          for sn, oss, obs, ms in itertools.zip_longest(sys_names, self.out_sents, out_buckets, out_matches):
             table.append([sn, self.highlight_buckets(oss[eid], obs, bi, matches=ms)])
           html += html_table(table, None)
     with open(f'{output_directory}/{self.output_fig_file}.html', 'w') as example_stream:

@@ -139,7 +139,7 @@ source language words, which would allow you to examine whether, for example, in
 hard to output properly. Here is an example using the example data:
 
 ```bash
-compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk --compare_src_word_accuracies ref_align_file=example/ted.ref.align,out_align_files="example/ted.sys1.align;example/ted.sys2.align"
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk --compare_src_word_accuracies ref_align_file=example/ted.ref.align
 ```
 
 ### Analyzing Word Likelihoods

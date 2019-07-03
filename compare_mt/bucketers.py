@@ -44,7 +44,8 @@ class WordBucketer(Bucketer):
 
   def _calc_trg_matches(self, ref_sent, out_sents):
     ref_pos = defaultdict(lambda: [])
-    matches = [[-1 for _ in s] for s in out_sents]
+    out_matches = [[-1 for _ in s] for s in out_sents]
+    ref_matches = [[-1 for _ in ref_sent] for _ in out_sents]
     for ri, ref_word in enumerate(ref_sent):
       ref_pos[ref_word].append(ri)
     for oai, out_sent in enumerate(out_sents):
@@ -54,11 +55,12 @@ class WordBucketer(Bucketer):
         if ref_poss:
           out_word_cnt = out_word_cnts.get(out_word, 0)
           if out_word_cnt < len(ref_poss):
-            matches[oai][oi] = ref_poss[out_word_cnt]
+            out_matches[oai][oi] = ref_poss[out_word_cnt]
+            ref_matches[oai][ref_poss[out_word_cnt]] = oi
           out_word_cnts[out_word] = out_word_cnt + 1
-    return matches
+    return out_matches, ref_matches
 
-  def _calc_sent_buckets_and_matches(self, ref_sent, ref_label, out_sents, out_labels):
+  def _calc_trg_buckets_and_matches(self, ref_sent, ref_label, out_sents, out_labels):
     # Initial setup for special cases
     if self.case_insensitive:
       ref_sent = [corpus_utils.lower(w) for w in ref_sent]
@@ -67,19 +69,66 @@ class WordBucketer(Bucketer):
       ref_label = []
       out_labels = [[] for _ in out_sents]
     # Get matches
-    matches = self._calc_trg_matches(ref_sent, out_sents)
+    out_matches, _ = self._calc_trg_matches(ref_sent, out_sents)
     # Process the reference, getting the bucket
     ref_buckets = [self.calc_bucket(w, label=l) for (w,l) in itertools.zip_longest(ref_sent, ref_label)]
     # Process each of the outputs, finding matches
     out_buckets = [[] for _ in out_sents]
     for oai, (out_sent, out_label, match, out_buck) in \
-            enumerate(itertools.zip_longest(out_sents, out_labels, matches, out_buckets)):
+            enumerate(itertools.zip_longest(out_sents, out_labels, out_matches, out_buckets)):
       for oi, (w, l, m) in enumerate(itertools.zip_longest(out_sent, out_label, match)):
         out_buck.append(self.calc_bucket(w, label=l) if m < 0 else ref_buckets[m])
-    return ref_buckets, out_buckets, matches
+    # Calculate totals for each sentence
+    num_buckets = len(self.bucket_strs)
+    num_outs = len(out_sents)
+    my_ref_total = np.zeros(num_buckets ,dtype=int)
+    my_out_totals = np.zeros( (num_outs, num_buckets) ,dtype=int)
+    my_out_matches = np.zeros( (num_outs, num_buckets) ,dtype=int)
+    for b in ref_buckets:
+      my_ref_total[b] += 1
+    for oi, (obs, ms) in enumerate(zip(out_buckets, out_matches)):
+      for b, m in zip(obs, ms):
+        my_out_totals[oi,b] += 1
+        if m >= 0:
+          my_out_matches[oi,b] += 1
+    return my_ref_total, my_out_totals, my_out_matches, ref_buckets, out_buckets, out_matches
 
+  def _calc_src_buckets_and_matches(self, src_sent, src_label, ref_sent, ref_aligns, out_sents):
+    # Initial setup for special cases
+    if self.case_insensitive:
+      src_sent = [corpus_utils.lower(w) for w in src_sent]
+      ref_sent = [corpus_utils.lower(w) for w in ref_sent]
+      out_sents = [[corpus_utils.lower(w) for w in out_sent] for out_sent in out_sents]
+    if not src_label:
+      src_label = []
+    # Get matches
+    _, ref_matches = self._calc_trg_matches(ref_sent, out_sents)
+    # Process the source, getting the bucket
+    src_buckets = [self.calc_bucket(w, label=l) for (w,l) in itertools.zip_longest(src_sent, src_label)]
+    # For each source word, find the reference words that need to be correct
+    src_aligns = [[] for _ in src_sent]
+    for src, trg in ref_aligns:
+      src_aligns[src].append(trg)
+    # Calculate totals for each sentence
+    num_buckets = len(self.bucket_strs)
+    num_outs = len(out_sents)
+    my_ref_total = np.zeros(num_buckets ,dtype=int)
+    my_out_matches = np.zeros( (num_outs, num_buckets) ,dtype=int)
+    for src_bucket in src_buckets:
+      my_ref_total[src_bucket] += 1
+    my_out_totals = np.broadcast_to(np.reshape(my_ref_total, (1, num_buckets)), (num_outs, num_buckets))
+    for oai, (out_sent, ref_match) in enumerate(zip(out_sents, ref_matches)):
+      for src_bucket, src_align in zip(src_buckets, src_aligns):
+        if len(src_align) != 0:
+          if all([ref_match[x] >= 0 for x in src_align]):
+            my_out_matches[oai,src_bucket] += 1
+    return my_ref_total, my_out_totals, my_out_matches, src_buckets, src_aligns, ref_matches
 
-  def calc_statistics_and_examples(self, ref, outs, ref_labels=None, out_labels=None, num_examples=5):
+  def calc_statistics_and_examples(self, ref, outs,
+                                   src = None,
+                                   ref_labels=None, out_labels=None,
+                                   ref_aligns=None, src_labels=None,
+                                   num_examples=5):
     """
     Calculate match statistics, bucketed by the type of word we have, and IDs of example sentences to show.
     This must be used with a subclass that has self.bucket_strs defined, and self.calc_bucket(word) implemented.
@@ -87,6 +136,9 @@ class WordBucketer(Bucketer):
     Args:
       ref: The reference corpus
       outs: A list of output corpora
+      src: Source sentences.
+           If src is set, it will use ref_aligns, out_aligns, and src_labels.
+           Otherwise, it will use ref_labels and out_labels.
       ref_labels: Labels of the reference corpus (optional)
       out_labels: Labels of the output corpora (should be specified iff ref_labels is)
 
@@ -119,21 +171,19 @@ class WordBucketer(Bucketer):
 
     # Step through the sentences
     for rsi, (ref_sent, ref_label) in enumerate(itertools.zip_longest(ref, ref_labels if ref_labels else [])):
-      ref_buckets, out_buckets, matches = \
-         self._calc_sent_buckets_and_matches(ref_sent,
-                                             ref_label,
-                                             [x[rsi] for x in outs],
-                                             [x[rsi] for x in out_labels] if out_labels else None)
-      my_ref_total = np.zeros(num_buckets ,dtype=int)
-      my_out_totals = np.zeros( (num_outs, num_buckets) ,dtype=int)
-      my_out_matches = np.zeros( (num_outs, num_buckets) ,dtype=int)
-      for b in ref_buckets:
-        my_ref_total[b] += 1
-      for oi, (obs, ms) in enumerate(zip(out_buckets, matches)):
-        for b, m in zip(obs, ms):
-          my_out_totals[oi,b] += 1
-          if m >= 0:
-            my_out_matches[oi,b] += 1
+      if src:
+        my_ref_total, my_out_totals, my_out_matches, _, _, _ = \
+          self._calc_src_buckets_and_matches(src[rsi],
+                                             src_labels[rsi] if src_labels else None,
+                                             ref_sent,
+                                             ref_aligns[rsi],
+                                             [x[rsi] for x in outs])
+      else:
+        my_ref_total, my_out_totals, my_out_matches, _, _, _ = \
+           self._calc_trg_buckets_and_matches(ref_sent,
+                                              ref_label,
+                                              [x[rsi] for x in outs],
+                                              [x[rsi] for x in out_labels] if out_labels else None)
       ref_total += my_ref_total
       out_totals += my_out_totals
       out_matches += my_out_matches
