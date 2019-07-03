@@ -279,12 +279,10 @@ class WordReport(Report):
                      xlabel=self.bucketer.name(), ylabel=at,
                      xticklabels=xticklabels)
 
-  def highlight_buckets(self, sent, buck, bid, matches=None):
-    if not buck:
+  def highlight_words(self, sent, hls=None):
+    if not hls:
       return ' '.join(sent)
-    if not matches:
-      matches = [1 for _ in buck]
-    return ' '.join([w if (b != bid or m < 0) else f'<em>{w}</em>' for (w,b,m) in zip(sent, buck, matches)])
+    return ' '.join([f'<em>{w}</em>' if hl else w for (w,hl) in zip(sent, hls)])
 
   def write_examples(self, title, output_directory):
     # Create separate examples HTML file
@@ -307,9 +305,16 @@ class WordReport(Report):
                                                           self.ref_sents[eid],
                                                           self.ref_aligns[eid],
                                                           [x[eid] for x in self.out_sents])
-            ref_buckets = None
-            out_buckets = []
-            out_matches = []
+            src_hls = [x == bi for x in src_buckets]
+            table.append(['Src', self.highlight_words(self.src_sents[eid], src_hls)])
+            ref_hls = [False for _ in self.ref_sents[eid]]
+            out_hls = [[False for _ in x[eid]] for x in self.out_sents]
+            for sid, tid in self.ref_aligns[eid]:
+              if src_hls[sid]:
+                ref_hls[tid] = True
+                for rm, ohls in zip(ref_matches, out_hls):
+                  if rm[tid] >= 0:
+                    ohls[rm[tid]] = True
           # Find buckets for the examples if it's on the target side
           else:
             _, _, _, ref_buckets, out_buckets, out_matches = \
@@ -317,12 +322,11 @@ class WordReport(Report):
                                                           self.ref_labels[eid] if self.ref_labels else None,
                                                           [x[eid] for x in self.out_sents],
                                                           [x[eid] for x in self.out_labels] if self.out_labels else None)
-
-          if self.src_sents:
-            table.append(['Src', self.highlight_buckets(self.src_sents[eid], src_buckets, bi)])
-          table.append(['Ref', self.highlight_buckets(self.ref_sents[eid], ref_buckets, bi)])
-          for sn, oss, obs, ms in itertools.zip_longest(sys_names, self.out_sents, out_buckets, out_matches):
-            table.append([sn, self.highlight_buckets(oss[eid], obs, bi, matches=ms)])
+            ref_hls = [x == bi for x in ref_buckets]
+            out_hls = [[(b == bi and m >= 0) for (b,m) in zip(ob, om)] for (ob, om) in zip(out_buckets, out_matches)]
+          table.append(['Ref', self.highlight_words(self.ref_sents[eid], ref_hls)])
+          for sn, oss, ohl in itertools.zip_longest(sys_names, self.out_sents, out_hls):
+            table.append([sn, self.highlight_words(oss[eid], ohl)])
           html += html_table(table, None)
     with open(f'{output_directory}/{self.output_fig_file}.html', 'w') as example_stream:
       example_stream.write(styled_html_message(title, html))
