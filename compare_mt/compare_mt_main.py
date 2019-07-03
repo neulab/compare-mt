@@ -1,6 +1,7 @@
 # Overall imports
 import argparse
 import operator
+import numpy.random as npr
 
 # In-package imports
 from compare_mt import ngram_utils
@@ -440,12 +441,18 @@ def main():
                       """)
   parser.add_argument('--decimals', type=int, default=4,
                       help="Number of decimals to print for floating point numbers")
+  parser.add_argument('--seed', type=int, default=None,
+                      help="Seed for random number generation")
   parser.add_argument('--scorer_scale', type=float, default=100, choices=[1, 100],
                       help="Set the scale of BLEU, METEOR, WER and chrF to 0-1 or 0-100 (default 0-100)")
   args = parser.parse_args()
 
   # Set formatting
   formatting.fmt.set_decimals(args.decimals)
+
+  # Set random seed
+  if args.seed is not None:
+    npr.seed(args.seed)
 
   # Set scale
   scorers.global_scorer_scale = args.scorer_scale
