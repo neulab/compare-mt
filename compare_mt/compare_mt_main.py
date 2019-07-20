@@ -132,9 +132,9 @@ def generate_word_accuracy_report(ref, outs,
     out_labels = [corpus_utils.load_tokens(x) for x in out_label_files]
     if len(out_labels) != len(outs):
       raise ValueError(f'The number of output files should be equal to the number of output labels.')
-  for i, (o, ol) in enumerate(zip(outs, out_labels)):
-    if len(o) != len(ol):
-      raise ValueError(f'The labels in {out_label_files[i]} do not match the length of the output file {outs[i]}.')
+    for i, (o, ol) in enumerate(zip(outs, out_labels)):
+      if len(o) != len(ol):
+        raise ValueError(f'The labels in {out_label_files[i]} do not match the length of the output file {outs[i]}.')
   if cache_dicts is not None:
     if len(cache_dicts) != len(outs):
       raise ValueError(f'Length of cache_dicts should be equal to the number of output files!')
