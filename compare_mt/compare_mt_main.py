@@ -161,6 +161,8 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
     raise ValueError("Source word analysis can only use recall as an accuracy type")
   if not src or not ref_align_file:
     raise ValueError("Must specify the source and the alignment file when performing source analysis.")
+  if type(src_labels) == str:
+    src_labels = corpus_utils.load_tokens(src_labels)
 
   ref_align = corpus_utils.load_alignments(ref_align_file) 
 
