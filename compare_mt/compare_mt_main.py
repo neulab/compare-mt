@@ -128,9 +128,13 @@ def generate_word_accuracy_report(ref, outs,
   if type(ref_labels) == str:
     ref_labels = corpus_utils.load_tokens(ref_labels)
   if out_labels is not None:
-    out_labels = [corpus_utils.load_tokens(x) for x in arg_utils.parse_files(out_labels)]
+    out_label_files = arg_utils.parse_files(out_labels)
+    out_labels = [corpus_utils.load_tokens(x) for x in out_label_files]
     if len(out_labels) != len(outs):
       raise ValueError(f'The number of output files should be equal to the number of output labels.')
+  for i, (o, ol) in enumerate(zip(outs, out_labels)):
+    if len(o) != len(ol):
+      raise ValueError(f'The labels in {out_label_files[i]} do not match the length of the output file {outs[i]}.')
   if cache_dicts is not None:
     if len(cache_dicts) != len(outs):
       raise ValueError(f'Length of cache_dicts should be equal to the number of output files!')
@@ -219,6 +223,8 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
     raise ValueError("Source word analysis can only use recall as an accuracy type")
   if not src or not ref_align_file:
     raise ValueError("Must specify the source and the alignment file when performing source analysis.")
+  if type(src_labels) == str:
+    src_labels = corpus_utils.load_tokens(src_labels)
   if cache_dicts is not None:
     if len(cache_dicts) != len(outs):
       raise ValueError(f'Length of cache_dicts should be equal to the number of output files!')
