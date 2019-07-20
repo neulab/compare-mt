@@ -9,4 +9,4 @@ import compare_mt.arg_utils
 import compare_mt.print_utils
 
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
