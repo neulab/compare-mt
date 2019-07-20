@@ -94,11 +94,13 @@ def generate_word_accuracy_report(ref, outs,
   if type(ref_labels) == str:
     ref_labels = corpus_utils.load_tokens(ref_labels)
   if out_labels is not None:
-    out_labels = [corpus_utils.load_tokens(x) for x in arg_utils.parse_files(out_labels)]
+    out_label_files = arg_utils.parse_files(out_labels)
+    out_labels = [corpus_utils.load_tokens(x) for x in out_label_files]
     if len(out_labels) != len(outs):
       raise ValueError(f'The number of output files should be equal to the number of output labels.')
     for i, (o, ol) in enumerate(zip(outs, out_labels)):
-      raise ValueError(f'The length of the label file at index {i} does not match the length of the output file.')
+      if len(o) != len(ol):
+        raise ValueError(f'The labels in {out_label_files[i]} do not match the length of the output file {outs[i]}.')
 
 
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
