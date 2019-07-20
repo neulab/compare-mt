@@ -124,11 +124,10 @@ class WordBucketer(Bucketer):
             my_out_matches[oai,src_bucket] += 1
     return my_ref_total, my_out_totals, my_out_matches, src_buckets, src_aligns, ref_matches
 
-  def calc_statistics_and_examples(self, ref, outs,
-                                   src = None,
-                                   ref_labels=None, out_labels=None,
-                                   ref_aligns=None, src_labels=None,
-                                   num_examples=5):
+  def calc_statistics(self, ref, outs,
+                      src=None,
+                      ref_labels=None, out_labels=None,
+                      ref_aligns=None, src_labels=None):
     """
     Calculate match statistics, bucketed by the type of word we have, and IDs of example sentences to show.
     This must be used with a subclass that has self.bucket_strs defined, and self.calc_bucket(word) implemented.
@@ -150,9 +149,8 @@ class WordBucketer(Bucketer):
         rec: recall of the bucket
         prec: precision of the bucket
         fmeas: f1-measure of the bucket
-      example_ids: containing a list of equal length to self.bucket_strs. each element is a list of tuples containing
-        title: the title of the type of example (e.g. "Good Examples", "Bad Examples", "Divergent Examples")
-        ids: of each sentence that should be included in the example
+      my_ref_total_list: containing a list of statistics of the reference
+      my_out_matches_list: containing a list of statistics of the outputs
     """
     if not hasattr(self, 'case_insensitive'):
       self.case_insensitive = False
@@ -160,14 +158,14 @@ class WordBucketer(Bucketer):
     # Dimensions
     num_buckets = len(self.bucket_strs)
     num_outs = len(outs)
-    num_sents = len(ref)
-    num_examp_feats = 3
 
     # Initialize the sufficient statistics for prec/rec/fmeas
     ref_total = np.zeros(num_buckets, dtype=int)
     out_totals = np.zeros( (num_outs, num_buckets) ,dtype=int)
     out_matches = np.zeros( ( num_outs, num_buckets) ,dtype=int)
-    example_scores = np.zeros( (num_sents, num_examp_feats, num_buckets) )
+
+    my_ref_total_list = []
+    my_out_matches_list = []
 
     # Step through the sentences
     for rsi, (ref_sent, ref_label) in enumerate(itertools.zip_longest(ref, ref_labels if ref_labels else [])):
@@ -188,13 +186,8 @@ class WordBucketer(Bucketer):
       out_totals += my_out_totals
       out_matches += my_out_matches
 
-      # Scoring of examples across different dimensions:
-      #  0: overall variance of matches
-      example_scores[rsi,0] = (my_out_matches / (my_ref_total+1e-10).reshape( (1, num_buckets) )).std(axis=0)
-      #  1: overall percentage of matches
-      example_scores[rsi,1] = my_out_matches.sum(axis=0) / (my_ref_total*num_outs+1e-10)
-      #  2: overall percentage of misses
-      example_scores[rsi,2] = (my_ref_total*num_outs-my_out_matches.sum(axis=0)) / (my_ref_total*num_outs+1e-10)
+      my_ref_total_list.append(my_ref_total)
+      my_out_matches_list.append(my_out_matches)
 
     # Calculate statistics
     statistics = [[] for _ in range(num_outs)]
@@ -209,6 +202,48 @@ class WordBucketer(Bucketer):
           fmeas = 2 * prec * rec / (prec + rec)
         ostatistics.append( (mcnt, rcnt, ocnt, rec, prec, fmeas) )
 
+    return statistics, my_ref_total_list, my_out_matches_list
+
+  def calc_examples(self, num_sents, num_outs,
+                          statistics,
+                          my_ref_total_list, my_out_matches_list,
+                          num_examples=5):
+    """
+    Calculate examples based the computed statistics.
+
+    Args:
+      num_sents: number of sentences
+      num_outs: number of outputs
+      statistics: containing a list of equal length to out, containing for each system
+        both_tot: the frequency of a particular bucket appearing in both output and reference
+        ref_tot: the frequency of a particular bucket appearing in just reference
+        out_tot: the frequency of a particular bucket appearing in just output
+        rec: recall of the bucket
+        prec: precision of the bucket
+        fmeas: f1-measure of the bucket
+      my_ref_total_list: containing a list of statistics of the reference
+      my_out_matches_list: containing a list of statistics of the outputs
+      num_examples: number of examples to print
+
+    Returns:
+      example: containing a list of examples to print
+    """
+    num_buckets = len(self.bucket_strs)
+    num_examp_feats = 3
+    example_scores = np.zeros( (num_sents, num_examp_feats, num_buckets) )
+
+    # Step through the sentences
+    for rsi, (my_ref_total, my_out_matches) in enumerate(zip(my_ref_total_list, my_out_matches_list)):
+
+      # Scoring of examples across different dimensions:
+      #  0: overall variance of matches
+      example_scores[rsi,0] = (my_out_matches / (my_ref_total+1e-10).reshape( (1, num_buckets) )).std(axis=0)
+      #  1: overall percentage of matches
+      example_scores[rsi,1] = my_out_matches.sum(axis=0) / (my_ref_total*num_outs+1e-10)
+      #  2: overall percentage of misses
+      example_scores[rsi,2] = (my_ref_total*num_outs-my_out_matches.sum(axis=0)) / (my_ref_total*num_outs+1e-10)
+
+    # Calculate statistics
     # Find top-5 examples of each class
     examples = [[('Examples where some systems were good, some were bad', []),
                  ('Examples where all systems were good', []),
@@ -221,7 +256,7 @@ class WordBucketer(Bucketer):
           if example_scores[si,fi,bi] > 0:
             fexamples.append(si)
 
-    return statistics, examples
+    return examples
 
   def calc_source_bucketed_matches(self, src, ref, out, ref_aligns, out_aligns, src_labels=None):
     """

@@ -16,7 +16,8 @@ import numpy as np
 def eval_with_paired_bootstrap(ref, outs,
                                scorer,
                                compare_directions=[(0, 1)],
-                               num_samples=1000, sample_ratio=0.5):
+                               num_samples=1000, sample_ratio=0.5,
+                               cache_stats=None):
   """
   Evaluate with paired boostrap.
   This compares several systems, performing a signifiance tests with
@@ -29,6 +30,7 @@ def eval_with_paired_bootstrap(ref, outs,
     compare_directions: A string specifying which two systems to compare
     num_samples: The number of bootstrap samples to take
     sample_ratio: The ratio of samples to take every time
+    cache_stats: The precomputed statistics
 
   Returns:
     A tuple containing the win ratios, statistics for systems
@@ -38,7 +40,8 @@ def eval_with_paired_bootstrap(ref, outs,
   n = len(ref)
   ids = list(range(n))
 
-  cache_stats = [scorer.cache_stats(ref, out) for out in outs] 
+  if cache_stats is None:
+    cache_stats = [scorer.cache_stats(ref, out) for out in outs] 
   sample_size = int(len(ids)*sample_ratio)
   for _ in range(num_samples):
     # Subsample the gold and system outputs (with replacement)
