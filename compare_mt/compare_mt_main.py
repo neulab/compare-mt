@@ -457,11 +457,9 @@ def generate_sentence_examples(ref, outs, src=None,
   cache_key_list = ['scores', 'strs']
   scores, strs = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
   if cache_dicts is None:
-    scores = []
-    strs = []
+    scores, strs = [], []
     for out in outs:
-      scores_i = []
-      strs_i = []
+      scores_i, strs_i = [], []
       for (r, o) in zip(ref, out):
         score, string = scorer.score_sentence(r, o)
         scores_i.append(score)
