@@ -34,9 +34,7 @@ class TestScoreCache(unittest.TestCase):
 
   def test_score_cache(self):
     cached_stats1 = compare_mt_main.generate_score_report(self.ref, [self.out1], to_cache=True)
-    cached_stats1 = cached_stats1[0]
     cached_stats2 = compare_mt_main.generate_score_report(self.ref, [self.out2], to_cache=True)
-    cached_stats2 = cached_stats2[0]
     self.assertTrue('scores' in cached_stats1 and 'strs' in cached_stats1 and 'sign_stats' in cached_stats1)
     self.assertTrue('scores' in cached_stats2 and 'strs' in cached_stats2 and 'sign_stats' in cached_stats2)
     self.assertAlmostEqual(cached_stats1['scores'], 22.44, places=1)
@@ -49,9 +47,7 @@ class TestScoreCache(unittest.TestCase):
 
   def test_score_cache_bootstrap(self):
     cached_stats1 = compare_mt_main.generate_score_report(self.ref, [self.out1], to_cache=True)
-    cached_stats1 = cached_stats1[0]
     cached_stats2 = compare_mt_main.generate_score_report(self.ref, [self.out2], to_cache=True)
-    cached_stats2 = cached_stats2[0]
     self.assertTrue('scores' in cached_stats1 and 'strs' in cached_stats1 and 'sign_stats' in cached_stats1)
     self.assertTrue('scores' in cached_stats2 and 'strs' in cached_stats2 and 'sign_stats' in cached_stats2)
     self.assertAlmostEqual(cached_stats1['scores'], 22.44, places=1)
@@ -70,9 +66,7 @@ class TestWordAccCache(unittest.TestCase):
  
   def test_wordacc_cache(self):
     cached_stats1 = compare_mt_main.generate_word_accuracy_report(self.ref, [self.out1], to_cache=True)
-    cached_stats1 = cached_stats1[0]
     cached_stats2 = compare_mt_main.generate_word_accuracy_report(self.ref, [self.out2], to_cache=True)
-    cached_stats2 = cached_stats2[0]
     self.assertTrue('statistics' in cached_stats1 and 'my_ref_total_list' in cached_stats1 and 'my_out_matches_list' in cached_stats1)
     self.assertTrue('statistics' in cached_stats2 and 'my_ref_total_list' in cached_stats2 and 'my_out_matches_list' in cached_stats2)
     ori_report = compare_mt_main.generate_word_accuracy_report(self.ref, [self.out1, self.out2])
@@ -92,9 +86,7 @@ class TestSrcWordAccCache(unittest.TestCase):
  
   def test_src_wordacc_cache(self):
     cached_stats1 = compare_mt_main.generate_src_word_accuracy_report(self.ref, [self.out1], self.src, ref_align_file=self.ref_align_file, to_cache=True)
-    cached_stats1 = cached_stats1[0]
     cached_stats2 = compare_mt_main.generate_src_word_accuracy_report(self.ref, [self.out2], self.src, ref_align_file=self.ref_align_file, to_cache=True)
-    cached_stats2 = cached_stats2[0]
     self.assertTrue('statistics' in cached_stats1 and 'my_ref_total_list' in cached_stats1 and 'my_out_matches_list' in cached_stats1)
     self.assertTrue('statistics' in cached_stats2 and 'my_ref_total_list' in cached_stats2 and 'my_out_matches_list' in cached_stats2)
     ori_report = compare_mt_main.generate_src_word_accuracy_report(self.ref, [self.out1, self.out2], self.src, ref_align_file=self.ref_align_file)
@@ -110,9 +102,7 @@ class TestSentBucketCache(unittest.TestCase):
 
   def test_sentbucket_cache(self):
     cached_stats1 = compare_mt_main.generate_sentence_bucketed_report(self.ref, [self.out1], to_cache=True)
-    cached_stats1 = cached_stats1[0]
     cached_stats2 = compare_mt_main.generate_sentence_bucketed_report(self.ref, [self.out2], to_cache=True)
-    cached_stats2 = cached_stats2[0]
     self.assertTrue('stats' in cached_stats1)
     self.assertTrue('stats' in cached_stats2)
     ori_report = compare_mt_main.generate_sentence_bucketed_report(self.ref, [self.out1, self.out2])
@@ -128,9 +118,7 @@ class TestNgramCache(unittest.TestCase):
   def test_ngram_cache(self):
     reporters.sys_names = [f'sys{i+1}' for i in range(2)]
     cached_stats1 = compare_mt_main.generate_ngram_report(self.ref, [self.out1], to_cache=True)
-    cached_stats1 = cached_stats1[0]
     cached_stats2 = compare_mt_main.generate_ngram_report(self.ref, [self.out2], to_cache=True)
-    cached_stats2 = cached_stats2[0]
     self.assertTrue('totals' in cached_stats1 and 'matches' in cached_stats1 and 'overs' in cached_stats1 and 'unders' in cached_stats1)
     self.assertTrue('totals' in cached_stats2 and 'matches' in cached_stats2 and 'overs' in cached_stats2 and 'unders' in cached_stats2)
     ori_report = compare_mt_main.generate_ngram_report(self.ref, [self.out1, self.out2])
@@ -146,9 +134,7 @@ class TestSentExamCache(unittest.TestCase):
   def test_sentexam_cache(self):
     reporters.sys_names = [f'sys{i+1}' for i in range(2)]
     cached_stats1 = compare_mt_main.generate_sentence_examples(self.ref, [self.out1], to_cache=True)
-    cached_stats1 = cached_stats1[0]
     cached_stats2 = compare_mt_main.generate_sentence_examples(self.ref, [self.out2], to_cache=True)
-    cached_stats2 = cached_stats2[0]
     self.assertTrue('scores' in cached_stats1 and 'strs' in cached_stats1)
     self.assertTrue('scores' in cached_stats2 and 'strs' in cached_stats2)
     ori_report = compare_mt_main.generate_sentence_examples(self.ref, [self.out1, self.out2])

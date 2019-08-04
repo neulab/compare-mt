@@ -14,6 +14,7 @@ from compare_mt import bucketers
 from compare_mt import reporters
 from compare_mt import arg_utils
 from compare_mt import formatting
+from compare_mt import cache_utils
 
 def generate_score_report(ref, outs,
                        score_type='bleu',
@@ -43,39 +44,27 @@ def generate_score_report(ref, outs,
   # check and set parameters
   bootstrap = int(bootstrap)
   prob_thresh = float(prob_thresh)
-  case_insensitive = True if case_insensitive == 'True' else False
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
 
-  if cache_dicts is not None:
-    if len(cache_dicts) != len(outs):
-      raise ValueError(f'Length of cache_dicts should be equal to the number of output files!')
-    for c in cache_dicts:
-      if not ('scores' in c and 'strs' in c and 'sign_stats' in c):
-        raise ValueError(f'Missing keys in the cached dictionary!')
 
   # compute statistics
   scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive, meteor_directory=meteor_directory, options=options)
 
-  if cache_dicts is not None:
-    scores, strs = zip(*[[c['scores'], c['strs']] for c in cache_dicts])
-  else:
+  cache_key_list = ['scores', 'strs', 'sign_stats']
+  scores, strs, sign_stats = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  if cache_dicts is None:
     scores, strs = zip(*[scorer.score_corpus(ref, out) for out in outs])
   
   if to_cache:
-    cache_dicts = []
-    for i, out in enumerate(outs):
-      cache_dict = {}
-      cache_dict['scores'] = scores[i]
-      cache_dict['strs'] = strs[i]
-      cache_dict['sign_stats'] = scorer.cache_stats(ref, out)
-      cache_dicts.append(cache_dict)
-    return cache_dicts
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [scores, strs, [scorer.cache_stats(ref, outs[0])] ])
+    return cache_dict
 
   if bootstrap != 0:
     direcs = []
     for i in range(len(scores)):
       for j in range(i+1, len(scores)):
         direcs.append( (i,j) )
-    sign_stats = [c['sign_stats'] for c in cache_dicts] if cache_dicts is not None else None
     wins, sys_stats = sign_utils.eval_with_paired_bootstrap(ref, outs, scorer, direcs, num_samples=bootstrap, cache_stats=sign_stats)
     wins = list(zip(direcs, wins))
   else:
@@ -123,7 +112,8 @@ def generate_word_accuracy_report(ref, outs,
     cache_dicts: A list of dictionaries that store cached statistics for each output
   """
   # check and set parameters
-  case_insensitive = True if case_insensitive == 'True' else False
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
 
   if type(ref_labels) == str:
     ref_labels = corpus_utils.load_tokens(ref_labels)
@@ -135,12 +125,6 @@ def generate_word_accuracy_report(ref, outs,
     for i, (o, ol) in enumerate(zip(outs, out_labels)):
       if len(o) != len(ol):
         raise ValueError(f'The labels in {out_label_files[i]} do not match the length of the output file {outs[i]}.')
-  if cache_dicts is not None:
-    if len(cache_dicts) != len(outs):
-      raise ValueError(f'Length of cache_dicts should be equal to the number of output files!')
-    for c in cache_dicts:
-      if not ('statistics' in c and 'my_ref_total_list' in c and 'my_out_matches_list' in c):
-        raise ValueError(f'Missing keys in the cached dictionary!')
 
   # compute statistics
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
@@ -150,23 +134,19 @@ def generate_word_accuracy_report(ref, outs,
                                                          freq_data=ref,
                                                          label_set=label_set,
                                                          case_insensitive=case_insensitive)
-  if cache_dicts is not None:
-    my_ref_total_list = cache_dicts[0]['my_ref_total_list']
-    statistics, my_out_matches_list = zip(*[[c['statistics'], c['my_out_matches_list']] for c in cache_dicts]) 
-    my_out_matches_list = list(np.concatenate(my_out_matches_list, 1))
-  else:
+
+  cache_key_list = ['statistics', 'my_ref_total_list', 'my_out_matches_list']
+  statistics, my_ref_total_list, my_out_matches_list = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  if cache_dicts is None:
     statistics, my_ref_total_list, my_out_matches_list = bucketer.calc_statistics(ref, outs, ref_labels=ref_labels, out_labels=out_labels)
+  else:
+    my_ref_total_list = my_ref_total_list[0]
+    my_out_matches_list = list(np.concatenate(my_out_matches_list, 1))
   examples = bucketer.calc_examples(len(ref), len(outs), statistics, my_ref_total_list, my_out_matches_list)
 
   if to_cache:
-    cache_dicts = []
-    for i, out in enumerate(outs):
-      cache_dict = {}
-      cache_dict['statistics'] = statistics[i]
-      cache_dict['my_ref_total_list'] = my_ref_total_list
-      cache_dict['my_out_matches_list'] = my_out_matches_list
-      cache_dicts.append(cache_dict)
-    return cache_dicts
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [statistics, [my_ref_total_list], [my_out_matches_list]])
+    return cache_dict
 
   # generate reports
   reporter = reporters.WordReport(bucketer=bucketer,
@@ -217,7 +197,8 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
     cache_dicts: A list of dictionaries that store cached statistics for each output
   """
   # check and set parameters
-  case_insensitive = True if case_insensitive == 'True' else False
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
 
   if acc_type != 'rec':
     raise ValueError("Source word analysis can only use recall as an accuracy type")
@@ -225,12 +206,6 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
     raise ValueError("Must specify the source and the alignment file when performing source analysis.")
   if type(src_labels) == str:
     src_labels = corpus_utils.load_tokens(src_labels)
-  if cache_dicts is not None:
-    if len(cache_dicts) != len(outs):
-      raise ValueError(f'Length of cache_dicts should be equal to the number of output files!')
-    for c in cache_dicts:
-      if not ('statistics' in c and 'my_ref_total_list' in c and 'my_out_matches_list' in c):
-        raise ValueError(f'Missing keys in the cached dictionary!')
 
   ref_align = corpus_utils.load_alignments(ref_align_file) 
 
@@ -242,23 +217,19 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
                                                          freq_data=src,
                                                          label_set=label_set,
                                                          case_insensitive=case_insensitive)
+
+  cache_key_list = ['statistics', 'my_ref_total_list', 'my_out_matches_list']
+  statistics, my_ref_total_list, my_out_matches_list = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
   if cache_dicts is not None:
-    my_ref_total_list = cache_dicts[0]['my_ref_total_list']
-    statistics, my_out_matches_list = zip(*[[c['statistics'], c['my_out_matches_list']] for c in cache_dicts]) 
+    my_ref_total_list = my_ref_total_list[0]
     my_out_matches_list = list(np.concatenate(my_out_matches_list, 1))
   else:
     statistics, my_ref_total_list, my_out_matches_list = bucketer.calc_statistics(ref, outs, src=src, src_labels=src_labels, ref_aligns=ref_align)
   examples = bucketer.calc_examples(len(ref), len(outs), statistics, my_ref_total_list, my_out_matches_list)
 
   if to_cache:
-    cache_dicts = []
-    for i, out in enumerate(outs):
-      cache_dict = {}
-      cache_dict['statistics'] = statistics[i]
-      cache_dict['my_ref_total_list'] = my_ref_total_list
-      cache_dict['my_out_matches_list'] = my_out_matches_list
-      cache_dicts.append(cache_dict)
-    return cache_dicts
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [statistics, [my_ref_total_list], [my_out_matches_list]])
+    return cache_dict
 
   # generate reports
   reporter = reporters.WordReport(bucketer=bucketer,
@@ -303,14 +274,8 @@ def generate_sentence_bucketed_report(ref, outs,
     cache_dicts: A list of dictionaries that store cached statistics for each output
   """
   # check and set parameters
-  case_insensitive = True if case_insensitive == 'True' else False
-
-  if cache_dicts is not None:
-    if len(cache_dicts) != len(outs):
-      raise ValueError(f'Length of cache_dicts should be equal to the number of output files!')
-    for c in cache_dicts:
-      if not 'stats' in c:
-        raise ValueError(f'Missing keys in the cached dictionary!')
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
 
   if ref_labels is not None:
     ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
@@ -340,19 +305,16 @@ def generate_sentence_bucketed_report(ref, outs,
   else:
     raise ValueError(f'Illegal statistic_type {statistic_type}')
 
-  if cache_dicts is not None:
-    stats = [c['stats'] for c in cache_dicts] 
-  else:
+  cache_key_list = ['stats']
+  stats = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+
+  if cache_dicts is None:
     bcs = [bucketer.create_bucketed_corpus(out, ref=ref, ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
     stats = [[aggregator(out,ref) for (out,ref) in bc] for bc in bcs]
 
   if to_cache:
-    cache_dicts = []
-    for i, out in enumerate(outs):
-      cache_dict = {}
-      cache_dict['stats'] = stats[i]
-      cache_dicts.append(cache_dict)
-    return cache_dicts
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [stats])
+    return cache_dict
 
   # generate reports
   reporter = reporters.SentenceReport(bucketer=bucketer,
@@ -400,19 +362,13 @@ def generate_ngram_report(ref, outs,
   # check and set parameters
   min_ngram_length, max_ngram_length, report_length = int(min_ngram_length), int(max_ngram_length), int(report_length)
   alpha = float(alpha) if type(alpha) == str else alpha
-  case_insensitive = True if case_insensitive == 'True' else False
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
 
   if out_labels is not None:
     out_labels = arg_utils.parse_files(out_labels)
     if len(out_labels) != len(outs):
       raise ValueError(f'The number of output files should be equal to the number of output labels.')
-
-  if cache_dicts is not None:
-    if len(cache_dicts) != len(outs):
-      raise ValueError(f'Length of cache_dicts should be equal to the number of output files!')
-    for c in cache_dicts:
-      if not ('totals' in c and 'matches' in c and 'overs' in c and 'unders' in c): 
-        raise ValueError(f'Missing keys in the cached dictionary!')
 
   if type(ref_labels) == str:
     label_files_str = f'    ref_labels={ref_labels},'
@@ -423,9 +379,9 @@ def generate_ngram_report(ref, outs,
     label_files = None
 
   # compute statistics
-  if cache_dicts is not None:
-    totals, matches, overs, unders = zip(*[[c['totals'], c['matches'], c['overs'], c['unders']] for c in cache_dicts]) 
-  else:
+  cache_key_list = ['totals', 'matches', 'overs', 'unders']
+  totals, matches, overs, unders = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  if cache_dicts is None:
     if not type(ref_labels) == str and case_insensitive:
       ref = corpus_utils.lower(ref)
       outs = [corpus_utils.lower(out) for out in outs]
@@ -436,15 +392,8 @@ def generate_ngram_report(ref, outs,
                                                              min_length=min_ngram_length, max_length=max_ngram_length) for out, out_label in zip(outs, out_labels)])
 
   if to_cache:
-    cache_dicts = []
-    for i, out in enumerate(outs):
-      cache_dict = {}
-      cache_dict['totals'] = totals[i]
-      cache_dict['matches'] = matches[i]
-      cache_dict['overs'] = overs[i]
-      cache_dict['unders'] = unders[i]
-      cache_dicts.append(cache_dict)
-    return cache_dicts
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [totals, matches, overs, unders])
+    return cache_dict
 
   direcs = arg_utils.parse_compare_directions(compare_directions)
   scores = []
@@ -498,34 +447,31 @@ def generate_sentence_examples(ref, outs, src=None,
   """
   # check and set parameters
   report_length = int(report_length)
-  case_insensitive = True if case_insensitive == 'True' else False
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
 
-  if cache_dicts is not None:
-    if len(cache_dicts) != len(outs):
-      raise ValueError(f'Length of cache_dicts should be equal to the number of output files!')
-    for c in cache_dicts:
-      if not ('scores' in c and 'strs' in c): 
-        raise ValueError(f'Missing keys in the cached dictionary!')
-
-    scores, strs = zip(*[[c['scores'], c['strs']] for c in cache_dicts]) 
     
   # compute statistics
   scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive)
 
-  if to_cache:
-    cache_dicts = []
-    for i, out in enumerate(outs):
-      scores = []
-      strs = []
+  cache_key_list = ['scores', 'strs']
+  scores, strs = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  if cache_dicts is None:
+    scores = []
+    strs = []
+    for out in outs:
+      scores_i = []
+      strs_i = []
       for (r, o) in zip(ref, out):
         score, string = scorer.score_sentence(r, o)
-        scores.append(score)
-        strs.append(string)
-      cache_dict = {}
-      cache_dict['scores'] = scores
-      cache_dict['strs'] = strs
-      cache_dicts.append(cache_dict)
-    return cache_dicts
+        scores_i.append(score)
+        strs_i.append(string)
+      scores.append(scores_i)
+      strs.append(strs_i)
+  
+  if to_cache:
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [scores, strs])
+    return cache_dict
 
   direcs = arg_utils.parse_compare_directions(compare_directions)
 
@@ -537,12 +483,8 @@ def generate_sentence_examples(ref, outs, src=None,
       if (tuple(o1), tuple(o2), tuple(r)) in deduplicate_set:
         continue
       deduplicate_set.add( (tuple(o1), tuple(o2), tuple(r)) )
-      if cache_dicts is not None:
-        s1, str1 = scores[left][i], strs[left][i]
-        s2, str2 = scores[right][i], strs[right][i]
-      else:
-        s1, str1 = scorer.score_sentence(r, o1)
-        s2, str2 = scorer.score_sentence(r, o2)
+      s1, str1 = scores[left][i], strs[left][i]
+      s2, str2 = scores[right][i], strs[right][i]
       scorediff_list.append((s2-s1, s1, s2, str1, str2, i))
     scorediff_list.sort()
     scorediff_lists.append(scorediff_list)
