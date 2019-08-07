@@ -1,6 +1,7 @@
 # Overall imports
 import argparse
 import operator
+import numpy as np
 import numpy.random as npr
 
 # In-package imports
@@ -13,13 +14,16 @@ from compare_mt import bucketers
 from compare_mt import reporters
 from compare_mt import arg_utils
 from compare_mt import formatting
+from compare_mt import cache_utils
 
 def generate_score_report(ref, outs,
                        score_type='bleu',
                        bootstrap=0, prob_thresh=0.05,
                        meteor_directory=None, options=None,
                        title=None, 
-                       case_insensitive=False):
+                       case_insensitive=False,
+                       to_cache=False,
+                       cache_dicts=None):
   """
   Generate a report comparing overall scores of system(s) in both plain text and graphs.
 
@@ -34,25 +38,39 @@ def generate_score_report(ref, outs,
     compare_directions: A string specifying which systems to compare 
     title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
+    to_cache: Return a list of computed statistics if True
+    cache_dicts: A list of dictionaries that store cached statistics for each output
   """
+  # check and set parameters
   bootstrap = int(bootstrap)
   prob_thresh = float(prob_thresh)
-  case_insensitive = True if case_insensitive == 'True' else False
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
 
+
+  # compute statistics
   scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive, meteor_directory=meteor_directory, options=options)
 
-  scores, strs = zip(*[scorer.score_corpus(ref, out) for out in outs])
+  cache_key_list = ['scores', 'strs', 'sign_stats']
+  scores, strs, sign_stats = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  if cache_dicts is None:
+    scores, strs = zip(*[scorer.score_corpus(ref, out) for out in outs])
+  
+  if to_cache:
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [scores, strs, [scorer.cache_stats(ref, outs[0])] ])
+    return cache_dict
 
   if bootstrap != 0:
     direcs = []
     for i in range(len(scores)):
       for j in range(i+1, len(scores)):
         direcs.append( (i,j) )
-    wins, sys_stats = sign_utils.eval_with_paired_bootstrap(ref, outs, scorer, direcs, num_samples=bootstrap)
+    wins, sys_stats = sign_utils.eval_with_paired_bootstrap(ref, outs, scorer, direcs, num_samples=bootstrap, cache_stats=sign_stats)
     wins = list(zip(direcs, wins))
   else:
-    wins = sys_stats = direcs = None
+    wins = sys_stats = None
 
+  # generate reports
   reporter = reporters.ScoreReport(scorer=scorer, scores=scores, strs=strs, 
                                    wins=wins, sys_stats=sys_stats, prob_thresh=prob_thresh, 
                                    title=title)
@@ -68,7 +86,9 @@ def generate_word_accuracy_report(ref, outs,
                           label_set=None,
                           ref_labels=None, out_labels=None,
                           title=None,
-                          case_insensitive=False):
+                          case_insensitive=False,
+                          to_cache=False,
+                          cache_dicts=None):
   """
   Generate a report comparing the word accuracy in both plain text and graphs.
 
@@ -88,8 +108,12 @@ def generate_word_accuracy_report(ref, outs,
     out_labels: output labels. must be specified if ref_labels is specified.
     title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
+    to_cache: Return a list of computed statistics if True
+    cache_dicts: A list of dictionaries that store cached statistics for each output
   """
-  case_insensitive = True if case_insensitive == 'True' else False
+  # check and set parameters
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
 
   if type(ref_labels) == str:
     ref_labels = corpus_utils.load_tokens(ref_labels)
@@ -102,7 +126,7 @@ def generate_word_accuracy_report(ref, outs,
       if len(o) != len(ol):
         raise ValueError(f'The labels in {out_label_files[i]} do not match the length of the output file {outs[i]}.')
 
-
+  # compute statistics
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          bucket_cutoffs=bucket_cutoffs,
                                                          freq_count_file=freq_count_file,
@@ -110,8 +134,21 @@ def generate_word_accuracy_report(ref, outs,
                                                          freq_data=ref,
                                                          label_set=label_set,
                                                          case_insensitive=case_insensitive)
-  statistics, examples = bucketer.calc_statistics_and_examples(ref, outs, ref_labels=ref_labels, out_labels=out_labels)
 
+  cache_key_list = ['statistics', 'my_ref_total_list', 'my_out_matches_list']
+  statistics, my_ref_total_list, my_out_matches_list = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  if cache_dicts is None:
+    statistics, my_ref_total_list, my_out_matches_list = bucketer.calc_statistics(ref, outs, ref_labels=ref_labels, out_labels=out_labels)
+  else:
+    my_ref_total_list = my_ref_total_list[0]
+    my_out_matches_list = list(np.concatenate(my_out_matches_list, 1))
+  examples = bucketer.calc_examples(len(ref), len(outs), statistics, my_ref_total_list, my_out_matches_list)
+
+  if to_cache:
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [statistics, [my_ref_total_list], [my_out_matches_list]])
+    return cache_dict
+
+  # generate reports
   reporter = reporters.WordReport(bucketer=bucketer,
                                   statistics=statistics,
                                   examples=examples,
@@ -134,7 +171,9 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
                           label_set=None,
                           src_labels=None,
                           title=None,
-                          case_insensitive=False):
+                          case_insensitive=False,
+                          to_cache=False,
+                          cache_dicts=None):
   """
   Generate a report for source word analysis in both plain text and graphs.
 
@@ -154,8 +193,12 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
     src_labels: either a filename of a file full of source labels, or a list of strings corresponding to `ref`.
     title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
+    to_cache: Return a list of computed statistics if True
+    cache_dicts: A list of dictionaries that store cached statistics for each output
   """
-  case_insensitive = True if case_insensitive == 'True' else False
+  # check and set parameters
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
 
   if acc_type != 'rec':
     raise ValueError("Source word analysis can only use recall as an accuracy type")
@@ -166,6 +209,7 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
 
   ref_align = corpus_utils.load_alignments(ref_align_file) 
 
+  # compute statistics
   bucketer = bucketers.create_word_bucketer_from_profile(bucket_type,
                                                          bucket_cutoffs=bucket_cutoffs,
                                                          freq_count_file=freq_count_file,
@@ -173,8 +217,21 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
                                                          freq_data=src,
                                                          label_set=label_set,
                                                          case_insensitive=case_insensitive)
-  statistics, examples = bucketer.calc_statistics_and_examples(ref, outs, src=src, src_labels=src_labels, ref_aligns=ref_align)
 
+  cache_key_list = ['statistics', 'my_ref_total_list', 'my_out_matches_list']
+  statistics, my_ref_total_list, my_out_matches_list = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  if cache_dicts is not None:
+    my_ref_total_list = my_ref_total_list[0]
+    my_out_matches_list = list(np.concatenate(my_out_matches_list, 1))
+  else:
+    statistics, my_ref_total_list, my_out_matches_list = bucketer.calc_statistics(ref, outs, src=src, src_labels=src_labels, ref_aligns=ref_align)
+  examples = bucketer.calc_examples(len(ref), len(outs), statistics, my_ref_total_list, my_out_matches_list)
+
+  if to_cache:
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [statistics, [my_ref_total_list], [my_out_matches_list]])
+    return cache_dict
+
+  # generate reports
   reporter = reporters.WordReport(bucketer=bucketer,
                                   statistics=statistics,
                                   examples=examples,
@@ -194,11 +251,13 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
 def generate_sentence_bucketed_report(ref, outs,
                                    bucket_type='score', bucket_cutoffs=None,
                                    statistic_type='count',
-                                   score_measure='bleu',
+                                   score_measure='sentbleu',
                                    label_set=None,
                                    ref_labels=None, out_labels=None,
                                    title=None,
-                                   case_insensitive=False):
+                                   case_insensitive=False,
+                                   to_cache=False,
+                                   cache_dicts=None):
   """
   Generate a report of sentences by bucket in both plain text and graphs
 
@@ -211,8 +270,12 @@ def generate_sentence_bucketed_report(ref, outs,
     out_labels: output labels. 
     title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
+    to_cache: Return a list of computed statistics if True
+    cache_dicts: A list of dictionaries that store cached statistics for each output
   """
-  case_insensitive = True if case_insensitive == 'True' else False
+  # check and set parameters
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
 
   if ref_labels is not None:
     ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
@@ -228,11 +291,10 @@ def generate_sentence_bucketed_report(ref, outs,
     for out, out_label in zip(outs, out_labels):
       if len(out_label) != len(out):
         raise ValueError(f'The number of labels should be equal to the number of sentences.')
-    
 
+  # compute statistics
   bucketer = bucketers.create_sentence_bucketer_from_profile(bucket_type, bucket_cutoffs=bucket_cutoffs,
                                                              score_type=score_measure, label_set=label_set, case_insensitive=case_insensitive)
-  bcs = [bucketer.create_bucketed_corpus(out, ref=ref, ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
 
   if statistic_type == 'count':
     scorer = None
@@ -243,8 +305,18 @@ def generate_sentence_bucketed_report(ref, outs,
   else:
     raise ValueError(f'Illegal statistic_type {statistic_type}')
 
-  stats = [[aggregator(out,ref) for (out,ref) in bc] for bc in bcs]
+  cache_key_list = ['stats']
+  stats = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
 
+  if cache_dicts is None:
+    bcs = [bucketer.create_bucketed_corpus(out, ref=ref, ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
+    stats = [[aggregator(out,ref) for (out,ref) in bc] for bc in bcs]
+
+  if to_cache:
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [stats])
+    return cache_dict
+
+  # generate reports
   reporter = reporters.SentenceReport(bucketer=bucketer,
                                       sys_stats=stats,
                                       statistic_type=statistic_type, scorer=scorer, 
@@ -262,7 +334,9 @@ def generate_ngram_report(ref, outs,
                        ref_labels=None, out_labels=None,
                        compare_directions='0-1',
                        title=None,
-                       case_insensitive=False):
+                       case_insensitive=False,
+                       to_cache=False,
+                       cache_dicts=None):
   """
   Generate a report comparing aggregate n-gram statistics in both plain text and graphs
 
@@ -282,10 +356,14 @@ def generate_ngram_report(ref, outs,
     compare_directions: A string specifying which systems to compare
     title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
+    to_cache: Return a list of computed statistics if True
+    cache_dicts: A list of dictionaries that store cached statistics for each output
   """
+  # check and set parameters
   min_ngram_length, max_ngram_length, report_length = int(min_ngram_length), int(max_ngram_length), int(report_length)
-  alpha = float(alpha)
-  case_insensitive = True if case_insensitive == 'True' else False
+  alpha = float(alpha) if type(alpha) == str else alpha
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
 
   if out_labels is not None:
     out_labels = arg_utils.parse_files(out_labels)
@@ -300,17 +378,23 @@ def generate_ngram_report(ref, outs,
   else:
     label_files = None
 
-  if type(alpha) == str:
-    alpha = float(alpha)
+  # compute statistics
+  cache_key_list = ['totals', 'matches', 'overs', 'unders']
+  totals, matches, overs, unders = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  if cache_dicts is None:
+    if not type(ref_labels) == str and case_insensitive:
+      ref = corpus_utils.lower(ref)
+      outs = [corpus_utils.lower(out) for out in outs]
 
-  if not type(ref_labels) == str and case_insensitive:
-    ref = corpus_utils.lower(ref)
-    outs = [corpus_utils.lower(out) for out in outs]
-
-  ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
-  out_labels = [corpus_utils.load_tokens(out_labels[i]) if not out_labels is None else None for i in range(len(outs))]
-  totals, matches, overs, unders = zip(*[ngram_utils.compare_ngrams(ref, out, ref_labels=ref_labels, out_labels=out_label,
+    ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
+    out_labels = [corpus_utils.load_tokens(out_labels[i]) if not out_labels is None else None for i in range(len(outs))]
+    totals, matches, overs, unders = zip(*[ngram_utils.compare_ngrams(ref, out, ref_labels=ref_labels, out_labels=out_label,
                                                              min_length=min_ngram_length, max_length=max_ngram_length) for out, out_label in zip(outs, out_labels)])
+
+  if to_cache:
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [totals, matches, overs, unders])
+    return cache_dict
+
   direcs = arg_utils.parse_compare_directions(compare_directions)
   scores = []
   for (left, right) in direcs:
@@ -324,25 +408,28 @@ def generate_ngram_report(ref, outs,
       raise ValueError(f'Illegal compare_type "{compare_type}"')
   scorelist = [sorted(score.items(), key=operator.itemgetter(1), reverse=True) for score in scores]
 
+  # generate reports
   reporter = reporters.NgramReport(scorelist=scorelist, report_length=report_length,
-                                   min_ngram_length=min_ngram_length, 
+                                   min_ngram_length=min_ngram_length,
                                    max_ngram_length=max_ngram_length,
                                    matches=matches,
                                    compare_type=compare_type, alpha=alpha,
                                    compare_directions=direcs,
                                    label_files=label_files,
-                                   title=title)                                   
+                                   title=title)
   reporter.generate_report(output_fig_file=f'ngram-min{min_ngram_length}-max{max_ngram_length}-{compare_type}',
-                           output_fig_format='pdf', 
+                           output_fig_format='pdf',
                            output_directory='outputs')
-  return reporter 
+  return reporter
 
 def generate_sentence_examples(ref, outs, src=None,
                             score_type='sentbleu',
                             report_length=10,
                             compare_directions='0-1',
                             title=None,
-                            case_insensitive=False):
+                            case_insensitive=False,
+                            to_cache=False,
+                            cache_dicts=None):
   """
   Generate examples of sentences that satisfy some criterion, usually score of one system better
 
@@ -355,11 +442,34 @@ def generate_sentence_examples(ref, outs, src=None,
     compare_directions: A string specifying which systems to compare
     title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
+    to_cache: Return a list of computed statistics if True
+    cache_dicts: A list of dictionaries that store cached statistics for each output
   """
+  # check and set parameters
   report_length = int(report_length)
-  case_insensitive = True if case_insensitive == 'True' else False
+  if type(case_insensitive) == str:
+    case_insensitive = True if case_insensitive == 'True' else False
+
     
+  # compute statistics
   scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive)
+
+  cache_key_list = ['scores', 'strs']
+  scores, strs = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  if cache_dicts is None:
+    scores, strs = [], []
+    for out in outs:
+      scores_i, strs_i = [], []
+      for (r, o) in zip(ref, out):
+        score, string = scorer.score_sentence(r, o)
+        scores_i.append(score)
+        strs_i.append(string)
+      scores.append(scores_i)
+      strs.append(strs_i)
+  
+  if to_cache:
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [scores, strs])
+    return cache_dict
 
   direcs = arg_utils.parse_compare_directions(compare_directions)
 
@@ -371,12 +481,13 @@ def generate_sentence_examples(ref, outs, src=None,
       if (tuple(o1), tuple(o2), tuple(r)) in deduplicate_set:
         continue
       deduplicate_set.add( (tuple(o1), tuple(o2), tuple(r)) )
-      s1, str1 = scorer.score_sentence(r, o1)
-      s2, str2 = scorer.score_sentence(r, o2)
+      s1, str1 = scores[left][i], strs[left][i]
+      s2, str2 = scores[right][i], strs[right][i]
       scorediff_list.append((s2-s1, s1, s2, str1, str2, i))
     scorediff_list.sort()
     scorediff_lists.append(scorediff_list)
 
+  # generate reports
   reporter = reporters.SentenceExampleReport(report_length=report_length, scorediff_lists=scorediff_lists,
                                              scorer=scorer,
                                              ref=ref, outs=outs, src=src,
