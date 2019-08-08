@@ -226,6 +226,8 @@ class WordReport(Report):
   def __init__(self, bucketer, statistics,
                acc_type, header,
                examples=None,
+               bucket_cnts=None,
+               bucket_intervals=None,
                src_sents=None,
                ref_sents=None, ref_labels=None,
                out_sents=None, out_labels=None,
@@ -234,6 +236,8 @@ class WordReport(Report):
     self.bucketer = bucketer
     self.statistics = [[s for s in stat] for stat in statistics]
     self.examples = examples
+    self.bucket_cnts = bucket_cnts
+    self.bucket_intervals = bucket_intervals
     self.src_sents = src_sents
     self.ref_sents = ref_sents
     self.ref_labels = ref_labels
@@ -259,8 +263,13 @@ class WordReport(Report):
       print(f'--- {self.title}')
       for i, bucket_str in enumerate(bucketer.bucket_strs):
         print(f'{bucket_str}', end='')
-        for match in statistics:
+        if self.bucket_cnts is not None:
+          print(f' (#words: {self.bucket_cnts[i]})', end='')
+        for j, match in enumerate(statistics):
           print(f'\t{fmt(match[i][aid])}', end='')
+          if self.bucket_intervals is not None:
+            low, up = self.bucket_intervals[j][i][aid]
+            print(f' ({fmt(low)}, {fmt(up)})', end='')
         print()
       print()
 
@@ -352,8 +361,13 @@ class WordReport(Report):
         table[0].append('Examples')
       for i, bs in enumerate(bucketer.bucket_strs):
         line = [bs]
-        for match in matches:
+        if self.bucket_cnts is not None:
+          line[-1] += f' (#words: {self.bucket_cnts[i]})'
+        for j, match in enumerate(matches):
           line.append(f'{fmt(match[i][aid])}')
+          if self.bucket_intervals is not None:
+            low, up = self.bucket_intervals[j][i][aid]
+            line[-1] += f' ({fmt(low)}, {fmt(up)})'
         if self.examples:
           line.append(f'<a href="{self.output_fig_file}.html#bucket{i}">Examples</a>')
         table += [line] 
@@ -427,11 +441,12 @@ class NgramReport(Report):
 
 class SentenceReport(Report):
 
-  def __init__(self, bucketer=None, sys_stats=None, statistic_type=None, scorer=None, title=None):
+  def __init__(self, bucketer=None, sys_stats=None, statistic_type=None, scorer=None, bucket_details=None, title=None):
     self.bucketer = bucketer
     self.sys_stats = [[s for s in stat] for stat in sys_stats]
     self.statistic_type = statistic_type
     self.scorer = scorer
+    self.bucket_details = bucket_details
     self.yname = scorer.name() if statistic_type == 'score' else statistic_type
     self.yidstr = scorer.idstr() if statistic_type == 'score' else statistic_type
     self.output_fig_file = f'{next_fig_id()}-sent-{bucketer.idstr()}-{self.yidstr}'
@@ -447,8 +462,13 @@ class SentenceReport(Report):
     print(f'--- {self.title}')
     for i, bs in enumerate(self.bucketer.bucket_strs):
       print(f'{bs}', end='')
-      for stat in self.sys_stats:
+      for j, stat in enumerate(self.sys_stats):
         print(f'\t{fmt(stat[i])}', end='')
+        if self.bucket_details is not None:
+          sents, interval =  self.bucket_details[j][i]
+          low, up = interval['lower_bound'], interval['upper_bound']
+          print(f' ({fmt(low)}, {fmt(up)})', end='')
+          print(f' (#sents: {sents})', end='')
       print()
     print()
 
@@ -466,8 +486,13 @@ class SentenceReport(Report):
     table = [ [self.bucketer.idstr()] + sys_names ]
     for i, bs in enumerate(self.bucketer.bucket_strs):
       line = [bs]
-      for stat in self.sys_stats:
+      for j, stat in enumerate(self.sys_stats):
         line.append(fmt(stat[i]))
+        if self.bucket_details is not None:
+          sents, interval =  self.bucket_details[j][i]
+          low, up = interval['lower_bound'], interval['upper_bound']
+          line[-1] += f' ({fmt(low)}, {fmt(up)})'
+          line[-1] += f' (#sents: {sents})'
       table.extend([line])
     html = html_table(table, self.title)
     for ext in ('png', 'pdf'):

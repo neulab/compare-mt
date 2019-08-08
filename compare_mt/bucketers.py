@@ -165,6 +165,7 @@ class WordBucketer(Bucketer):
     out_matches = np.zeros( ( num_outs, num_buckets) ,dtype=int)
 
     my_ref_total_list = []
+    my_out_totals_list = []
     my_out_matches_list = []
 
     # Step through the sentences
@@ -187,6 +188,7 @@ class WordBucketer(Bucketer):
       out_matches += my_out_matches
 
       my_ref_total_list.append(my_ref_total)
+      my_out_totals_list.append(my_out_totals)
       my_out_matches_list.append(my_out_matches)
 
     # Calculate statistics
@@ -202,7 +204,53 @@ class WordBucketer(Bucketer):
           fmeas = 2 * prec * rec / (prec + rec)
         ostatistics.append( (mcnt, rcnt, ocnt, rec, prec, fmeas) )
 
-    return statistics, my_ref_total_list, my_out_matches_list
+    return statistics, my_ref_total_list, my_out_totals_list, my_out_matches_list
+
+  def calc_bucket_details(self, my_ref_total_list, my_out_totals_list, my_out_matches_list, num_samples=1000, sample_ratio=0.5):
+ 
+    ref_total = np.array(my_ref_total_list).sum(0)
+
+    num_outs, num_buckets = my_out_totals_list[0].shape
+    n = len(my_ref_total_list)
+    ids = list(range(n))
+    sample_size = int(np.ceil(n*sample_ratio))
+    rt_arr = np.array(my_ref_total_list)
+    ot_arr = np.array(my_out_totals_list)
+    om_arr = np.array(my_out_matches_list)
+    statistics = [[ [] for __ in range(num_buckets) ] for _ in range(num_outs)]
+    for _ in range(num_samples):
+      reduced_ids = np.random.choice(ids, size=sample_size, replace=True)
+      reduced_ref_total, reduced_out_totals, reduced_out_matches= rt_arr[reduced_ids].sum(0), ot_arr[reduced_ids].sum(0), om_arr[reduced_ids].sum(0)
+      # Calculate accuracy on the reduced sample and save stats
+      for oi in range(num_outs):
+        for bi in range(num_buckets):
+          mcnt, ocnt, rcnt = reduced_out_matches[oi,bi], reduced_out_totals[oi,bi], reduced_ref_total[bi]
+          if mcnt == 0:
+            rec, prec, fmeas = 0.0, 0.0, 0.0
+          else:
+            rec = mcnt / float(rcnt)
+            prec = mcnt / float(ocnt)
+            fmeas = 2 * prec * rec / (prec + rec)
+          statistics[oi][bi].append( (mcnt, rcnt, ocnt, rec, prec, fmeas) )
+
+    intervals = [[] for _ in range(num_outs)]
+    for oi in range(num_outs):
+      for bi in range(num_buckets):
+        if len(statistics[oi][bi]) > 0: 
+          _, _, _, recs, precs, fmeas = zip(*statistics[oi][bi])
+        else:
+          recs, precs, fmeas = [0.0], [0.0], [0.0]
+        # The first three elements (intervals of mcnt, ocnt and rcnt) are None
+        bounds = [None, None, None]
+        for x in [recs, precs, fmeas]:
+          x = list(x)
+          x.sort()
+          lower_bound = x[int(num_samples * 0.025)]
+          upper_bound = x[int(num_samples * 0.975)]
+          bounds.append( (lower_bound, upper_bound) )
+        intervals[oi].append(bounds)
+ 
+    return ref_total, intervals
 
   def calc_examples(self, num_sents, num_outs,
                           statistics,
@@ -537,7 +585,9 @@ class SentenceBucketer(Bucketer):
       bucketed_corpus[bucket][0].append(out_words)
       if ref != None:
         bucketed_corpus[bucket][1].append(ref_words)
+
     return bucketed_corpus
+
 
 class ScoreSentenceBucketer(SentenceBucketer):
   """
