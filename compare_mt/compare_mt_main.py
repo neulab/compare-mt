@@ -338,12 +338,14 @@ def generate_sentence_bucketed_report(ref, outs,
     stats = [[aggregator(out,ref) for (out,ref) in bc] for bc in bcs]
 
   if output_bucket_details and statistic_type == 'score':
-    bucket_detail_calculator = lambda out,ref: (len(out), sign_utils.eval_with_paired_bootstrap(ref, [out], scorer, None)[1][0])
+    bucket_cnt_calculator = lambda out,ref: len(out)
+    bucket_interval_calculator = lambda out,ref: sign_utils.eval_with_paired_bootstrap(ref, [out], scorer, None)[1][0]
     if cache_dicts is not None: # we don't cache bcs
       bcs = [bucketer.create_bucketed_corpus(out, ref=ref, ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
-    bucket_details = [[bucket_detail_calculator(out,ref) for (out,ref) in bc] for bc in bcs]
+    bucket_cnts = [bucket_cnt_calculator(out,ref) for (out,ref) in bcs[0]]
+    bucket_intervals = [[bucket_interval_calculator(out,ref) for (out,ref) in bc] for bc in bcs]
   else:
-    bucket_details = None
+    bucket_cnts = bucket_intervals = None
   
 
   if to_cache:
@@ -354,7 +356,8 @@ def generate_sentence_bucketed_report(ref, outs,
   reporter = reporters.SentenceReport(bucketer=bucketer,
                                       sys_stats=stats,
                                       statistic_type=statistic_type, scorer=scorer, 
-                                      bucket_details=bucket_details,
+                                      bucket_cnts=bucket_cnts,
+                                      bucket_intervals=bucket_intervals,
                                       title=title)
 
   reporter.generate_report(output_fig_file=f'sentence-{statistic_type}-{score_measure}',
