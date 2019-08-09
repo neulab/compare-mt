@@ -320,7 +320,9 @@ def generate_sentence_bucketed_report(ref, outs,
 
   if statistic_type == 'count':
     scorer = None
-    aggregator = lambda out,ref: len(out)
+    if bucket_type != 'score' and bucket_type != 'lengthdiff':
+      ref = ref_label = None
+    aggregator = lambda out,refs: len(out)
   elif statistic_type == 'score':
     scorer = scorers.create_scorer_from_profile(score_measure, case_insensitive=case_insensitive)
     aggregator = lambda out,ref: scorer.score_corpus(ref,out)[0]

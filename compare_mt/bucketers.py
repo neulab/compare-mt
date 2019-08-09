@@ -581,10 +581,9 @@ class SentenceBucketer(Bucketer):
       ref_labels = out_labels
     
     for i, (out_words, ref_words) in enumerate(zip(out, ref)):
-      bucket = self.calc_bucket(out_words, ref=(ref_words if ref else None), label=(ref_labels[i][0] if ref_labels else None))
+      bucket = self.calc_bucket(out_words, ref_words, label=(ref_labels[i][0] if ref_labels else None))
       bucketed_corpus[bucket][0].append(out_words)
-      if ref != None:
-        bucketed_corpus[bucket][1].append(ref_words)
+      bucketed_corpus[bucket][1].append(ref_words)
 
     return bucketed_corpus
 
@@ -625,7 +624,7 @@ class LengthSentenceBucketer(SentenceBucketer):
     self.set_bucket_cutoffs(bucket_cutoffs, num_type='int')
 
   def calc_bucket(self, val, ref=None, label=None):
-    return self.cutoff_into_bucket(len(val))
+    return self.cutoff_into_bucket(len(ref))
 
   def name(self):
     return "length"
