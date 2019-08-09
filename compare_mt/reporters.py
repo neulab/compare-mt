@@ -392,7 +392,7 @@ class WordReport(Report):
           line.append(f'{fmt(match[i][aid])}')
           if self.bucket_intervals is not None:
             low, up = self.bucket_intervals[j][i][aid]
-            line[-1] += f'<font size=2> ({fmt(low)}, {fmt(up)})</font>'
+            line[-1] += f'<font size=2> [{fmt(low)}, {fmt(up)}]</font>'
         if self.examples:
           line.append(f'<a href="{self.output_fig_file}.html#bucket{i}">Examples</a>')
         table += [line] 
@@ -545,7 +545,7 @@ class SentenceReport(Report):
         if self.bucket_intervals is not None:
           interval =  self.bucket_intervals[j][i]
           low, up = interval['lower_bound'], interval['upper_bound']
-          line[-1] += f'<font size=2> ({fmt(low)}, {fmt(up)})</font>'
+          line[-1] += f'<font size=2> [{fmt(low)}, {fmt(up)}]</font>'
       table.extend([line])
     html = html_table(table, self.title)
     for ext in ('png', 'pdf'):
