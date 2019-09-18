@@ -170,7 +170,7 @@ class ScoreReport(Report):
       return [
         [""]+sys_names,
         [self.scorer.name()]+self.strs,
-        [""]+[f'[{x["lower_bound"]:.4f},{x["upper_bound"]:.4f}]' for x in self.sys_stats]
+        [""]+[f'[{fmt(x["lower_bound"])},{fmt(x["upper_bound"])}]' for x in self.sys_stats]
       ], None
     elif len(self.scores) == 2:
       # Single table with scores and wins for two systems
@@ -226,6 +226,8 @@ class WordReport(Report):
   def __init__(self, bucketer, statistics,
                acc_type, header,
                examples=None,
+               bucket_cnts=None,
+               bucket_intervals=None,
                src_sents=None,
                ref_sents=None, ref_labels=None,
                out_sents=None, out_labels=None,
@@ -234,6 +236,8 @@ class WordReport(Report):
     self.bucketer = bucketer
     self.statistics = [[s for s in stat] for stat in statistics]
     self.examples = examples
+    self.bucket_cnts = bucket_cnts
+    self.bucket_intervals = bucket_intervals
     self.src_sents = src_sents
     self.ref_sents = ref_sents
     self.ref_labels = ref_labels
@@ -257,10 +261,23 @@ class WordReport(Report):
         raise ValueError(f'Unknown accuracy type {at}')
       aid = acc_type_map[at]
       print(f'--- {self.title}')
+      # first line
+      print(f'{bucketer.name()}', end='')
+      if self.bucket_cnts is not None:
+        print(f'\t# words', end='')
+      for sn in sys_names:
+        print(f'\t{sn}', end='')
+      print()
+      # stats
       for i, bucket_str in enumerate(bucketer.bucket_strs):
         print(f'{bucket_str}', end='')
-        for match in statistics:
+        if self.bucket_cnts is not None:
+          print(f'\t{self.bucket_cnts[i]}', end='')
+        for j, match in enumerate(statistics):
           print(f'\t{fmt(match[i][aid])}', end='')
+          if self.bucket_intervals is not None:
+            low, up = self.bucket_intervals[j][i][aid]
+            print(f' [{fmt(low)}, {fmt(up)}]', end='')
         print()
       print()
 
@@ -273,9 +290,22 @@ class WordReport(Report):
       sys = [[m[aid] for m in match] for match in self.statistics]
       xticklabels = [s for s in self.bucketer.bucket_strs] 
 
+      if self.bucket_intervals:
+        errs = []
+        for i, match in enumerate(sys):
+          lows, ups = [], []
+          for j, score in enumerate(match):
+            low, up = self.bucket_intervals[i][j][aid] 
+            lows.append(score-low)
+            ups.append(up-score)
+          errs.append(np.array([lows, ups]) )
+      else:
+        errs = None
+
       make_bar_chart(sys,
                      output_directory, output_fig_file,
                      output_fig_format=output_fig_format,
+                     errs=errs,
                      xlabel=self.bucketer.name(), ylabel=at,
                      xticklabels=xticklabels)
 
@@ -347,13 +377,22 @@ class WordReport(Report):
       if at not in acc_type_map:
         raise ValueError(f'Unknown accuracy type {at}')
       aid = acc_type_map[at]
-      table = [[bucketer.name()] + sys_names]
+      line = [bucketer.name()]
+      if self.bucket_cnts is not None:
+        line.append('# words')
+      line += sys_names
+      table = [line]
       if self.examples:
         table[0].append('Examples')
       for i, bs in enumerate(bucketer.bucket_strs):
         line = [bs]
-        for match in matches:
+        if self.bucket_cnts is not None:
+          line.append(f'{self.bucket_cnts[i]}')
+        for j, match in enumerate(matches):
           line.append(f'{fmt(match[i][aid])}')
+          if self.bucket_intervals is not None:
+            low, up = self.bucket_intervals[j][i][aid]
+            line[-1] += f'<font size=2> [{fmt(low)}, {fmt(up)}]</font>'
         if self.examples:
           line.append(f'<a href="{self.output_fig_file}.html#bucket{i}">Examples</a>')
         table += [line] 
@@ -427,11 +466,13 @@ class NgramReport(Report):
 
 class SentenceReport(Report):
 
-  def __init__(self, bucketer=None, sys_stats=None, statistic_type=None, scorer=None, title=None):
+  def __init__(self, bucketer=None, sys_stats=None, statistic_type=None, scorer=None, bucket_cnts=None, bucket_intervals=None, title=None):
     self.bucketer = bucketer
     self.sys_stats = [[s for s in stat] for stat in sys_stats]
     self.statistic_type = statistic_type
     self.scorer = scorer
+    self.bucket_cnts = bucket_cnts
+    self.bucket_intervals = bucket_intervals
     self.yname = scorer.name() if statistic_type == 'score' else statistic_type
     self.yidstr = scorer.idstr() if statistic_type == 'score' else statistic_type
     self.output_fig_file = f'{next_fig_id()}-sent-{bucketer.idstr()}-{self.yidstr}'
@@ -445,10 +486,23 @@ class SentenceReport(Report):
   def print(self):
     self.print_header('Sentence Bucket Analysis')
     print(f'--- {self.title}')
+    # first line
+    print(f'{self.bucketer.idstr()}', end='')
+    if self.bucket_cnts is not None:
+      print(f'\t# sents', end='')
+    for sn in sys_names:
+      print(f'\t{sn}', end='')
+    print()
     for i, bs in enumerate(self.bucketer.bucket_strs):
       print(f'{bs}', end='')
-      for stat in self.sys_stats:
+      if self.bucket_cnts is not None:
+        print(f'\t{self.bucket_cnts[i]}', end='')
+      for j, stat in enumerate(self.sys_stats):
         print(f'\t{fmt(stat[i])}', end='')
+        if self.bucket_intervals is not None:
+          interval =  self.bucket_intervals[j][i]
+          low, up = interval['lower_bound'], interval['upper_bound']
+          print(f' [{fmt(low)}, {fmt(up)}]', end='')
       print()
     print()
 
@@ -456,18 +510,42 @@ class SentenceReport(Report):
     sys = self.sys_stats
     xticklabels = [s for s in self.bucketer.bucket_strs] 
 
+    if self.bucket_intervals:
+      errs = []
+      for i, stat in enumerate(sys):
+        lows, ups = [], []
+        for j, score in enumerate(stat):
+          interval = self.bucket_intervals[i][j]
+          low, up = interval['lower_bound'], interval['upper_bound']
+          lows.append(score-low)
+          ups.append(up-score)
+        errs.append(np.array([lows, ups]) )
+    else:
+      errs = None
+
     make_bar_chart(sys,
                    output_directory, output_fig_file,
                    output_fig_format=output_fig_format,
+                   errs=errs,
                    xlabel=self.bucketer.name(), ylabel=self.yname,
                    xticklabels=xticklabels)
 
   def html_content(self, output_directory=None):
-    table = [ [self.bucketer.idstr()] + sys_names ]
+    line = [self.bucketer.idstr()]
+    if self.bucket_cnts is not None:
+      line.append('# sents')
+    line += sys_names
+    table = [ line ]
     for i, bs in enumerate(self.bucketer.bucket_strs):
       line = [bs]
-      for stat in self.sys_stats:
+      if self.bucket_cnts is not None:
+        line.append(f'\t{self.bucket_cnts[i]}')
+      for j, stat in enumerate(self.sys_stats):
         line.append(fmt(stat[i]))
+        if self.bucket_intervals is not None:
+          interval =  self.bucket_intervals[j][i]
+          low, up = interval['lower_bound'], interval['upper_bound']
+          line[-1] += f'<font size=2> [{fmt(low)}, {fmt(up)}]</font>'
       table.extend([line])
     html = html_table(table, self.title)
     for ext in ('png', 'pdf'):

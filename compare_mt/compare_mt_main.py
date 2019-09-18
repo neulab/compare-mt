@@ -87,6 +87,7 @@ def generate_word_accuracy_report(ref, outs,
                           ref_labels=None, out_labels=None,
                           title=None,
                           case_insensitive=False,
+                          output_bucket_details=False,
                           to_cache=False,
                           cache_dicts=None):
   """
@@ -108,12 +109,15 @@ def generate_word_accuracy_report(ref, outs,
     out_labels: output labels. must be specified if ref_labels is specified.
     title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
+    output_bucket_details: A boolean specifying whether to output the number of words in each bucket
     to_cache: Return a list of computed statistics if True
     cache_dicts: A list of dictionaries that store cached statistics for each output
   """
   # check and set parameters
   if type(case_insensitive) == str:
     case_insensitive = True if case_insensitive == 'True' else False
+  if type(output_bucket_details) == str:
+    output_bucket_details = True if output_bucket_details == 'True' else False
 
   if type(ref_labels) == str:
     ref_labels = corpus_utils.load_tokens(ref_labels)
@@ -135,23 +139,28 @@ def generate_word_accuracy_report(ref, outs,
                                                          label_set=label_set,
                                                          case_insensitive=case_insensitive)
 
-  cache_key_list = ['statistics', 'my_ref_total_list', 'my_out_matches_list']
-  statistics, my_ref_total_list, my_out_matches_list = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  cache_key_list = ['statistics', 'my_ref_total_list', 'my_out_totals_list', 'my_out_matches_list']
+  statistics, my_ref_total_list, my_out_totals_list, my_out_matches_list = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
   if cache_dicts is None:
-    statistics, my_ref_total_list, my_out_matches_list = bucketer.calc_statistics(ref, outs, ref_labels=ref_labels, out_labels=out_labels)
+    statistics, my_ref_total_list, my_out_totals_list, my_out_matches_list = bucketer.calc_statistics(ref, outs, ref_labels=ref_labels, out_labels=out_labels)
   else:
     my_ref_total_list = my_ref_total_list[0]
+    my_out_totals_list = list(np.concatenate(my_out_totals_list, 1))
     my_out_matches_list = list(np.concatenate(my_out_matches_list, 1))
   examples = bucketer.calc_examples(len(ref), len(outs), statistics, my_ref_total_list, my_out_matches_list)
 
+  bucket_cnts, bucket_intervals = bucketer.calc_bucket_details(my_ref_total_list, my_out_totals_list, my_out_matches_list) if output_bucket_details else (None, None)
+
   if to_cache:
-    cache_dict = cache_utils.return_cache_dict(cache_key_list, [statistics, [my_ref_total_list], [my_out_matches_list]])
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [statistics, [my_ref_total_list], [my_out_totals_list] ,[my_out_matches_list]])
     return cache_dict
 
   # generate reports
   reporter = reporters.WordReport(bucketer=bucketer,
                                   statistics=statistics,
                                   examples=examples,
+                                  bucket_cnts=bucket_cnts,
+                                  bucket_intervals=bucket_intervals,
                                   src_sents=src,
                                   ref_sents=ref,
                                   ref_labels=ref_labels,
@@ -172,6 +181,7 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
                           src_labels=None,
                           title=None,
                           case_insensitive=False,
+                          output_bucket_details=False,
                           to_cache=False,
                           cache_dicts=None):
   """
@@ -193,12 +203,15 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
     src_labels: either a filename of a file full of source labels, or a list of strings corresponding to `ref`.
     title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
+    output_bucket_details: A boolean specifying whether to output the number of words in each bucket
     to_cache: Return a list of computed statistics if True
     cache_dicts: A list of dictionaries that store cached statistics for each output
   """
   # check and set parameters
   if type(case_insensitive) == str:
     case_insensitive = True if case_insensitive == 'True' else False
+  if type(output_bucket_details) == str:
+    output_bucket_details = True if output_bucket_details == 'True' else False
 
   if acc_type != 'rec':
     raise ValueError("Source word analysis can only use recall as an accuracy type")
@@ -218,23 +231,28 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
                                                          label_set=label_set,
                                                          case_insensitive=case_insensitive)
 
-  cache_key_list = ['statistics', 'my_ref_total_list', 'my_out_matches_list']
-  statistics, my_ref_total_list, my_out_matches_list = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  cache_key_list = ['statistics', 'my_ref_total_list', 'my_out_totals_list', 'my_out_matches_list']
+  statistics, my_ref_total_list, my_out_totals_list, my_out_matches_list = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
   if cache_dicts is not None:
     my_ref_total_list = my_ref_total_list[0]
+    my_out_totals_list = list(np.concatenate(my_out_totals_list, 1))
     my_out_matches_list = list(np.concatenate(my_out_matches_list, 1))
   else:
-    statistics, my_ref_total_list, my_out_matches_list = bucketer.calc_statistics(ref, outs, src=src, src_labels=src_labels, ref_aligns=ref_align)
+    statistics, my_ref_total_list, my_out_totals_list, my_out_matches_list = bucketer.calc_statistics(ref, outs, src=src, src_labels=src_labels, ref_aligns=ref_align)
   examples = bucketer.calc_examples(len(ref), len(outs), statistics, my_ref_total_list, my_out_matches_list)
 
+  bucket_cnts, bucket_intervals = bucketer.calc_bucket_details(my_ref_total_list, my_out_totals_list, my_out_matches_list) if output_bucket_details else (None, None)
+
   if to_cache:
-    cache_dict = cache_utils.return_cache_dict(cache_key_list, [statistics, [my_ref_total_list], [my_out_matches_list]])
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [statistics, [my_ref_total_list], [my_out_totals_list], [my_out_matches_list]])
     return cache_dict
 
   # generate reports
   reporter = reporters.WordReport(bucketer=bucketer,
                                   statistics=statistics,
                                   examples=examples,
+                                  bucket_cnts=bucket_cnts,
+                                  bucket_intervals=bucket_intervals,
                                   src_sents=src,
                                   ref_sents=ref,
                                   ref_aligns=ref_align,
@@ -256,6 +274,7 @@ def generate_sentence_bucketed_report(ref, outs,
                                    ref_labels=None, out_labels=None,
                                    title=None,
                                    case_insensitive=False,
+                                   output_bucket_details=False,
                                    to_cache=False,
                                    cache_dicts=None):
   """
@@ -270,12 +289,15 @@ def generate_sentence_bucketed_report(ref, outs,
     out_labels: output labels. 
     title: A string specifying the caption of the printed table
     case_insensitive: A boolean specifying whether to turn on the case insensitive option
+    output_bucket_details: A boolean specifying whether to output the number of words in each bucket
     to_cache: Return a list of computed statistics if True
     cache_dicts: A list of dictionaries that store cached statistics for each output
   """
   # check and set parameters
   if type(case_insensitive) == str:
     case_insensitive = True if case_insensitive == 'True' else False
+  if type(output_bucket_details) == str:
+    output_bucket_details = True if output_bucket_details == 'True' else False
 
   if ref_labels is not None:
     ref_labels = corpus_utils.load_tokens(ref_labels) if type(ref_labels) == str else ref_labels
@@ -298,12 +320,15 @@ def generate_sentence_bucketed_report(ref, outs,
 
   if statistic_type == 'count':
     scorer = None
-    aggregator = lambda out,ref: len(out)
+    if bucket_type != 'score' and bucket_type != 'lengthdiff':
+      ref = ref_label = None
+    aggregator = lambda out,refs: len(out)
   elif statistic_type == 'score':
     scorer = scorers.create_scorer_from_profile(score_measure, case_insensitive=case_insensitive)
     aggregator = lambda out,ref: scorer.score_corpus(ref,out)[0]
   else:
     raise ValueError(f'Illegal statistic_type {statistic_type}')
+  
 
   cache_key_list = ['stats']
   stats = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
@@ -311,6 +336,17 @@ def generate_sentence_bucketed_report(ref, outs,
   if cache_dicts is None:
     bcs = [bucketer.create_bucketed_corpus(out, ref=ref, ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
     stats = [[aggregator(out,ref) for (out,ref) in bc] for bc in bcs]
+
+  if output_bucket_details and statistic_type == 'score':
+    bucket_cnt_calculator = lambda out,ref: len(out)
+    bucket_interval_calculator = lambda out,ref: sign_utils.eval_with_paired_bootstrap(ref, [out], scorer, None)[1][0]
+    if cache_dicts is not None: # we don't cache bcs
+      bcs = [bucketer.create_bucketed_corpus(out, ref=ref, ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
+    bucket_cnts = [bucket_cnt_calculator(out,ref) for (out,ref) in bcs[0]]
+    bucket_intervals = [[bucket_interval_calculator(out,ref) for (out,ref) in bc] for bc in bcs]
+  else:
+    bucket_cnts = bucket_intervals = None
+  
 
   if to_cache:
     cache_dict = cache_utils.return_cache_dict(cache_key_list, [stats])
@@ -320,6 +356,8 @@ def generate_sentence_bucketed_report(ref, outs,
   reporter = reporters.SentenceReport(bucketer=bucketer,
                                       sys_stats=stats,
                                       statistic_type=statistic_type, scorer=scorer, 
+                                      bucket_cnts=bucket_cnts,
+                                      bucket_intervals=bucket_intervals,
                                       title=title)
 
   reporter.generate_report(output_fig_file=f'sentence-{statistic_type}-{score_measure}',

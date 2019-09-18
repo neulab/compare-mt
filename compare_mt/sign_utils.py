@@ -36,13 +36,13 @@ def eval_with_paired_bootstrap(ref, outs,
     A tuple containing the win ratios, statistics for systems
   """
   sys_scores = [[] for _ in outs] 
-  wins = [[0, 0, 0] for _ in compare_directions]
+  wins = [[0, 0, 0] for _ in compare_directions] if compare_directions is not None else None
   n = len(ref)
   ids = list(range(n))
 
   if cache_stats is None:
     cache_stats = [scorer.cache_stats(ref, out) for out in outs] 
-  sample_size = int(len(ids)*sample_ratio)
+  sample_size = int(n*sample_ratio)
   for _ in range(num_samples):
     # Subsample the gold and system outputs (with replacement)
     reduced_ids = np.random.choice(ids, size=sample_size, replace=True)
@@ -54,20 +54,21 @@ def eval_with_paired_bootstrap(ref, outs,
       reduced_outs = [[out[i] for i in reduced_ids] for out in outs]
       sys_score, _ = zip(*[scorer.score_corpus(reduced_ref, reduced_out) for reduced_out in reduced_outs])
 
-    for i, compare_direction in enumerate(compare_directions): 
-      left, right = compare_direction
-      if sys_score[left] > sys_score[right]:
-        wins[i][0] += 1
-      if sys_score[left] < sys_score[right]:
-        wins[i][1] += 1
-      else:
-        wins[i][2] += 1
+    if wins is not None:
+      for i, compare_direction in enumerate(compare_directions): 
+        left, right = compare_direction
+        if sys_score[left] > sys_score[right]:
+          wins[i][0] += 1
+        if sys_score[left] < sys_score[right]:
+          wins[i][1] += 1
+        else:
+          wins[i][2] += 1
     
     for i in range(len(outs)): 
       sys_scores[i].append(sys_score[i])
 
   # Print win stats
-  wins = [[x/float(num_samples) for x in win] for win in wins]
+  wins = [[x/float(num_samples) for x in win] for win in wins] if wins is not None else None
 
   # Print system stats
   sys_stats = []
