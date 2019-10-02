@@ -633,8 +633,7 @@ class SentenceExampleReport(Report):
 def tag_str(tag, str, new_line=''):
   return f'<{tag}>{new_line} {str} {new_line}</{tag}>'
 
-def html_table(table, title=None, bold_rows=1, bold_cols=1,
-               latex_ignore_cols={}):
+def html_table(table, title=None, bold_rows=1, bold_cols=1, latex_ignore_cols={}):
   html = '<table border="1">\n'
   if title is not None:
     html += tag_str('caption', title)
