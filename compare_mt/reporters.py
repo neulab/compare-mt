@@ -396,7 +396,7 @@ class WordReport(Report):
         if self.examples:
           line.append(f'<a href="{self.output_fig_file}.html#bucket{i}">Examples</a>')
         table += [line] 
-      html += html_table(table, title)
+      html += html_table(table, title, skip_last_col=True)
       img_name = f'{self.output_fig_file}-{at}'
       for ext in ('png', 'pdf'):
         self.plot(output_directory, img_name, ext)
@@ -633,7 +633,8 @@ class SentenceExampleReport(Report):
 def tag_str(tag, str, new_line=''):
   return f'<{tag}>{new_line} {str} {new_line}</{tag}>'
 
-def html_table(table, title=None, bold_rows=1, bold_cols=1):
+def html_table(table, title=None, bold_rows=1, bold_cols=1,
+              skip_last_col=False):
   html = '<table border="1">\n'
   if title is not None:
     html += tag_str('caption', title)
@@ -650,7 +651,11 @@ def html_table(table, title=None, bold_rows=1, bold_cols=1):
     cs[bold_cols-1] = 'c||'
   latex_code += "  \\begin{tabular}{"+''.join(cs)+"}\n"
   for i, row in enumerate(table):
-    latex_code += ' & '.join([fmt(x) for x in row]) + (' \\\\\n' if i != bold_rows-1 else ' \\\\ \\hline \\hline\n')
+    if skip_last_col:
+      latex_code += ' & '.join([fmt(x) for x in row[:-1]]) + (' \\\\\n' if i != bold_rows-1 else ' \\\\ \\hline \\hline\n')
+    else:
+      latex_code += ' & '.join([fmt(x) for x in row]) + (' \\\\\n' if i != bold_rows-1 else ' \\\\ \\hline \\hline\n')
+      
   latex_code += "  \\end{tabular}\n  \\caption{Caption}\n  \\label{tab:table"+tab_id+"}\n\\end{table}"
 
   html += (f'<button onclick="showhide(\'{tab_id}_latex\')">Show/Hide LaTeX</button> <br/>' +
