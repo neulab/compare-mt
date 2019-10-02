@@ -652,7 +652,6 @@ def html_table(table, title=None, bold_rows=1, bold_cols=1,
   latex_code += "  \\begin{tabular}{"+''.join(cs)+"}\n"
   for i, row in enumerate(table):
     latex_code += ' & '.join([fmt(x) for c_i, x in enumerate(row) if c_i not in latex_ignore_cols]) + (' \\\\\n' if i != bold_rows-1 else ' \\\\ \\hline \\hline\n')
-      
   latex_code += "  \\end{tabular}\n  \\caption{Caption}\n  \\label{tab:table"+tab_id+"}\n\\end{table}"
 
   html += (f'<button onclick="showhide(\'{tab_id}_latex\')">Show/Hide LaTeX</button> <br/>' +

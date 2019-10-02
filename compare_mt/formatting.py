@@ -5,7 +5,7 @@ class Formatter(object):
     pat_square_closed  = re.compile("\]")
     pat_lt  = re.compile("<")
     pat_gt  = re.compile(">")
-    latex_substitutions = { 
+    latex_substitutions = {
         pat_square_open: "{[}",
         pat_square_closed: "{]}",
         pat_lt: r"\\textless",
@@ -19,13 +19,12 @@ class Formatter(object):
         self.decimals = decimals
     
     def escape_latex(self, x):
-        """Adds possible escape sequences to make the input
+        """Adds escape sequences wherever needed to make the output
         LateX compatible"""
         for pat, replace_with in self.latex_substitutions.items():
             x = pat.sub(replace_with, x)
         return x
-        
-    
+
     def __call__(self, x):
         """Convert object to string with controlled decimals"""
         if isinstance(x, str):
