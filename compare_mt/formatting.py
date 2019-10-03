@@ -1,15 +1,12 @@
 import re
 
 class Formatter(object):
-    pat_square_open  = re.compile("\[")
-    pat_square_closed  = re.compile("\]")
-    pat_lt  = re.compile("<")
-    pat_gt  = re.compile(">")
+
     latex_substitutions = {
-        pat_square_open: "{[}",
-        pat_square_closed: "{]}",
-        pat_lt: r"\\textless",
-        pat_gt: r"\\textgreater"
+        re.compile("\["): "{[}",
+        re.compile("\]"): "{]}",
+        re.compile("<"): r"\\textless",
+        re.compile(">"): r"\\textgreater"
     }
 
     def __init__(self, decimals=4):
