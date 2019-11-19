@@ -320,7 +320,7 @@ class ExactMatchScorer(Scorer):
     """
     matches = 0
     for r, o in zip(ref, out):
-      if ref == out:
+      if r == o:
         matches += 1
     return float(matches) / len(ref), None
 
