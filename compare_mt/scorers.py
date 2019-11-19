@@ -303,6 +303,46 @@ class LengthScorer(Scorer):
   def idstr(self):
     return "lengthrat"
 
+class ExactMatchScorer(Scorer):
+  """
+  A scorer that calculates exact matches
+  """
+  def score_corpus(self, ref, out):
+    """
+    Calculate the percentage of exact matches in a corpus
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+
+    Returns:
+      A tuple containing a single value for the exact match percentage and None
+    """
+    matches = 0
+    for r, o in zip(ref, out):
+      if ref == out:
+        matches += 1
+    return float(matches) / len(ref), None
+
+  def score_sentence(self, ref, out):
+    """
+    Score a single sentence by exact match
+
+    Args:
+      ref: A reference sentence
+      out: An output sentence
+
+    Returns:
+      1 if exact matches 0, and None
+    """
+    return 1.0 if ref == out else 0, None
+
+  def name(self):
+    return "exact match"
+
+  def idstr(self):
+    return "exact"
+
 class RibesScorer(SentenceFactoredScorer):
   """
   A scorer that calculates RIBES score.
@@ -827,5 +867,7 @@ def create_scorer_from_profile(profile, case_insensitive=False, meteor_directory
     if meteor_directory == None:
       raise ValueError("Must specify the directory of the METEOR source code.")
     return METEORScorer(meteor_directory=meteor_directory, options=options)
+  elif profile == 'exact':
+    return ExactMatchScorer()
   else:
     raise ValueError(f'Invalid profile for scorer {profile}'.format(profile=profile))
