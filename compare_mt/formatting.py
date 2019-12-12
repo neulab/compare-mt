@@ -22,10 +22,10 @@ class Formatter(object):
             x = pat.sub(replace_with, x)
         return x
 
-    def __call__(self, x):
+    def __call__(self, x, latex=True):
         """Convert object to string with controlled decimals"""
         if isinstance(x, str):
-            return self.escape_latex(x)
+            return self.escape_latex(x) if latex else x
         elif isinstance(x, int):
             return f"{x:d}"
         elif isinstance(x, float):

@@ -132,7 +132,7 @@ class Report:
 
   def print_tabbed_table(self, tab):
     for x in tab:
-      print('\t'.join([fmt(y) if y else '' for y in x]))
+      print('\t'.join([fmt(y, latex=False) if y else '' for y in x]))
     print()
 
   def generate_report(self, output_fig_file=None, output_fig_format=None, output_directory=None):

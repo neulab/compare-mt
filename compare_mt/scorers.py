@@ -544,8 +544,14 @@ class RougeScorer(SentenceFactoredScorer):
       out = [self._stemmer.stem(x) if len(x) > 3 else x for x in out]
     
     if self.rouge_type == 'rougeL':
+      ref, out = self.tokenize(" ".join(ref)), self.tokenize(" ".join(out))
       scores = rouge_scorer._score_lcs(ref, out)
+    elif self.rouge_type == 'rougeLsum':
+      refs = [self.tokenize(s) for s in self.get_sents(ref)]
+      outs = [self.tokenize(s) for s in self.get_sents(out)]
+      scores = rouge_scorer._summary_level_lcs(refs, outs)
     elif re.match(r"rouge[0-9]$", self.rouge_type):
+      ref, out = self.tokenize(" ".join(ref)), self.tokenize(" ".join(out))
       n = int(self.rouge_type[5:])
       if n <= 0:
         raise ValueError(f"rougen requires positive n: {self.rouge_type}")
@@ -566,6 +572,18 @@ class RougeScorer(SentenceFactoredScorer):
       raise ValueError(f"Invalid score type: {self.score_type}")
 
     return self.scale * score_value, None
+
+  def get_sents(self, tokens):
+    # assume sentences are separated by "."
+    sents = " ".join(tokens).split(".")
+    sents = [x for x in sents if len(x)]
+    return sents
+
+  def tokenize(self, tokens):
+    text = re.sub(r"[^a-zA-Z0-9]+", " ", tokens)
+    tokens = re.split(r"\s+", text)
+    tokens = [x for x in tokens if len(x)]
+    return tokens
 
   def name(self):
     return self.rouge_type
@@ -859,7 +877,7 @@ def create_scorer_from_profile(profile, case_insensitive=False, meteor_directory
     return RibesScorer(case_insensitive=case_insensitive)
   elif profile == 'chrf':
     return ChrFScorer(case_insensitive=case_insensitive)
-  elif re.match(r"rouge[0-9L]$", profile):
+  elif re.match(r"rouge[0-9L](sum)?$", profile):
     return RougeScorer(rouge_type=profile, case_insensitive=case_insensitive)
   elif profile == 'wer':
     return WERScorer(case_insensitive=case_insensitive)
