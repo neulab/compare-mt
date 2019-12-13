@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """A library for tokenizing text."""
 
 from __future__ import absolute_import
@@ -20,18 +21,16 @@ from __future__ import division
 from __future__ import print_function
 
 import re
+import six
 
 
 def tokenize(text, stemmer):
   """Tokenize input text into a list of tokens.
-
   This approach aims to replicate the approach taken by Chin-Yew Lin in
   the original ROUGE implementation.
-
   Args:
     text: A text blob to tokenize.
     stemmer: An optional stemmer.
-
   Returns:
     A list of string tokens extracted from input text.
   """
@@ -39,7 +38,7 @@ def tokenize(text, stemmer):
   # Convert everything to lowercase.
   text = text.lower()
   # Replace any non-alpha-numeric characters with spaces.
-  text = re.sub(r"[^a-z0-9]+", " ", text)
+  text = re.sub(r"[^a-z0-9]+", " ", six.ensure_str(text))
 
   tokens = re.split(r"\s+", text)
   if stemmer:
@@ -47,6 +46,6 @@ def tokenize(text, stemmer):
     tokens = [stemmer.stem(x) if len(x) > 3 else x for x in tokens]
 
   # One final check to drop any empty or invalid tokens.
-  tokens = [x for x in tokens if re.match(r"^[a-z0-9]+$", x)]
+  tokens = [x for x in tokens if re.match(r"^[a-z0-9]+$", six.ensure_str(x))]
 
   return tokens
