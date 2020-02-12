@@ -171,7 +171,7 @@ compare-mt example/sum.ref.eng example/sum.sys1.eng example/sum.sys2.eng --compa
 If you use compare-mt, we'd appreciate if you cite the [paper](http://arxiv.org/abs/1903.07926) about it!
 
     @article{DBLP:journals/corr/abs-1903-07926,
-      author    = {Graham Neubig and Zi{-}Yi Dou and Junjie Hu and Paul Michel and Danish Pruthi and Xinyi Wang},
+      author    = {Graham Neubig and Zi{-}Yi Dou and Junjie Hu and Paul Michel and Danish Pruthi and Xinyi Wang and John Wieting},
       title     = {compare-mt: {A} Tool for Holistic Comparison of Language Generation Systems},
       journal   = {CoRR},
       volume    = {abs/1903.07926},
