@@ -3,8 +3,10 @@ import argparse
 import operator
 import numpy as np
 import numpy.random as npr
+import tempfile
 
 # In-package imports
+from compare_mt import __version__
 from compare_mt import ngram_utils
 from compare_mt import stat_utils
 from compare_mt import corpus_utils
@@ -15,6 +17,8 @@ from compare_mt import reporters
 from compare_mt import arg_utils
 from compare_mt import formatting
 from compare_mt import cache_utils
+
+source_code_url = 'https://github.com/neulab/compare-mt'
 
 def generate_score_report(ref, outs,
                        score_type='bleu',
@@ -537,6 +541,7 @@ def generate_sentence_examples(ref, outs, src=None,
 def main():
   parser = argparse.ArgumentParser(
       description='Program to compare MT results',
+      epilog=f'For more details, see {source_code_url}'
   )
   parser.add_argument('ref_file', type=str,
                       help='A path to a correct reference file')
@@ -601,6 +606,10 @@ def main():
                       help="Seed for random number generation")
   parser.add_argument('--scorer_scale', type=float, default=100, choices=[1, 100],
                       help="Set the scale of BLEU, METEOR, WER and chrF to 0-1 or 0-100 (default 0-100)")
+  parser.add_argument('--http', type=int, dest='bind_port',
+                      help='Launch an HTTP server at specified port to view results.'
+                           'Disabled by default, but specifying a port number enabled it.')
+  parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {__version__}')
   args = parser.parse_args()
 
   # Set formatting
@@ -645,6 +654,14 @@ def main():
   # Write all reports into a single html file
   if args.output_directory != None:
     reporters.generate_html_report(reports, args.output_directory, args.report_title)
+
+  if args.bind_port:
+    out_dir = args.output_directory
+    if not out_dir:
+      out_dir = str(tempfile.TemporaryDirectory())
+      reporters.generate_html_report(reports, out_dir, args.report_title)
+    reporters.launch_http_server(out_dir, bind_port=args.bind_port)
+
 
 if __name__ == '__main__':
   main()
