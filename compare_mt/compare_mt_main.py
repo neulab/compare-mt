@@ -658,7 +658,7 @@ def main():
   if args.bind_port:
     out_dir = args.output_directory
     if not out_dir:
-      out_dir = str(tempfile.TemporaryDirectory())
+      out_dir = tempfile.TemporaryDirectory().name
       reporters.generate_html_report(reports, out_dir, args.report_title)
     reporters.launch_http_server(out_dir, bind_port=args.bind_port)
 
