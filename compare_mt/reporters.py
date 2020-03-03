@@ -8,7 +8,7 @@ import itertools
 from compare_mt.formatting import fmt
 
 from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 import socket
 from pathlib import Path
 import logging as log
@@ -694,7 +694,7 @@ def launch_http_server(output_directory: str, bind_address:str ='0.0.0.0', bind_
   log.info(f'Directory = {output_directory}')
   log.info(f'Launching a web server:: http://{hostname}:{bind_port}/')
   Handler = partial(SimpleHTTPRequestHandler, directory=output_directory)
-  server = ThreadingHTTPServer(server_address=(bind_address, bind_port),
+  server = HTTPServer(server_address=(bind_address, bind_port),
                                RequestHandlerClass=Handler)
   try:
     server.serve_forever()
