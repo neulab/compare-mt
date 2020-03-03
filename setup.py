@@ -1,9 +1,7 @@
 from setuptools import setup, find_packages
 import unittest
 import codecs
-import re
-import os
-
+import compare_mt
 
 def test_suite():
   test_loader = unittest.TestLoader()
@@ -12,21 +10,10 @@ def test_suite():
   return test_suite
 
 
-def find_version():
-  """Find version in compare_mt/__init__.py"""
-  here = os.path.abspath(os.path.dirname(__file__))
-  with codecs.open(os.path.join(here, "compare_mt", "__init__.py"), 'r') as fp:
-    version_file = fp.read()
-    version_match = re.search(
-      r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-  raise RuntimeError("Unable to find version string.")
-
 
 setup(
   name="compare_mt",
-  version=find_version(),
+  version=compare_mt.__version__,
   description="Holistic comparison of the output of text generation models",
   long_description=codecs.open("README.md", encoding="utf-8").read(),
   long_description_content_type="text/markdown",

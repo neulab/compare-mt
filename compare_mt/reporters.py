@@ -7,6 +7,14 @@ import os
 import itertools
 from compare_mt.formatting import fmt
 
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, HTTPServer
+import socket
+from pathlib import Path
+import logging as log
+
+log.basicConfig(level=log.INFO)
+
 # Global variables used by all reporters. These are set by compare_mt_main.py
 sys_names = None
 fig_size = None
@@ -679,4 +687,17 @@ def generate_html_report(reports, output_directory, report_title):
   css_file = os.path.join(output_directory, 'compare_mt.css')
   with open(css_file, 'w') as f:
     f.write(css_style)
+
+def launch_http_server(output_directory: str, bind_address:str ='0.0.0.0', bind_port: int=8000):
+  assert Path(output_directory).is_dir()
+  hostname = bind_address if bind_address != '0.0.0.0' else socket.gethostname()
+  log.info(f'Directory = {output_directory}')
+  log.info(f'Launching a web server:: http://{hostname}:{bind_port}/')
+  Handler = partial(SimpleHTTPRequestHandler, directory=output_directory)
+  server = HTTPServer(server_address=(bind_address, bind_port),
+                               RequestHandlerClass=Handler)
+  try:
+    server.serve_forever()
+  except KeyboardInterrupt:
+    pass # all good! Exiting without printing stacktrace
   
