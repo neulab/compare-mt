@@ -23,9 +23,10 @@ python setup.py install
 Then, as an example, you can run this over two included system outputs.
 
 ```bash
-compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
+compare-mt --output_directory output/ example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng
 ```
 
+This will output some statistics to the command line, and also write a formatted HTML report to `output/`.
 Here, system 1 and system 2 are the baseline phrase-based and neural Slovak-English systems from our
 [EMNLP 2018 paper](http://aclweb.org/anthology/D18-1103). This will print out a number of statistics including:
 
