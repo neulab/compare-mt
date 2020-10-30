@@ -176,7 +176,7 @@ To do so, you need to install it first by running
 pip install unbabel-comet
 ```
 
-To then run, pass the source a select the appropriate score type. Here is an example.
+To then run, pass the source and select the appropriate score type. Here is an example.
 ```bash
 compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk \
   --compare_scores score_type=comet \
