@@ -23,13 +23,13 @@ class Scorer(object):
   def scale(self):
     return 1.0
 
-  def score_corpus(self, ref, out):
+  def score_corpus(self, ref, out, src=None):
     pass
   
-  def score_sentence(self, ref, out):
+  def score_sentence(self, ref, out, src=None):
     pass
 
-  def cache_stats(self, ref, out):
+  def cache_stats(self, ref, out, src=None):
     return None
 
   def name(self):
@@ -45,32 +45,35 @@ class Scorer(object):
     return None
 
 class SentenceFactoredScorer(Scorer):
-  def score_corpus(self, ref, out):
+  def score_corpus(self, ref, out, src=None):
     """
     Score a corpus using the average of the score
 
     Args:
       ref: A reference corpus
       out: An output corpus
-
+      src: A source corpus. Might be ignored or required 
+        depending on the metric
     Returns:
       A tuple containing a single value for the average score, and None
     """
     if len(ref) == 0:
       return 0.0, None
     score_sum = 0
-    for r, o in zip(ref, out):
-      score_sum += self.score_sentence(r, o)[0]
+    src = [None for _ in ref] if src is None else src
+    for r, o, s in zip(ref, out, src):
+      score_sum += self.score_sentence(r, o, s)[0]
     return score_sum/len(ref), None
 
-  def cache_stats(self, ref, out):
+  def cache_stats(self, ref, out, src=None):
     """
     Cache sufficient statistics for caculating scores
 
     Args:
       ref: A reference corpus
       out: An output corpus
-
+      src: A source corpus. Might be ignored or required 
+        depending on the metric
     Returns:
       A tuple of cached statistics
     """
@@ -79,8 +82,9 @@ class SentenceFactoredScorer(Scorer):
       out = corpus_utils.lower(out)
 
     cached_scores = []
-    for r, o in zip(ref, out):
-      cached_scores.append(self.score_sentence(r, o)[0])
+    src = [None for _ in ref] if src is None else src
+    for r, o, s in zip(ref, out, src):
+      cached_scores.append(self.score_sentence(r, o, s)[0])
   
     return cached_scores
 
@@ -110,13 +114,14 @@ class BleuScorer(Scorer):
   def scale(self):
     return global_scorer_scale
 
-  def score_corpus(self, ref, out):
+  def score_corpus(self, ref, out, src=None):
     """
     Score a corpus using BLEU score
 
     Args:
       ref: A reference corpus
       out: An output corpus
+      src: A source courpus. Ignored if passed
 
     Returns:
       A tuple containing a single value for the BLEU score and a string summarizing auxiliary information
@@ -124,7 +129,7 @@ class BleuScorer(Scorer):
     cached_stats = self.cache_stats(ref, out)
     return self.score_cached_corpus(range(len(ref)), cached_stats)
 
-  def score_sentence(self, ref, out):
+  def score_sentence(self, ref, out, src=None):
     raise NotImplementedError("Sentence-level calculation is not implemented in BleuScorer as it is usually 0."
                               "Consider using SentenceBleuScorer (string sentbleu) instead.")
 
@@ -153,13 +158,14 @@ class BleuScorer(Scorer):
 
     return num, denom
   
-  def cache_stats(self, ref, out):
+  def cache_stats(self, ref, out, src=None):
     """
     Cache sufficient statistics for caculating BLEU score
 
     Args:
       ref: A reference corpus
       out: An output corpus
+      src: A source courpus. Ignored if passed
 
     Returns:
       A list of cached statistics
@@ -237,13 +243,14 @@ class SentBleuScorer(SentenceFactoredScorer):
   def scale(self):
     return global_scorer_scale
 
-  def score_sentence(self, ref, out):
+  def score_sentence(self, ref, out, src=None):
     """
     Score a single sentence with sentence-level smoothed BLEU score
 
     Args:
       ref: A reference sentence
       out: An output sentence
+      src: A source sentence. Ignored if passed
 
     Returns:
       The sentence-level BLEU score, and None
@@ -265,13 +272,14 @@ class LengthScorer(Scorer):
   """
   A scorer that calculate the length ratio
   """
-  def score_corpus(self, ref, out):
+  def score_corpus(self, ref, out, src=None):
     """
     Calculate the length ratio for a corpus
 
     Args:
       ref: A reference corpus
       out: An output corpus
+      src: A source courpus. Ignored if passed
 
     Returns:
       A tuple containing a single value for the length ratio and a string summarizing auxiliary information
@@ -282,13 +290,14 @@ class LengthScorer(Scorer):
       return 0.0, f'ref={ref_words}, out={out_words}'
     return self.scale * out_words / ref_words, f'ref={ref_words}, out={out_words}'
 
-  def score_sentence(self, ref, out):
+  def score_sentence(self, ref, out, src=None):
     """
     Score a single sentence by length ratio
 
     Args:
       ref: A reference sentence
       out: An output sentence
+      src: A source sentence. Ignored if passed
 
     Returns:
       The length, and a string summarizing the length of the reference and output sentence
@@ -307,13 +316,14 @@ class ExactMatchScorer(Scorer):
   """
   A scorer that calculates exact matches
   """
-  def score_corpus(self, ref, out):
+  def score_corpus(self, ref, out, src=None):
     """
     Calculate the percentage of exact matches in a corpus
 
     Args:
       ref: A reference corpus
       out: An output corpus
+      src: A source courpus. Ignored if passed
 
     Returns:
       A tuple containing a single value for the exact match percentage and None
@@ -324,13 +334,14 @@ class ExactMatchScorer(Scorer):
         matches += 1
     return float(matches) / len(ref), None
 
-  def score_sentence(self, ref, out):
+  def score_sentence(self, ref, out, src=None):
     """
     Score a single sentence by exact match
 
     Args:
       ref: A reference sentence
       out: An output sentence
+      src: A source sentence. Ignored if passed
 
     Returns:
       1 if exact matches 0, and None
@@ -377,13 +388,14 @@ class RibesScorer(SentenceFactoredScorer):
           dis += 1
     return 2*dis/(n*n-n)  
 
-  def score_sentence(self, ref, out):
+  def score_sentence(self, ref, out, src=None):
     """
     Score a single sentence with RIBES score
 
     Args:
       ref: A reference sentence
       out: An output sentence
+      src: A source sentence. Ignored if passed
 
     Returns:
       The RIBES score, and None
@@ -416,21 +428,22 @@ class SacreBleuScorer(Scorer):
   def scale(self):
     return global_scorer_scale
 
-  def score_sentence(self, ref, out):
+  def score_sentence(self, ref, out, src=None):
     raise NotImplementedError("Sentence-level calculation is not implemented in SacreBleuScorer as it is usually 0."
                               "Consider using SentenceBleuScorer (string sentbleu) instead.")
 
-  def score_corpus(self, ref, out):
+  def score_corpus(self, ref, out, src=None):
     cached_stats = self.cache_stats(ref, out)
     return self.score_cached_corpus(range(len(ref)), cached_stats)
 
-  def cache_stats(self, ref, out):
+  def cache_stats(self, ref, out, src=None):
     """
     Cache sufficient statistics for caculating SacreBLEU score
 
     Args:
       ref: A reference corpus
       out: An output corpus
+      src: A source courpus. Ignored if passed
 
     Returns:
       A list of cached statistics
@@ -494,13 +507,14 @@ class ChrFScorer(Scorer):
       ignore_whitespace=True  # No whitespaces
     )
 
-  def score_corpus(self, ref, out):
+  def score_corpus(self, ref, out, src=None):
     """
     Score a corpus using ChrF score
 
     Args:
       ref: A reference corpus
       out: An output corpus
+      src: A source courpus. Ignored if passed
 
     Returns:
       A tuple containing a single value for the ChrF score and a string summarizing auxiliary information
@@ -511,7 +525,7 @@ class ChrFScorer(Scorer):
       chrf = self.chrf_score([[x] for x in ref], out)
     return chrf, None
 
-  def score_sentence(self, ref, out):
+  def score_sentence(self, ref, out, src=None):
     return self.chrf_score([ref], [out]), None
 
   def name(self):
@@ -534,7 +548,7 @@ class RougeScorer(SentenceFactoredScorer):
   def scale(self):
     return global_scorer_scale
   
-  def score_sentence(self, ref, out):
+  def score_sentence(self, ref, out, src=None):
     if self.case_insensitive:
       ref = corpus_utils.lower(ref)
       out = corpus_utils.lower(out)
@@ -605,13 +619,14 @@ class WERScorer(Scorer):
   def scale(self):
     return global_scorer_scale
 
-  def score_corpus(self, ref, out):
+  def score_corpus(self, ref, out, src=None):
     """
     Score a corpus using WER
 
     Args:
       ref: A reference corpus
       out: An output corpus
+      src: A source courpus. Ignored if passed
 
     Returns:
       A tuple containing a single value for the WER and None
@@ -619,10 +634,10 @@ class WERScorer(Scorer):
     cached_stats = self.cache_stats(ref, out)
     return self.score_cached_corpus(np.arange(len(ref)), cached_stats)
 
-  def score_sentence(self, ref, out):
+  def score_sentence(self, ref, out, src=None):
     return self.score_corpus([ref], [out])
 
-  def cache_stats(self, ref, out):
+  def cache_stats(self, ref, out, src=None):
     """
     Cache sufficient statistics for caculating WER
 
@@ -660,7 +675,111 @@ class WERScorer(Scorer):
     wer = np.sum(cached_edit_distance[sent_ids])/denom if denom != 0 else 0
     return self.scale * wer, None
 
-  def _edit_distance(self, ref, out):
+  def _edit_distance(self, ref, out, src=None):
+    if self.case_insensitive:
+      ref = corpus_utils.lower(ref)
+      out = corpus_utils.lower(out)
+  
+    sp1 = len(ref)+1
+    tp1 = len(out)+1
+    scores = np.zeros((sp1, tp1))
+    equals = (np.expand_dims(np.array(ref), axis=1) == np.array(out))
+    scores[:,0] = range(sp1)
+    scores[0,:] = range(tp1)
+
+    # Forward edit distance
+    for i in range(0, len(ref)):
+      for j in range(0, len(out)):
+        my_action = 0 if equals[i,j] else 1
+        my_score = scores[i,j] + my_action * self.sub_pen
+        del_score = scores[i,j+1] + self.del_pen 
+        if del_score < my_score:
+          my_score = del_score
+        ins_score = scores[i+1,j] + self.ins_pen 
+        if ins_score < my_score:
+          my_score = ins_score
+        scores[i+1,j+1] = my_score
+
+    return scores[-1,-1]
+
+  def name(self):
+    return "Word Error Rate"
+
+  def idstr(self):
+    return "wer"
+
+class WERScorer(Scorer):
+  """
+  A scorer that calculates Word Error Rate (WER).
+  """
+  def __init__(self, sub_pen=1.0, ins_pen=1.0, del_pen=1.0, case_insensitive=False):
+    self.sub_pen = 1.0
+    self.ins_pen = 1.0
+    self.del_pen = 1.0
+    self.case_insensitive = case_insensitive
+
+  @property
+  def scale(self):
+    return global_scorer_scale
+
+  def score_corpus(self, ref, out, src=None):
+    """
+    Score a corpus using WER
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+      src: A source courpus. Ignored if passed
+
+    Returns:
+      A tuple containing a single value for the WER and None
+    """
+    cached_stats = self.cache_stats(ref, out)
+    return self.score_cached_corpus(np.arange(len(ref)), cached_stats)
+
+  def score_sentence(self, ref, out, src=None):
+    return self.score_corpus([ref], [out])
+
+  def cache_stats(self, ref, out, src=None):
+    """
+    Cache sufficient statistics for caculating WER
+
+    Args:
+      ref: A reference corpus
+      out: An output corpus
+      src: A source courpus. Ignored if passed
+
+    Returns:
+      A list of cached statistics
+    """
+    cached_stats = []
+
+    for r, o in zip(ref, out):
+      cached_stats.append( (len(r), self._edit_distance(r, o)) )
+
+    return cached_stats
+
+  def score_cached_corpus(self, sent_ids, cached_stats):
+    """
+    Score a corpus with cache
+
+    Args:
+      sent_ids: The sentence ids for reference and output corpora
+      cached_stats: A list of cached statistics
+
+    Returns:
+      A tuple containing a single value for the score and a string summarizing auxiliary information
+    """
+    if len(cached_stats) == 0:
+      return 0.0, None
+
+    cached_ref_len, cached_edit_distance = zip(*cached_stats)
+    cached_ref_len, cached_edit_distance = np.array(cached_ref_len), np.array(cached_edit_distance)
+    denom = np.sum(cached_ref_len[sent_ids])
+    wer = np.sum(cached_edit_distance[sent_ids])/denom if denom != 0 else 0
+    return self.scale * wer, None
+
+  def _edit_distance(self, ref, out, src=None):
     if self.case_insensitive:
       ref = corpus_utils.lower(ref)
       out = corpus_utils.lower(out)
@@ -706,14 +825,12 @@ class METEORScorer(Scorer):
   def scale(self):
     return global_scorer_scale
 
-  def score_corpus(self, ref, out):
+  def score_corpus(self, ref, out, src=None):
     """
     Score a corpus using METEOR score
-
     Args:
       ref: A reference corpus
       out: An output corpus
-
     Returns:
       A tuple containing a single value for the METEOR score and a string summarizing auxiliary information
     """
@@ -723,14 +840,13 @@ class METEORScorer(Scorer):
   def score_sentence(self, ref, out):
     return self.score_corpus([ref], [out])
 
-  def cache_stats(self, ref, out):
+  def cache_stats(self, ref, out, src=None):
     """
     Cache sufficient statistics for caculating METEOR score
-
     Args:
       ref: A reference corpus
       out: An output corpus
-
+      src: A source courpus. Ignored if passed
     Returns:
       A list of cached statistics
     """
@@ -760,11 +876,9 @@ class METEORScorer(Scorer):
   def score_cached_corpus(self, sent_ids, cached_stats):
     """
     Score a corpus using METEOR score with cache
-
     Args:
       sent_ids: The sentence ids for reference and output corpora
       cached_stats: A list of cached statistics
-
     Returns:
       A tuple containing a single value for the METEOR score and a string summarizing auxiliary information
     """
@@ -855,6 +969,46 @@ class METEORScorer(Scorer):
   def idstr(self):
     return "meteor"
 
+class COMETScorer(SentenceFactoredScorer):
+  """
+  A scorer that calculates sentence-level COMET score.
+  """
+  def __init__(self, model_name="wmt-large-da-estimator-1719"):
+    import torch
+    from comet.models import download_model
+    self.cuda = torch.cuda.is_available()
+    self.model = download_model(model_name)
+
+  @property
+  def scale(self):
+    return global_scorer_scale
+
+  def score_sentence(self, ref, out, src=None):
+    """
+    Score a single sentence with sentence-level COMET score
+
+    Args:
+      ref: A reference sentence
+      out: An output sentence
+      src: A source sentence
+
+    Returns:
+      The sentence-level COMET  score, and None
+    """
+    assert src is not None, "COMET requires source"
+
+    data = [
+      {"src": " ".join(src), "mt": " ".join(out), "ref": " ".join(ref)}
+    ]
+    score = self.model.predict(data, cuda=self.cuda)[1][0]
+    return self.scale * score, None
+
+  def name(self):
+    return "sentence-level COMET"
+
+  def idstr(self):
+    return "comet"
+
 def create_scorer_from_profile(profile, case_insensitive=False, meteor_directory=None, options=None):
   """
   Create a scorer from a profile string
@@ -887,5 +1041,7 @@ def create_scorer_from_profile(profile, case_insensitive=False, meteor_directory
     return METEORScorer(meteor_directory=meteor_directory, options=options)
   elif profile == 'exact':
     return ExactMatchScorer()
+  elif profile == 'comet':
+    return COMETScorer()
   else:
     raise ValueError(f'Invalid profile for scorer {profile}'.format(profile=profile))

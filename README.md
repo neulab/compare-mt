@@ -167,6 +167,24 @@ You can also analyze other language generation systems using the script. Here is
 compare-mt example/sum.ref.eng example/sum.sys1.eng example/sum.sys2.eng --compare_scores 'score_type=rouge1' 'score_type=rouge2' 'score_type=rougeL'
 ```
 
+### Evaluating on COMET
+
+It is possible to use the [COMET](https://unbabel.github.io/COMET/html/index.html) as a metric. 
+To do so, you need to install it first by running
+
+```bash
+pip install unbabel-comet
+```
+
+To then run, pass the source a select the appropriate score type. Here is an example.
+```bash
+compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --src_file example/ted.orig.slk \
+  --compare_scores score_type=comet \
+  --compare_sentence_buckets bucket_type=score,score_measure=sentcomet
+```
+
+Note that COMET runs on top of XLM-R, so it's highly recommended you use a GPU with it.
+
 ## Citation/References
 
 If you use compare-mt, we'd appreciate if you cite the [paper](http://arxiv.org/abs/1903.07926) about it!

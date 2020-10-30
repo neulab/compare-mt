@@ -20,20 +20,24 @@ from compare_mt import cache_utils
 
 source_code_url = 'https://github.com/neulab/compare-mt'
 
-def generate_score_report(ref, outs,
-                       score_type='bleu',
-                       bootstrap=0, prob_thresh=0.05,
-                       meteor_directory=None, options=None,
-                       title=None, 
-                       case_insensitive=False,
-                       to_cache=False,
-                       cache_dicts=None):
+def generate_score_report(
+  ref, outs,
+  src=None,
+  score_type='bleu',
+  bootstrap=0, prob_thresh=0.05,
+  meteor_directory=None, options=None,
+  title=None, 
+  case_insensitive=False,
+  to_cache=False,
+  cache_dicts=None
+):
   """
   Generate a report comparing overall scores of system(s) in both plain text and graphs.
 
   Args:
     ref: Tokens from the reference
     outs: Tokens from the output file(s)
+    src: Tokens for the source 
     score_type: A string specifying the scoring type (bleu/length)
     bootstrap: Number of samples for significance test (0 to disable)
     prob_thresh: P-value threshold for significance test
@@ -51,14 +55,13 @@ def generate_score_report(ref, outs,
   if type(case_insensitive) == str:
     case_insensitive = True if case_insensitive == 'True' else False
 
-
   # compute statistics
   scorer = scorers.create_scorer_from_profile(score_type, case_insensitive=case_insensitive, meteor_directory=meteor_directory, options=options)
 
   cache_key_list = ['scores', 'strs', 'sign_stats']
   scores, strs, sign_stats = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
   if cache_dicts is None:
-    scores, strs = zip(*[scorer.score_corpus(ref, out) for out in outs])
+    scores, strs = zip(*[scorer.score_corpus(ref, out, src=src) for out in outs])
   
   if to_cache:
     cache_dict = cache_utils.return_cache_dict(cache_key_list, [scores, strs, [scorer.cache_stats(ref, outs[0])] ])
@@ -270,7 +273,7 @@ def generate_src_word_accuracy_report(ref, outs, src, ref_align_file=None,
                            output_directory='outputs')
   return reporter 
 
-def generate_sentence_bucketed_report(ref, outs,
+def generate_sentence_bucketed_report(ref, outs, src=None,
                                    bucket_type='score', bucket_cutoffs=None,
                                    statistic_type='count',
                                    score_measure='sentbleu',
@@ -322,14 +325,16 @@ def generate_sentence_bucketed_report(ref, outs,
   bucketer = bucketers.create_sentence_bucketer_from_profile(bucket_type, bucket_cutoffs=bucket_cutoffs,
                                                              score_type=score_measure, label_set=label_set, case_insensitive=case_insensitive)
 
+  src = [None for _ in ref] if src is None else src
+
   if statistic_type == 'count':
     scorer = None
     if bucket_type != 'score' and bucket_type != 'lengthdiff':
       ref = ref_label = None
-    aggregator = lambda out,refs: len(out)
+    aggregator = lambda out,refs,src: len(out)
   elif statistic_type == 'score':
     scorer = scorers.create_scorer_from_profile(score_measure, case_insensitive=case_insensitive)
-    aggregator = lambda out,ref: scorer.score_corpus(ref,out)[0]
+    aggregator = lambda out,ref,src: scorer.score_corpus(ref,out,src)[0]
   else:
     raise ValueError(f'Illegal statistic_type {statistic_type}')
   
@@ -338,16 +343,16 @@ def generate_sentence_bucketed_report(ref, outs,
   stats = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
 
   if cache_dicts is None:
-    bcs = [bucketer.create_bucketed_corpus(out, ref=ref, ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
-    stats = [[aggregator(out,ref) for (out,ref) in bc] for bc in bcs]
+    bcs = [bucketer.create_bucketed_corpus(out, ref=ref, src=src, ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
+    stats = [[aggregator(out,ref,src) for (out,ref,src) in bc] for bc in bcs]
 
   if output_bucket_details and statistic_type == 'score':
-    bucket_cnt_calculator = lambda out,ref: len(out)
+    bucket_cnt_calculator = lambda out,ref,src: len(out)
     bucket_interval_calculator = lambda out,ref: sign_utils.eval_with_paired_bootstrap(ref, [out], scorer, None)[1][0]
     if cache_dicts is not None: # we don't cache bcs
-      bcs = [bucketer.create_bucketed_corpus(out, ref=ref, ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
-    bucket_cnts = [bucket_cnt_calculator(out,ref) for (out,ref) in bcs[0]]
-    bucket_intervals = [[bucket_interval_calculator(out,ref) for (out,ref) in bc] for bc in bcs]
+      bcs = [bucketer.create_bucketed_corpus(out, ref=ref, src=src,ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
+    bucket_cnts = [bucket_cnt_calculator(out,ref,src) for (out,ref,src) in bcs[0]]
+    bucket_intervals = [[bucket_interval_calculator(out,ref,src) for (out,ref,src) in bc] for bc in bcs]
   else:
     bucket_cnts = bucket_intervals = None
   
@@ -498,12 +503,13 @@ def generate_sentence_examples(ref, outs, src=None,
 
   cache_key_list = ['scores', 'strs']
   scores, strs = cache_utils.extract_cache_dicts(cache_dicts, cache_key_list, len(outs))
+  src = [None for _ in ref] if src is None else src
   if cache_dicts is None:
     scores, strs = [], []
     for out in outs:
       scores_i, strs_i = [], []
-      for (r, o) in zip(ref, out):
-        score, string = scorer.score_sentence(r, o)
+      for (r, o, s) in zip(ref, out, src):
+        score, string = scorer.score_sentence(r, o, s)
         scores_i.append(score)
         strs_i.append(string)
       scores.append(scores_i)
@@ -605,7 +611,7 @@ def main():
   parser.add_argument('--seed', type=int, default=None,
                       help="Seed for random number generation")
   parser.add_argument('--scorer_scale', type=float, default=100, choices=[1, 100],
-                      help="Set the scale of BLEU, METEOR, WER and chrF to 0-1 or 0-100 (default 0-100)")
+                      help="Set the scale of BLEU, METEOR, WER, chrF and COMET to 0-1 or 0-100 (default 0-100)")
   parser.add_argument('--http', type=int, dest='bind_port',
                       help='Launch an HTTP server at specified port to view results.'
                            'Disabled by default, but specifying a port number enabled it.')
@@ -634,10 +640,10 @@ def main():
   reports = []
 
   report_types = [
-    (args.compare_scores, generate_score_report, 'Aggregate Scores', False),
+    (args.compare_scores, generate_score_report, 'Aggregate Scores', True),
     (args.compare_word_accuracies, generate_word_accuracy_report, 'Word Accuracies', False),
     (args.compare_src_word_accuracies, generate_src_word_accuracy_report, 'Source Word Accuracies', True),
-    (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', False)]
+    (args.compare_sentence_buckets, generate_sentence_bucketed_report, 'Sentence Buckets', True)]
   if len(outs) > 1:
     report_types += [
       (args.compare_ngrams, generate_ngram_report, 'Characteristic N-grams', False),

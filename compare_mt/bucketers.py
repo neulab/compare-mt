@@ -557,13 +557,14 @@ class NumericalLabelWordBucketer(WordBucketer):
 
 class SentenceBucketer(Bucketer):
 
-  def calc_bucket(self, val, ref=None, out_label=None, ref_label=None):
+  def calc_bucket(self, val, ref=None, src=None, out_label=None, ref_label=None):
     """
     Calculate the bucket for a particular sentence
 
     Args:
       val: The sentence to calculate the bucket for
       ref: The reference sentence, if it exists
+      src: The source sentence, if it exists
       ref_labels: The label of the reference sentence, if it exists
       out_labels: The label of the output sentence, if it exists
 
@@ -572,19 +573,23 @@ class SentenceBucketer(Bucketer):
     """
     raise NotImplementedError('calc_bucket must be implemented in subclasses of SentenceBucketer')
 
-  def create_bucketed_corpus(self, out, ref=None, ref_labels=None, out_labels=None):
-    bucketed_corpus = [([],[] if ref else None) for _ in self.bucket_strs]
+  def create_bucketed_corpus(self, out, ref=None, src=None, ref_labels=None, out_labels=None):
+    bucketed_corpus = [([],[] if ref else None, []) for _ in self.bucket_strs]
     if ref is None:
       ref = out
 
     if ref_labels is None:
       ref_labels = out_labels
-    
-    for i, (out_words, ref_words) in enumerate(zip(out, ref)):
-      bucket = self.calc_bucket(out_words, ref_words, label=(ref_labels[i][0] if ref_labels else None))
+
+    src = [None for _ in out] if src is None else src
+
+    for i, (out_words, ref_words, src_words) in enumerate(zip(out, ref, src)):
+      bucket = self.calc_bucket(out_words, ref_words, src_words, label=(ref_labels[i][0] if ref_labels else None))
+
       bucketed_corpus[bucket][0].append(out_words)
       bucketed_corpus[bucket][1].append(ref_words)
-
+      bucketed_corpus[bucket][2].append(src_words)
+      
     return bucketed_corpus
 
 
@@ -601,11 +606,11 @@ class ScoreSentenceBucketer(SentenceBucketer):
     self.set_bucket_cutoffs(bucket_cutoffs, num_type='float')
     self.case_insensitive = case_insensitive
 
-  def calc_bucket(self, val, ref=None, label=None):
+  def calc_bucket(self, val, ref=None, src=None, label=None):
     if self.case_insensitive:
       return self.cutoff_into_bucket(self.scorer.score_sentence(corpus_utils.lower(ref), corpus_utils.lower(val))[0])
     else:
-      return self.cutoff_into_bucket(self.scorer.score_sentence(ref, val)[0])
+      return self.cutoff_into_bucket(self.scorer.score_sentence(ref, val, src)[0])
 
   def name(self):
     return self.scorer.name()
@@ -623,7 +628,7 @@ class LengthSentenceBucketer(SentenceBucketer):
       bucket_cutoffs = [10, 20, 30, 40, 50, 60]
     self.set_bucket_cutoffs(bucket_cutoffs, num_type='int')
 
-  def calc_bucket(self, val, ref=None, label=None):
+  def calc_bucket(self, val, ref=None, src=None, label=None):
     return self.cutoff_into_bucket(len(ref))
 
   def name(self):
@@ -642,7 +647,7 @@ class LengthDiffSentenceBucketer(SentenceBucketer):
       bucket_cutoffs = [-20, -10, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 11, 21]
     self.set_bucket_cutoffs(bucket_cutoffs, num_type='int')
 
-  def calc_bucket(self, val, ref=None, label=None):
+  def calc_bucket(self, val, ref=None, src=None, label=None):
     return self.cutoff_into_bucket(len(val) - len(ref))
 
   def name(self):
@@ -668,7 +673,7 @@ class LabelSentenceBucketer(SentenceBucketer):
     for i, l in enumerate(label_set):
       self.bucket_map[l] = i
 
-  def calc_bucket(self, val, ref=None, label=None):
+  def calc_bucket(self, val, ref=None, src=None, label=None):
     return self.bucket_map[label]
 
   def name(self):
@@ -693,7 +698,7 @@ class NumericalLabelSentenceBucketer(SentenceBucketer):
       bucket_cutoffs = [0.25, 0.5, 0.75]
     self.set_bucket_cutoffs(bucket_cutoffs)
 
-  def calc_bucket(self, val, ref=None, label=None):
+  def calc_bucket(self, val, ref=None, src=None, label=None):
     return self.cutoff_into_bucket(float(label))
 
   def name(self):
