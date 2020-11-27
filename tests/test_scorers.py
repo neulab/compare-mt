@@ -156,5 +156,28 @@ class TestSacreBleuScorer(unittest.TestCase):
     self.assertAlmostEqual(detok_bleu, 21.7, places=0)
 
 
+class TestGleuScorer(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(cls) -> None:
+    example_path = os.path.join(compare_mt_root, "example")
+    filenames = ["ted.ref.eng", "ted.sys1.eng", "ted.orig.slk"]
+    cls.ref, cls.out, cls.src = [load_tokens(os.path.join(example_path, name)) for name in filenames]
+    cls.scorer = scorers.create_scorer_from_profile("gleu", case_insensitive=False)
+
+  def test_score_corpus(self):
+    gleu, _ = self.scorer.score_corpus(self.ref, self.out, self.src)
+    # Compare to https://github.com/cnap/gec-ranking
+    self.assertAlmostEqual(gleu, 22.39, places=1)
+
+  def test_score_sentence(self):
+    src = "A simple src sentence of test .".split()
+    ref = "A simple source sentence for testing .".split()
+    out = "A simple src sentence for testing .".split()
+    gleu, _ = self.scorer.score_sentence(ref, out, src)
+    # Compare to https://github.com/cnap/gec-ranking
+    self.assertAlmostEqual(gleu, 33.03, places=1)
+
+
 if __name__ == "__main__":
   unittest.main()
