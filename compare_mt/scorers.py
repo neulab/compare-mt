@@ -1020,7 +1020,7 @@ class GleuScorer(Scorer):
       cached_stats: A list of cached statistics
 
     Returns:
-      A tuple containing a single value for the BLEU score and a string summarizing auxiliary information
+      A tuple containing a single value for the GLEU score and a string summarizing auxiliary information
     """
     if len(cached_stats) == 0:
       return 0.0, None

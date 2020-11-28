@@ -64,7 +64,7 @@ def generate_score_report(
     scores, strs = zip(*[scorer.score_corpus(ref, out, src=src) for out in outs])
   
   if to_cache:
-    cache_dict = cache_utils.return_cache_dict(cache_key_list, [scores, strs, [scorer.cache_stats(ref, outs[0])] ])
+    cache_dict = cache_utils.return_cache_dict(cache_key_list, [scores, strs, [scorer.cache_stats(ref, outs[0], src=src)] ])
     return cache_dict
 
   if bootstrap != 0:
@@ -72,7 +72,7 @@ def generate_score_report(
     for i in range(len(scores)):
       for j in range(i+1, len(scores)):
         direcs.append( (i,j) )
-    wins, sys_stats = sign_utils.eval_with_paired_bootstrap(ref, outs, scorer, direcs, num_samples=bootstrap, cache_stats=sign_stats)
+    wins, sys_stats = sign_utils.eval_with_paired_bootstrap(ref, outs, src, scorer, direcs, num_samples=bootstrap, cache_stats=sign_stats)
     wins = list(zip(direcs, wins))
   else:
     wins = sys_stats = None
@@ -348,7 +348,7 @@ def generate_sentence_bucketed_report(ref, outs, src=None,
 
   if output_bucket_details and statistic_type == 'score':
     bucket_cnt_calculator = lambda out,ref,src: len(out)
-    bucket_interval_calculator = lambda out,ref: sign_utils.eval_with_paired_bootstrap(ref, [out], scorer, None)[1][0]
+    bucket_interval_calculator = lambda out,ref: sign_utils.eval_with_paired_bootstrap(ref, [out], src, scorer, None)[1][0]
     if cache_dicts is not None: # we don't cache bcs
       bcs = [bucketer.create_bucketed_corpus(out, ref=ref, src=src,ref_labels=ref_labels if ref_labels else None, out_labels=out_labels[i] if out_labels else None) for i, out in enumerate(outs)]
     bucket_cnts = [bucket_cnt_calculator(out,ref,src) for (out,ref,src) in bcs[0]]

@@ -13,7 +13,7 @@
 import numpy as np
 
 
-def eval_with_paired_bootstrap(ref, outs,
+def eval_with_paired_bootstrap(ref, outs, src,
                                scorer,
                                compare_directions=[(0, 1)],
                                num_samples=1000, sample_ratio=0.5,
@@ -26,6 +26,7 @@ def eval_with_paired_bootstrap(ref, outs,
   Args:
     ref: The correct labels
     outs: The output of systems
+    src: The source corpus
     scorer: The scorer
     compare_directions: A string specifying which two systems to compare
     num_samples: The number of bootstrap samples to take
@@ -41,7 +42,7 @@ def eval_with_paired_bootstrap(ref, outs,
   ids = list(range(n))
 
   if cache_stats is None:
-    cache_stats = [scorer.cache_stats(ref, out) for out in outs] 
+    cache_stats = [scorer.cache_stats(ref, out, src=src) for out in outs]
   sample_size = int(n*sample_ratio)
   for _ in range(num_samples):
     # Subsample the gold and system outputs (with replacement)
@@ -52,7 +53,8 @@ def eval_with_paired_bootstrap(ref, outs,
     else:
       reduced_ref = [ref[i] for i in reduced_ids]
       reduced_outs = [[out[i] for i in reduced_ids] for out in outs]
-      sys_score, _ = zip(*[scorer.score_corpus(reduced_ref, reduced_out) for reduced_out in reduced_outs])
+      reduced_src = [src[i] for i in reduced_ids]
+      sys_score, _ = zip(*[scorer.score_corpus(reduced_ref, reduced_out, reduced_src) for reduced_out in reduced_outs])
 
     if wins is not None:
       for i, compare_direction in enumerate(compare_directions): 
