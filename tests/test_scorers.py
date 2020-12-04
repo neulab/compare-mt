@@ -178,6 +178,15 @@ class TestGleuScorer(unittest.TestCase):
     # Compare to https://github.com/cnap/gec-ranking
     self.assertAlmostEqual(gleu, 33.03, places=1)
 
+  def test_score_cached_corpus(self):
+    cached_stats = [
+      (9, 2, [(2, 2), (1, 1), (0, 0), (0, 0)]),
+      (4, 13, [(4, 13), (2, 12), (0, 11), (0, 10)]),
+      (10, 10, [(6, 10), (4, 9), (1, 8), (0, 7)])
+    ]
+    gleu, _ = self.scorer.score_cached_corpus(range(len(cached_stats)), cached_stats)
+    self.assertEqual(gleu, 0)
+
 
 if __name__ == "__main__":
   unittest.main()
