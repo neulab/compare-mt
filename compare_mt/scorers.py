@@ -1041,7 +1041,7 @@ class GleuScorer(Scorer):
         denom_prec[n] += denom
 
     # According to https://github.com/cnap/gec-ranking/blob/master/scripts/gleu.py
-    if any(map(lambda x: x == 0, chain(num_prec, denom_prec))):
+    if any(map(lambda x: x == 0, chain(num_prec.values(), denom_prec.values()))):
       return 0, None
 
     prec = 0
