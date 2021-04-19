@@ -85,12 +85,22 @@ class WordBucketer(Bucketer):
     my_out_totals = np.zeros( (num_outs, num_buckets) ,dtype=int)
     my_out_matches = np.zeros( (num_outs, num_buckets) ,dtype=int)
     for b in ref_buckets:
-      my_ref_total[b] += 1
+      if isinstance(b, list):
+        for bi in b:
+          my_ref_total[bi] += 1
+      else:
+        my_ref_total[b] += 1
     for oi, (obs, ms) in enumerate(zip(out_buckets, out_matches)):
       for b, m in zip(obs, ms):
-        my_out_totals[oi,b] += 1
-        if m >= 0:
-          my_out_matches[oi,b] += 1
+        if isinstance(b, list):
+          for bi in b:
+            my_out_totals[oi,bi] += 1
+            if m >= 0:
+              my_out_matches[oi,bi] += 1
+        else:
+          my_out_totals[oi,b] += 1
+          if m >= 0:
+            my_out_matches[oi,b] += 1
     return my_ref_total, my_out_totals, my_out_matches, ref_buckets, out_buckets, out_matches
 
   def _calc_src_buckets_and_matches(self, src_sent, src_label, ref_sent, ref_aligns, out_sents):
@@ -526,6 +536,36 @@ class LabelWordBucketer(WordBucketer):
   def idstr(self):
     return "labels"
 
+class MultiLabelWordBucketer(WordBucketer):
+
+  def __init__(self,
+               label_set=None):
+    """
+    A bucketer that buckets words by one or multiple labels.
+
+    Args:
+      label_set: The set of labels to use as buckets. This can be a list, or a string separated by '+'s.
+    """
+    if type(label_set) == str:
+      label_set = label_set.split('+')
+    self.bucket_strs = label_set + ['other']
+    label_set_len = len(label_set)
+    self.bucket_map = defaultdict(lambda: label_set_len)
+    for i, l in enumerate(label_set):
+      self.bucket_map[l] = i
+
+  def calc_bucket(self, word, label=None):
+    if not label:
+      raise ValueError('When calculating buckets by label, label must be non-zero')
+    label = label.split('+')
+    return [self.bucket_map[l] for l in label]
+
+  def name(self):
+    return "multilabels"
+
+  def idstr(self):
+    return "multilabels"
+
 class NumericalLabelWordBucketer(WordBucketer):
 
   def __init__(self,
@@ -682,6 +722,33 @@ class LabelSentenceBucketer(SentenceBucketer):
   def idstr(self):
     return "labels"
 
+class MultiLabelSentenceBucketer(SentenceBucketer):
+
+  def __init__(self, label_set=None):
+    """
+    A bucketer that buckets sentences by their labels.
+
+    Args:
+      label_set: The set of labels to use as buckets. This can be a list, or a string separated by '+'s.
+    """
+    if type(label_set) == str:
+      label_set = label_set.split('+')
+    self.bucket_strs = label_set + ['other']
+    label_set_len = len(label_set)
+    self.bucket_map = defaultdict(lambda: label_set_len)
+    for i, l in enumerate(label_set):
+      self.bucket_map[l] = i
+
+  def calc_bucket(self, val, ref=None, src=None, label=None):
+    label = label.split('+')
+    return [self.bucket_map[l] for l in label]
+
+  def name(self):
+    return "multilabels"
+
+  def idstr(self):
+    return "multilabels"
+
 class NumericalLabelSentenceBucketer(SentenceBucketer):
 
   def __init__(self, bucket_cutoffs=None):
@@ -727,6 +794,9 @@ def create_word_bucketer_from_profile(bucket_type,
   elif bucket_type == 'label':
     return LabelWordBucketer(
       label_set=label_set)
+  elif bucket_type == 'multilabel':
+    return MultiLabelWordBucketer(
+      label_set=label_set)
   elif bucket_type == 'numlabel':
     return NumericalLabelWordBucketer(
       bucket_cutoffs=bucket_cutoffs)
@@ -748,6 +818,9 @@ def create_sentence_bucketer_from_profile(bucket_type,
     return LengthDiffSentenceBucketer(bucket_cutoffs=bucket_cutoffs)
   elif bucket_type == 'label':
     return LabelSentenceBucketer(label_set=label_set)
+  elif bucket_type == 'multilabel':
+    return MultiLabelSentenceBucketer(
+      label_set=label_set)
   elif bucket_type == 'numlabel':
     return NumericalLabelSentenceBucketer(bucket_cutoffs=bucket_cutoffs)
   else:

@@ -116,6 +116,13 @@ This will calculate word accuracies and n-gram matches by POS bucket, and allows
 that the phrase-based MT system is better at translating content words such as nouns and verbs, while neural MT
 is doing better at translating function words.
 
+We also give an example to perform aggregate analysis when multiple labels per word/sentence, where each group of labels is a string separated by '+'s, are allowed:
+
+```bash
+compare-mt example/multited.ref.jpn example/multited.sys1.jpn example/multited.sys2.jpn 
+    --compare_word_accuracies bucket_type=multilabel,ref_labels=example/multited.ref.jpn.tag,out_labels="example/multited.sys1.jpn.tag;example/multited.sys2.jpn.tag",label_set=lexical+formality+pronouns+ellipsis
+```
+
 It also is possible to create labels that represent numberical values. For example, `scripts/relativepositiontag.py` calculates the relative position of words in the sentence, where 0 is the first word in the sentence, 0.5 is the word in the middle, and 1.0 is the word in the end. These numerical values can then be bucketed. Here is an example:
 
 ```bash
