@@ -63,13 +63,16 @@ We do highlight a few particularly useful and common types of analysis below:
 
 ### Significance Tests
 
-The script allows you to perform statistical significance tests for scores based on bootstrap resampling. You can set
-the number of samplings manually. Here is an example using the example data:
+The script allows you to perform statistical significance tests for scores based on [bootstrap resampling](https://aclanthology.org/W04-3250.pdf). You can set
+the number of samples manually. Here is an example using the example data:
 
 
 ```bash
 compare-mt example/ted.ref.eng example/ted.sys1.eng example/ted.sys2.eng --compare_scores score_type=bleu,bootstrap=1000,prob_thresh=0.05
 ```
+
+One important thing to note is that bootrap resampling as implemented in compare-mt only tests for variance due to data sampling, approximately answering the question ``if I ran the same system on a different, similarly sampled dataset, would I be likely to get the same result?''.
+It does not say anything about whether a system will perform better on another dataset in a different domain, and it [does not control for training-time factors](https://aclanthology.org/P11-2031/) such as selection of the random seed, so it cannot say if another training run of the same model would yield the same result.
 
 ### Using Training Set Frequency
 
