@@ -7,6 +7,6 @@ import compare_mt.bucketers
 import compare_mt.reporters
 import compare_mt.arg_utils
 import compare_mt.print_utils
-import compare_mt.version
+import compare_mt.version_info
 
-__version__ = compare_mt.version.__version__
+__version__ = compare_mt.version_info.__version__
