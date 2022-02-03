@@ -7,5 +7,6 @@ import compare_mt.bucketers
 import compare_mt.reporters
 import compare_mt.arg_utils
 import compare_mt.print_utils
+import compare_mt.version_info
 
-__version__ = "0.2.8"
+__version__ = compare_mt.version_info.__version__

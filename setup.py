@@ -1,7 +1,6 @@
 from setuptools import setup, find_packages
 import unittest
 import codecs
-import compare_mt
 
 def test_suite():
   test_loader = unittest.TestLoader()
@@ -10,10 +9,11 @@ def test_suite():
   return test_suite
 
 
+exec(open('compare_mt/version_info.py').read())
 
 setup(
   name="compare_mt",
-  version=compare_mt.__version__,
+  version=__version__,
   description="Holistic comparison of the output of text generation models",
   long_description=codecs.open("README.md", encoding="utf-8").read(),
   long_description_content_type="text/markdown",
