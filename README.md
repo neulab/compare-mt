@@ -1,7 +1,7 @@
 # compare-mt
 by [NeuLab](http://www.cs.cmu.edu/~neulab/) @ [CMU LTI](https://lti.cs.cmu.edu), and other contributors
 
-[![Build Status](https://travis-ci.org/neulab/compare-mt.svg?branch=master)](https://travis-ci.org/neulab/compare-mt)
+<a href=".github/workflows/ci.yml"><img alt="Integration Tests", src="https://github.com/neulab/compare-mt/actions/workflows/ci.yml/badge.svg?event=push" /></a>
 
 `compare-mt` (for "compare my text") is a program to compare the output of multiple systems for language generation,
 including machine translation, summarization, dialog response generation, etc. 
