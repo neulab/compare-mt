@@ -3,6 +3,9 @@ import unittest
 import numpy as np
 import sys
 
+from compare_mt.cache_utils import CachedPorterStemmer
+from nltk.stem.porter import PorterStemmer
+
 compare_mt_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 sys.path.append(compare_mt_root)
 
@@ -140,6 +143,15 @@ class TestSentExamCache(unittest.TestCase):
     ori_report = compare_mt_main.generate_sentence_examples(self.ref, [self.out1, self.out2])
     cached_report = compare_mt_main.generate_sentence_examples(self.ref, [self.out1, self.out2], cache_dicts=[cached_stats1, cached_stats2])
     self.assertTrue(cached_report.scorediff_lists== ori_report.scorediff_lists)
+
+class TestCachedPorterStemmer(unittest.TestCase):
+  def test_stem(self):
+    cached_stemmer = CachedPorterStemmer()
+    stemmer = PorterStemmer()
+    words = ["cats", "citizen", "best", "citizen" "cats"]
+
+    for w in words:
+      self.assertEqual(stemmer.stem(w), cached_stemmer.stem(w))
 
 if __name__ == "__main__":
   unittest.main()
