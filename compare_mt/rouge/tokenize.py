@@ -23,6 +23,7 @@ from __future__ import print_function
 import re
 import six
 
+EMPTY_OR_INVALID_TOKENS = re.compile(r"^[a-z0-9]+$")
 
 def tokenize(text, stemmer):
   """Tokenize input text into a list of tokens.
@@ -46,6 +47,6 @@ def tokenize(text, stemmer):
     tokens = [stemmer.stem(x) if len(x) > 3 else x for x in tokens]
 
   # One final check to drop any empty or invalid tokens.
-  tokens = [x for x in tokens if re.match(r"^[a-z0-9]+$", six.ensure_str(x))]
+  tokens = [x for x in tokens if EMPTY_OR_INVALID_TOKENS.match(six.ensure_str(x))]
 
   return tokens

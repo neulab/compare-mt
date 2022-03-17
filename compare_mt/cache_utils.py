@@ -1,3 +1,6 @@
+from functools import lru_cache
+from nltk.stem.porter import PorterStemmer
+
 def extract_cache_dicts(cache_dicts, key_list, num_out):
   if cache_dicts is not None:
     if len(cache_dicts) != num_out:
@@ -14,3 +17,12 @@ def return_cache_dict(key_list, value_list):
       raise ValueError(f'Only support caching for one system at a time!')
   cache_dict = {k:v[0] for (k, v) in zip(key_list, value_list)}
   return cache_dict
+
+class CachedPorterStemmer(PorterStemmer):
+  """A wrapper class for PorterStemmer that uses LRU cache to reduce latency"""
+  def __init__(self, mode=PorterStemmer.NLTK_EXTENSIONS):
+    super().__init__(mode)
+
+  @lru_cache(maxsize=50000)
+  def stem(self, word, to_lowercase=True):
+    return super().stem(word, to_lowercase)

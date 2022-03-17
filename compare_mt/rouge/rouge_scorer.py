@@ -33,7 +33,7 @@ from __future__ import print_function
 import collections
 import re
 
-from nltk.stem import porter
+from compare_mt.cache_utils import CachedPorterStemmer
 import six
 from six.moves import map
 from six.moves import range
@@ -63,7 +63,7 @@ class RougeScorer(scoring.BaseScorer):
     """
 
     self.rouge_types = rouge_types
-    self._stemmer = porter.PorterStemmer() if use_stemmer else None
+    self._stemmer = CachedPorterStemmer() if use_stemmer else None
 
   def score(self, target, prediction):
     """Calculates rouge scores between the target and prediction.
