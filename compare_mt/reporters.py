@@ -1,7 +1,9 @@
 import matplotlib
 matplotlib.use('agg')
-from matplotlib import pyplot as plt 
+from matplotlib import pyplot as plt
+from cycler import cycler
 plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['axes.prop_cycle'] = cycler(color=["#7293CB", "#E1974C", "#84BA5B", "#D35E60", "#808585", "#9067A7", "#AB6857", "#CCC210"])
 import numpy as np
 import os
 import itertools
@@ -78,8 +80,6 @@ def next_tab_id():
   tab_counter += 1
   return f'{tab_counter:03d}'
 
-bar_colors = ["#7293CB", "#E1974C", "#84BA5B", "#D35E60", "#808585", "#9067A7", "#AB6857", "#CCC210"]
-
 def make_bar_chart(datas,
                    output_directory, output_fig_file, output_fig_format='png',
                    errs=None, title=None, xlabel=None, xticklabels=None, ylabel=None):
@@ -89,7 +89,7 @@ def make_bar_chart(datas,
   bars = []
   for i, data in enumerate(datas):
     err = errs[i] if errs != None else None
-    bars.append(ax.bar(ind+i*width, data, width, color=bar_colors[i], bottom=0, yerr=err))
+    bars.append(ax.bar(ind+i*width, data, width, bottom=0, yerr=err))
   # Set axis/title labels
   if title is not None:
     ax.set_title(title)
