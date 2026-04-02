@@ -8,7 +8,7 @@ def _count_ngram(sent, order):
   for i, word in enumerate(sent):
     for j in range(min(i+1, order)):
       gram_pos[j+1][word].append(i-j)
-      word = sent[i-j-1] + ' ' + word
+      word = ' '.join([sent[i-j-1], word])
   return gram_pos
 
 def ngram_context_align(ref, out, order=-1, case_insensitive=False):
@@ -50,13 +50,13 @@ def ngram_context_align(ref, out, order=-1, case_insensitive=False):
       word_backward = word 
       for j in range(1, order):
         if i - j >= 0:
-          word_backward = out[i-j] + ' ' + word_backward 
+          word_backward = ' '.join([out[i-j], word_backward])
           if len(ref_gram_pos[j+1][word_backward]) == len(out_gram_pos[j+1][word_backward]) == 1:
             worder.append(ref_gram_pos[j+1][word_backward][0]+j)
             break
 
         if i + j < len(out):
-          word_forward = word_forward + ' ' + out[i+j]
+          word_forward = ' '.join([word_forward, out[i+j]])
           if len(ref_gram_pos[j+1][word_forward]) == len(out_gram_pos[j+1][word_forward]) == 1:
             worder.append(ref_gram_pos[j+1][word_forward][0])
             break
